@@ -1,4 +1,5 @@
 <script lang="ts">
+  import NoteHint from './NoteHint.svelte';
   import { displayPlural, displayVerbForms, speakableTerm } from '../../lib/german/articles';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
@@ -63,7 +64,7 @@
         {/each}
       </div>
     {/if}
-    {#if card.notes.trim()}<div class="muted small notes">{card.notes}</div>{/if}
+    <NoteHint notes={card.notes} />
   </div>
 
   <button type="button" class="btn btn-primary btn-lg btn-block" onclick={gotIt}>Got it</button>
@@ -122,8 +123,5 @@
   }
   .ex-de {
     font-style: italic;
-  }
-  .notes {
-    white-space: pre-line;
   }
 </style>

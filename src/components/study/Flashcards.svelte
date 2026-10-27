@@ -6,6 +6,7 @@
   import type { ModeProps } from '../../lib/study/modes';
   import SpeakButton from '../SpeakButton.svelte';
   import Term from '../Term.svelte';
+  import NoteHint from './NoteHint.svelte';
   import SwipeCard, { type SwipeDir } from './SwipeCard.svelte';
 
   /**
@@ -107,6 +108,7 @@
               {#if verbForms}<div>{verbForms}</div>{/if}
             </div>
           {/if}
+          <NoteHint notes={card.notes} />
           {#if examples.length}
             <div class="examples">
               {#each examples as ex}

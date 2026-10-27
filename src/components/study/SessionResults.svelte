@@ -1,12 +1,13 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { fly } from 'svelte/transition';
+  import { fade, fly } from 'svelte/transition';
   import { speakableTerm } from '../../lib/german/articles';
   import { dur, easeOut } from '../../lib/motion';
   import type { Card } from '../../lib/types';
   import SpeakButton from '../SpeakButton.svelte';
   import Term from '../Term.svelte';
   import Confetti from './Confetti.svelte';
+  import Icon from '../Icon.svelte';
 
   /** End-of-session screen: confetti, count-up score, missed words, action buttons. */
   let {
@@ -14,12 +15,15 @@
     total,
     missed,
     celebrate = true,
+    becameHard = [],
     actions,
   }: {
     correct: number;
     total: number;
     missed: Card[];
     celebrate?: boolean;
+    /** Words that just became hard words (missed 5+ times): nudge to add a memory hook. */
+    becameHard?: Card[];
     actions: Snippet;
   } = $props();
 
@@ -58,6 +62,21 @@
     <div class="muted">correct on the first try</div>
   </div>
 
+  {#if becameHard.length}
+    <a class="card hard-nudge" href="#/hard" in:fade={{ duration: dur(200) }}>
+      <span class="hard-icon"><Icon name="flame" size={22} filled /></span>
+      <span class="hard-text">
+        <strong>
+          {becameHard.length === 1 ? 'A word became a hard word' : `${becameHard.length} words became hard words`}
+        </strong>
+        <span class="small muted">
+          {becameHard.map((c) => c.term).join(', ')} — give {becameHard.length === 1 ? 'it' : 'them'} a memory hook
+        </span>
+      </span>
+      <Icon name="chevron" size={18} />
+    </a>
+  {/if}
+
   {#if missed.length}
     <div>
       <div class="section-title">To review ({missed.length})</div>
@@ -81,6 +100,25 @@
 </div>
 
 <style>
+  .hard-nudge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+    border: 1.5px solid color-mix(in srgb, var(--warn) 60%, transparent);
+  }
+  .hard-icon {
+    color: var(--warn);
+    flex-shrink: 0;
+  }
+  .hard-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
   .results {
     margin-top: 4px;
   }

@@ -25,6 +25,7 @@
   import Read from './routes/Read.svelte';
   import Reader from './routes/Reader.svelte';
   import PasteText from './routes/PasteText.svelte';
+  import HardWords from './routes/HardWords.svelte';
 
   /*
    * Routes (hash based). Tab roots (show the bottom tab bar): /, /library, /levels, /settings.
@@ -45,6 +46,7 @@
    *   /read                     Read: articles by level, saved, paste your own
    *   /article/:source/:id      Reader (tap words → add to the article's set)
    *   /paste                    Paste your own text into the reader
+   *   /hard                     Hard words: missed 5+ times, practice + memory hooks
    * Route components read route.parts / route.query themselves.
    */
   const ROUTES = {
@@ -63,6 +65,7 @@
     read: Read,
     article: Reader,
     paste: PasteText,
+    hard: HardWords,
   } as const;
 
   // Backup reminder pop-up (waits for the first screen and any study session; once per launch).

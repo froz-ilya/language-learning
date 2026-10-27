@@ -9,6 +9,7 @@
   import Term from '../Term.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import ResultIcon from './ResultIcon.svelte';
+  import NoteHint from './NoteHint.svelte';
 
   /** der / die / das drill. Keyed per question by the parent. */
   let { item, onanswer, onnext }: ModeProps = $props();
@@ -69,6 +70,7 @@
         <SpeakButton text={speakableTerm(card)} />
       </div>
       {#if card.plural}<div class="muted">Plural: {displayPlural(card)}</div>{/if}
+      {#if !correct}<NoteHint notes={card.notes} />{/if}
     </div>
     <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>Continue</button>
   {/if}

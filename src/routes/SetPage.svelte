@@ -18,7 +18,7 @@
   import { settings } from '../lib/settings.svelte';
   import { db } from '../lib/db/schema';
   import { allFolders, cardsInSet, deleteCard, deleteSet, toggleStar, updateSet } from '../lib/db/repo';
-  import { progressOf, reviewsFor, setKnown, statusOf, STATUS_LABELS, type WordStatus } from '../lib/progress';
+  import { isHard, progressOf, reviewsFor, setKnown, statusOf, STATUS_LABELS, type WordStatus } from '../lib/progress';
   import { displayPlural, displayVerbForms, speakableTerm } from '../lib/german/articles';
   import { fillCards } from '../lib/lookup/lookup';
   import { chooseAction, confirmAction, promptText, showToast, undoToast, type ActionItem } from '../lib/ui/dialogs.svelte';
@@ -32,7 +32,8 @@
     cards.sort((a, b) => a.createdAt - b.createdAt || a.id! - b.id!);
     const reviews = await reviewsFor(cards);
     const status = new Map(cards.map((c) => [c.id!, statusOf(c, reviews.get(c.id!))]));
-    return { set, cards, folders, status, progress: progressOf(cards, reviews) };
+    const hard = new Set(cards.filter((c) => isHard(c, reviews.get(c.id!))).map((c) => c.id!));
+    return { set, cards, folders, status, hard, progress: progressOf(cards, reviews) };
   });
 
   const set = $derived(data.value?.set);
@@ -319,6 +320,7 @@
                         <span class="texts">
                           <span class="line1">
                             <span class="de"><Term card={c} /></span>
+                            {#if data.value?.hard.has(c.id!)}<span class="hard" title="Hard word"><Icon name="flame" size={14} filled /></span>{/if}
                             {#if c.translation}<span class="tr">{c.translation}</span>{/if}
                           </span>
                           {#if secondLine(c) || c.needsFill}
@@ -499,6 +501,11 @@
     font-size: 12px;
     font-weight: 600;
     margin-left: 4px;
+  }
+  .hard {
+    display: inline-flex;
+    color: var(--warn);
+    vertical-align: -2px;
   }
   .dot {
     width: 9px;

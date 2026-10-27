@@ -13,7 +13,7 @@
   import { settings } from '../lib/settings.svelte';
   import { db } from '../lib/db/schema';
   import { deleteCard, emptyCard, saveCard } from '../lib/db/repo';
-  import { setKnown, statusOf, STATUS_LABELS, type WordStatus } from '../lib/progress';
+  import { isHard, setKnown, statusOf, STATUS_LABELS, type WordStatus } from '../lib/progress';
   import { parseGermanInput } from '../lib/german/parseTerm';
   import { ARTICLE, displayPlural, displayVerbForms, speakableTerm } from '../lib/german/articles';
   import { lookupWordWithSource, mergeIntoCard, suggest, type Suggestion } from '../lib/lookup/lookup';
@@ -43,6 +43,10 @@
   let auto = { translation: '', examples: '' };
 
   let germanEl = $state<HTMLInputElement>();
+  let notesEl = $state<HTMLTextAreaElement>();
+  /** Missed HARD_MISSES+ times and not learned yet: nudge towards a memory hook. */
+  let hard = $state(false);
+  let misses = $state(0);
   let translationEl = $state<HTMLInputElement>();
   let error = $state('');
 
@@ -52,6 +56,8 @@
         card = c;
         filled = !c.needsFill;
         status = statusOf(c, r);
+        hard = isHard(c, r);
+        misses = r?.mistakes ?? 0;
       } else missing = true;
       loaded = true;
       loadSetName();
@@ -271,6 +277,16 @@
 
   function addExample() {
     card.examples.push({ de: '', tr: '' });
+  }
+
+  /** Hard-word nudge: open the form and put the cursor where the hook goes. */
+  async function writeHook(kind: 'note' | 'example') {
+    showDetails = true;
+    if (kind === 'example') addExample();
+    await tick();
+    const el = kind === 'note' ? notesEl : [...document.querySelectorAll<HTMLTextAreaElement>('textarea.ex-de')].at(-1);
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el?.focus();
   }
 
   async function openDetails(focusTranslation = false) {
@@ -552,6 +568,19 @@
             <button type="button" class="btn small-btn" onclick={() => changeStatus(false)}><Icon name="refresh" size={18} /> Not learned</button>
           {/if}
         </div>
+        {#if hard}
+          <div class="card hard-banner" in:fade={{ duration: dur(150) }}>
+            <div class="row hard-head"><Icon name="flame" size={20} filled /> Missed {misses} times</div>
+            <p class="small">
+              Give this word a memory hook: a mnemonic, a similar-sounding Russian word, or your own sentence. Your note
+              is shown every time you study it.
+            </p>
+            <div class="row hard-actions">
+              <button type="button" class="btn small-btn" onclick={() => writeHook('note')}><Icon name="edit" size={18} /> Write a note</button>
+              <button type="button" class="btn small-btn" onclick={() => writeHook('example')}><Icon name="plus" size={18} /> My own example</button>
+            </div>
+          </div>
+        {/if}
       {/if}
 
       <!-- ---------- Full form ---------- -->
@@ -655,7 +684,14 @@
 
           <div class="field">
             <label for="notes">Notes</label>
-            <textarea id="notes" class="input" rows="3" bind:value={card.notes} placeholder="Anything to remember"></textarea>
+            <textarea
+              id="notes"
+              class="input"
+              rows="3"
+              bind:this={notesEl}
+              bind:value={card.notes}
+              placeholder={hard ? `Memory hook: “${card.term}” sounds like… / think of…` : 'Anything to remember'}
+            ></textarea>
           </div>
 
           <div class="stack buttons">
@@ -780,6 +816,20 @@
   }
 
   /* ---------- Status ---------- */
+  .hard-banner {
+    border: 1.5px solid color-mix(in srgb, var(--warn) 60%, transparent);
+  }
+  .hard-head {
+    color: var(--warn);
+    font-weight: 700;
+  }
+  .hard-banner p {
+    margin: 6px 0 10px;
+    color: var(--muted);
+  }
+  .hard-actions {
+    flex-wrap: wrap;
+  }
   .status-row {
     display: flex;
     align-items: center;

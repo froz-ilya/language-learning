@@ -29,6 +29,7 @@
   } from '../lib/study/session';
   import { cardsForSource, type SourceKind } from '../lib/study/sources';
   import type { Card, Direction } from '../lib/types';
+  import { newlyHard } from '../lib/progress';
 
   // Route: #/study/<kind>/<id>/<mode>?scope=due|all&dir=de-x|x-de|mixed (constant: remounted on navigation).
   const kind = route.parts[1] as SourceKind;
@@ -56,11 +57,16 @@
   let run = $state(0);
   let matchCards = $state.raw<Card[]>([]);
   let results = $state.raw<{ total: number; correct: number; missed: Card[] } | null>(null);
+  /** Words that became hard words in this session, and miss counts at the start to detect them. */
+  let becameHard = $state.raw<Card[]>([]);
+  let missesBefore = new Map<number, number>();
+  let pending: Promise<unknown>[] = [];
 
   async function load() {
     try {
       const all = await cardsForSource(kind, sourceId, settings.focus);
       const reviews = await loadReviews(all);
+      missesBefore = new Map([...reviews].map(([id, r]) => [id, r.mistakes]));
       const scoped = filterByScope(all, reviews, scope);
       const cards = scoped.filter((c) => modeApplies(mode, c));
       if (cards.length === 0 || (mode === 'match' && cards.length < 2)) {
@@ -81,6 +87,7 @@
   function start(cards: Card[]) {
     run++;
     results = null;
+    pending = [];
     total = cards.length;
     done = 0;
     if (mode === 'match') {
@@ -101,7 +108,7 @@
     if (!s || !item || !card || answeredSeq === item.seq) return;
     answeredSeq = item.seq;
     const { first } = s.answer(correct);
-    if (first && !repeat && card.id != null) recordAnswer(card.id, grade).catch(console.error);
+    if (first && !repeat && card.id != null) pending.push(recordAnswer(card.id, grade).catch(console.error));
     done = s.doneCount;
   }
 
@@ -120,10 +127,12 @@
     results = r;
     item = undefined;
     phase = 'results';
+    becameHard = [];
+    if (!repeat) void Promise.allSettled(pending).then(async () => (becameHard = await newlyHard(r.missed, missesBefore)));
   }
 
   function onmistake(card: Card) {
-    if (!repeat && card.id != null) recordMistake(card.id).catch(console.error);
+    if (!repeat && card.id != null) pending.push(recordMistake(card.id).catch(console.error));
   }
 
   function repeatMistakes() {
@@ -198,7 +207,7 @@
       {/if}
     </div>
   {:else if phase === 'results' && results}
-    <SessionResults correct={results.correct} total={results.total} missed={results.missed} celebrate={!repeat}>
+    <SessionResults correct={results.correct} total={results.total} missed={results.missed} celebrate={!repeat} {becameHard}>
       {#snippet actions()}
         {#if results?.missed.length}
           <button class="btn btn-primary btn-lg btn-block" onclick={repeatMistakes}>

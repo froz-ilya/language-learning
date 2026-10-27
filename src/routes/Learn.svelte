@@ -19,6 +19,7 @@
   import { planSmartQueue, SmartSession, type SmartItem } from '../lib/study/smart';
   import { cardsForSource, sourceTitle, type SourceKind } from '../lib/study/sources';
   import type { Card, Review } from '../lib/types';
+  import { newlyHard } from '../lib/progress';
 
   // Route: #/learn/<kind>/<id> — the smart session (constant: remounted on navigation).
   const kind = (route.parts[1] ?? 'smart') as SourceKind;
@@ -49,6 +50,10 @@
   let total = $state(0);
   let pool = $state.raw<Card[]>([]);
   let results = $state.raw<{ correct: number; total: number; missed: Card[] } | null>(null);
+  /** Words that became hard words in this session (nudge on the results screen). */
+  let becameHard = $state.raw<Card[]>([]);
+  /** Miss counts when the session started, to spot words that just crossed the hard-word line. */
+  let missesBefore = new Map<number, number>();
   /** Cards + reviews for "Learn new words anyway" (null: nothing new left). */
   let anyway = $state.raw<{ cards: Card[]; reviews: Map<number, Review> } | null>(null);
   let pending: Promise<unknown>[] = [];
@@ -60,6 +65,7 @@
   const newCount = () => Math.max(5, settings.newPerSession);
 
   function build(cards: Card[], reviews: Map<number, Review>, newPerSession: number) {
+    missesBefore = new Map([...reviews].map(([id, r]) => [id, r.mistakes]));
     return new SmartSession(cards, reviews, {
       newPerSession,
       poolSize: pool.length,
@@ -161,6 +167,9 @@
     results = { correct: s.firstTryCorrect, total: s.total, missed: s.missed };
     item = undefined;
     phase = 'results';
+    becameHard = [];
+    const missed = s.missed;
+    void Promise.allSettled(pending).then(async () => (becameHard = await newlyHard(missed, missesBefore)));
   }
 
   function close() {
@@ -223,7 +232,7 @@
       {/key}
     </div>
   {:else if phase === 'results' && results}
-    <SessionResults correct={results.correct} total={results.total} missed={results.missed}>
+    <SessionResults correct={results.correct} total={results.total} missed={results.missed} {becameHard}>
       {#snippet actions()}
         <button class="btn btn-primary btn-lg btn-block" onclick={load}>Keep going</button>
         <button class="btn btn-lg btn-block" onclick={close}>Done</button>

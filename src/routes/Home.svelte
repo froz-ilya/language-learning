@@ -183,6 +183,22 @@
         </button>
       {/if}
 
+      {#if counts.hard}
+        <button
+          class="continue hard"
+          onclick={() => go('/hard')}
+          in:fly|global={{ y: 12, duration: dur(260), delay: stagger(3) }}
+        >
+          <span class="hard-icon"><Icon name="flame" size={26} filled /></span>
+          <span class="continue-text">
+            <span class="eyebrow">Hard words</span>
+            <span class="continue-title">{counts.hard} {counts.hard === 1 ? 'word needs' : 'words need'} extra help</span>
+            <span class="continue-sub">Practice them or add a memory hook</span>
+          </span>
+          <span class="chev"><Icon name="chevron" size={18} /></span>
+        </button>
+      {/if}
+
       <section class="shortcuts" in:fly|global={{ y: 12, duration: dur(260), delay: stagger(3) }}>
         {#each SHORTCUTS as s}
           {@const n = counts[s.id]}
@@ -330,6 +346,19 @@
   }
   .continue:active {
     background: var(--surface-2);
+  }
+  .hard-icon {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 16%, transparent);
+  }
+  .hard .eyebrow {
+    color: var(--warn);
   }
   .pct {
     font-size: 13px;

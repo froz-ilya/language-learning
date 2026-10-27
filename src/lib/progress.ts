@@ -19,6 +19,34 @@ export const STATUS_LABELS: Record<WordStatus, string> = {
   known: 'Known',
 };
 
+/** Missed this many times (and not yet learned or known) → a "hard word" that needs extra help. */
+export const HARD_MISSES = 5;
+
+/**
+ * Hard word: answered wrong HARD_MISSES+ times and not yet retained. It leaves the list by
+ * itself once learned (or when marked known).
+ */
+export function isHard(card: Pick<Card, 'known'>, review: Review | undefined): boolean {
+  if (!review || review.mistakes < HARD_MISSES) return false;
+  const status = statusOf(card, review);
+  return status !== 'learned' && status !== 'known';
+}
+
+/**
+ * Cards that crossed into "hard" during a session: fewer than HARD_MISSES misses at the start
+ * (`missesBefore`, by card id), hard now.
+ */
+export async function newlyHard(cards: Card[], missesBefore: Map<number, number>): Promise<Card[]> {
+  const ids = cards.map((c) => c.id!).filter((id) => (missesBefore.get(id) ?? 0) < HARD_MISSES);
+  if (!ids.length) return [];
+  const now = await db.reviews.bulkGet(ids);
+  const byId = new Map(cards.map((c) => [c.id!, c]));
+  return ids.flatMap((id, i) => {
+    const card = byId.get(id)!;
+    return isHard(card, now[i]) ? [card] : [];
+  });
+}
+
 export function statusOf(card: Pick<Card, 'known'>, review: Review | undefined): WordStatus {
   if (card.known) return 'known';
   if (!review || review.fsrs.reps === 0) return 'new';

@@ -1,15 +1,16 @@
 import { db } from '../db/schema';
 import { cardsInFolder, cardsInSet, levelFolder } from '../db/repo';
-import type { Card } from '../types';
+import type { Card, Review } from '../types';
+import { HARD_MISSES, isHard } from '../progress';
 
 /**
  * A study "source" is what you learn from:
- *   set/<id>, folder/<id>, level/<A1…C2> (installed level), or smart/<due|new|starred|mistakes|all|today>.
+ *   set/<id>, folder/<id>, level/<A1…C2> (installed level), or smart/<due|new|starred|mistakes|hard|all|today>.
  * Routes: #/learn/<kind>/<id> (smart session), #/modes/<kind>/<id> (pick a single mode)
  * and #/study/<kind>/<id>/<mode>.
  */
 export type SourceKind = 'set' | 'folder' | 'level' | 'smart';
-export type SmartId = 'today' | 'due' | 'new' | 'starred' | 'mistakes' | 'all';
+export type SmartId = 'today' | 'due' | 'new' | 'starred' | 'mistakes' | 'hard' | 'all';
 
 export const SMART_LABELS: Record<SmartId, string> = {
   today: 'Today',
@@ -17,6 +18,7 @@ export const SMART_LABELS: Record<SmartId, string> = {
   new: 'New words',
   starred: 'Starred',
   mistakes: 'Mistakes',
+  hard: 'Hard words',
   all: 'All words',
 };
 
@@ -39,6 +41,16 @@ async function reviewedIds(): Promise<Set<number>> {
 
 async function mistakeIds(): Promise<number[]> {
   return (await db.reviews.where('lastWrong').above(Date.now() - MISTAKE_WINDOW_MS).primaryKeys()) as number[];
+}
+
+/** Hard words (see isHard), most-missed first. */
+export async function hardCards(): Promise<{ card: Card; review: Review }[]> {
+  const reviews = await db.reviews.filter((r) => r.mistakes >= HARD_MISSES).toArray();
+  const cards = await db.cards.bulkGet(reviews.map((r) => r.cardId));
+  return reviews
+    .map((review, i) => ({ card: cards[i]!, review }))
+    .filter(({ card, review }) => card && isHard(card, review))
+    .sort((a, b) => b.review.mistakes - a.review.mistakes);
 }
 
 /** User-made words only (not level presets) — the default pool of new words. */
@@ -69,6 +81,8 @@ export async function smartCards(id: SmartId, focus = ''): Promise<Card[]> {
       return db.cards.where('starred').equals(1).toArray();
     case 'mistakes':
       return (await db.cards.bulkGet(await mistakeIds())).filter((c): c is Card => !!c);
+    case 'hard':
+      return (await hardCards()).map((h) => h.card);
     case 'all':
       return db.cards.toArray();
   }
@@ -76,15 +90,24 @@ export async function smartCards(id: SmartId, focus = ''): Promise<Card[]> {
 
 /** Counts for Today/Home. "new" counts own (non-preset), not-known words never studied. */
 export async function smartCounts(): Promise<Record<SmartId, number>> {
-  const [due, seen, starred, mistakes, all] = await Promise.all([
+  const [due, seen, starred, mistakes, all, hard] = await Promise.all([
     dueCardIds(),
     reviewedIds(),
     db.cards.where('starred').equals(1).count(),
     mistakeIds(),
     db.cards.count(),
+    hardCards(),
   ]);
   const fresh = await db.cards.filter((c) => !seen.has(c.id!) && !c.known && !c.presetId).count();
-  return { today: due.length + fresh, due: due.length, new: fresh, starred, mistakes: mistakes.length, all };
+  return {
+    today: due.length + fresh,
+    due: due.length,
+    new: fresh,
+    starred,
+    mistakes: mistakes.length,
+    hard: hard.length,
+    all,
+  };
 }
 
 export async function cardsForSource(kind: SourceKind, id: string, focus = ''): Promise<Card[]> {

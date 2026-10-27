@@ -1,0 +1,110 @@
+<script lang="ts">
+  import type { Snippet } from 'svelte';
+  import { fly } from 'svelte/transition';
+  import { speakableTerm } from '../../lib/german/articles';
+  import { dur, easeOut } from '../../lib/motion';
+  import type { Card } from '../../lib/types';
+  import SpeakButton from '../SpeakButton.svelte';
+  import Term from '../Term.svelte';
+  import Confetti from './Confetti.svelte';
+
+  /** End-of-session screen: confetti, count-up score, missed words, action buttons. */
+  let {
+    correct,
+    total,
+    missed,
+    celebrate = true,
+    actions,
+  }: {
+    correct: number;
+    total: number;
+    missed: Card[];
+    celebrate?: boolean;
+    actions: Snippet;
+  } = $props();
+
+  let shown = $state(0);
+
+  $effect(() => {
+    const target = correct;
+    const ms = dur(Math.min(1000, 300 + target * 40));
+    if (!ms || !target) {
+      shown = target;
+      return;
+    }
+    const start = performance.now();
+    let raf = requestAnimationFrame(function step(t) {
+      const k = Math.min(1, (t - start) / ms);
+      shown = Math.round(easeOut(k) * target);
+      if (k < 1) raf = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(raf);
+  });
+
+  const perfect = $derived(total > 0 && correct === total);
+  const headline = $derived(
+    perfect ? 'Perfect!' : total && correct / total >= 0.8 ? 'Great job!' : total && correct / total >= 0.5 ? 'Nice work' : 'Keep practising',
+  );
+</script>
+
+{#if celebrate && total > 0}<Confetti />{/if}
+
+<div class="stack results" in:fly|global={{ y: 16, duration: dur(280) }}>
+  <div class="card score">
+    <div class="headline">{headline}</div>
+    <div class="score-num" class:good={perfect}>
+      <span>{shown}</span><span class="of"> / {total}</span>
+    </div>
+    <div class="muted">correct on the first try</div>
+  </div>
+
+  {#if missed.length}
+    <div>
+      <div class="section-title">To review ({missed.length})</div>
+      <div class="list">
+        {#each missed as c, i (c.id ?? i)}
+          <div class="list-item">
+            <div class="missed-text">
+              <div class="title"><Term card={c} /></div>
+              <div class="sub">{c.translation}</div>
+            </div>
+            <SpeakButton text={speakableTerm(c)} />
+          </div>
+        {/each}
+      </div>
+    </div>
+  {:else if total > 0}
+    <div class="center muted">No mistakes — well done!</div>
+  {/if}
+
+  {@render actions()}
+</div>
+
+<style>
+  .results {
+    margin-top: 4px;
+  }
+  .score {
+    text-align: center;
+    padding: 24px 16px;
+  }
+  .headline {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .score-num {
+    font-size: 48px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+    margin-top: 6px;
+  }
+  .of {
+    color: var(--muted);
+    font-size: 30px;
+  }
+  .missed-text {
+    flex: 1;
+    min-width: 0;
+  }
+</style>

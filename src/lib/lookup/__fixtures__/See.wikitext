@@ -1,0 +1,355 @@
+== See ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Substantiv|Deutsch}}, {{m}} ===
+
+{{Deutsch Substantiv Übersicht
+|Genus=m
+|Nominativ Singular=See
+|Nominativ Plural=Seen
+|Genitiv Singular=Sees
+|Genitiv Plural=Seen
+|Dativ Singular=See
+|Dativ Plural=Seen
+|Akkusativ Singular=See
+|Akkusativ Plural=Seen
+|Bild 1=Ecuador cajas national park.jpg|mini|1|ein ''See'' in den [[Berg]]en
+|Bild 2=A view of Tenaya Lake 4458.ogv|mini|1|ein [[Blick]] über einen ''See''
+}}
+
+{{Anmerkung|zum Plural}}
+:Der Plural konnte (Stand 1898) auch ''Seeen'' lauten.<ref>{{Lit-Duden: Rechtschreibung|A=5 (3. Abdruck)}}, Seite 281.</ref>
+
+{{Worttrennung}}
+:See, {{Pl.}} Se·en
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|zeː}}
+:{{Hörbeispiele}} {{Audio|De-See.ogg}}, {{Audio|De-See.OGG‎|See‎}}, {{Audio|De-See2.ogg}}
+:{{Reime}} {{Reim|eː|Deutsch}}
+
+{{Bedeutungen}}
+:[1] {{K|Geografie}} [[stehend]]es [[Gewässer]], das von Land umgeben ist
+
+{{Herkunft}}
+:seit dem 8. Jahrhundert belegt; mittelhochdeutsch ''[[sē]]'', althochdeutsch ''[[sēo]]'', urgermanisch *''[[saiwiz]]'' ‚See, Meer‘, auch niederländisch ''[[zee]]'', englisch ''[[sea]]'', gotisch ''[[saiws]]'',<ref>{{Lit-Kluge: Etymologisches Wörterbuch|A=24}}, Stichwort: „See“, Seite 836&nbsp;f.</ref> vielleicht Deverbativ von *''sīχwanan'' ‚seihen, tröpfeln‘,<ref>Guus Kroonen: ''Etymological Dictionary of Proto-Germanic''. Brill, Leiden 2013, S. 423.</ref> woraus ''[[seihen]]''; siehe dort. Eine semantische Parallele ist althochdeutsch ''gisig'' ‚Sumpf, Tümpel‘, zu ''sīgan'' ‚tröpfeln, niedersinken‘ gebildet.
+
+{{Oberbegriffe}}
+:[1] [[Binnengewässer]], [[Gewässer]]
+
+{{Unterbegriffe}}
+:[1] ''allgemein:'' [[Alpenrandsee]], [[Autobahnsee]], [[Badesee]], [[Baggersee]], [[Bergsee]], [[Binnensee]], [[Gebirgssee]], [[Gletschersee]], [[Kältesee]], [[Karsee]], [[Kratersee]], [[Natronsee]], [[Nebensee]], [[Salzsee]], [[Smaragdsee]], [[Stausee]], [[Süßwassersee]], [[Talsee]], [[Wüstensee]]
+:[1] ''Toponyme:'' [[Abajasee]], [[Achensee]], [[Albertsee]], [[Ammersee]], [[Aradosee]], [[Aralsee]], [[Assadsee]], [[Assalsee]], [[Athabascasee]], [[Attersee]], [[Baikalsee]], [[Balchaschsee]], [[Bärensee]], [[Bärwalder See]], [[Beleu-See]], [[Biwa-See]], [[Bodensee]], [[Bostalsee]], [[Breitenauer See]], [[Burgas-See]], [[Chankasee]], [[Chapalasee]], [[Chiemsee]], [[Chilwa-See]], [[Comer See]], [[Cottbuser Ostsee]], [[Dongting-See]], [[Edersee]], [[Eduardsee]], [[Eriesee]], [[Eyasisee]], [[Forggensee]], [[Gardasee]], [[Gatúnsee]], [[Gazivodasee]], [[Geiseltalsee]], [[Genfer See]], [[Gnadensee]], [[Grundlsee]], [[Grüner See]], [[Guiers-See]], [[Heidesee]], [[Himmelssee]], [[Hulun-See]], [[Huronsee]], [[Indawgyi-See]], [[Izabal-See]], [[Jalpuhsee]], [[Junín-See]], [[Kenyir-See]], [[Kiwusee]], [[Kyogasee]], [[Ladogasee]], [[Lanao-See]], [[Langensee]], [[Lubān-See]], [[Luganer See]], [[Lünersee]], [[Lunzer See]], [[Mai-Ndombe-See]], [[Malawisee]], [[Managuasee]], [[Manitobasee]], [[Maracaibo-See]], [[Maschsee]], [[Matanosee]], [[Michigansee]], [[Möhnesee]], [[Mondsee]], [[Müggelsee]], [[Mwerusee]], [[Nassersee]], [[Natronsee]], [[Neuenburgersee]], [[Neusiedler See]], [[Nicaraguasee]], [[Oberer See]], [[Obersee]], [[Ohridsee]], [[Okeechobeesee]], [[Onegasee]], [[Ontariosee]], [[Pechsee]], [[Peipussee]], [[Plansee]], [[Plattensee]], [[Plöner See]], [[Poopó-See]], [[Poyang-See]], [[Prespasee]], [[Qinghai-See]], [[Rarasee]], [[Razim-See]], [[Rukwasee]], [[Saimaa-See]]/[[Saimaasee]], [[Schluchsee]], [[Schweriner See]], [[Schwielochsee]], [[See Genezareth]], [[Sewansee]], [[Sklavensee]], [[Skutarisee]], [[Songkhla-See]], [[Sonne-Mond-See]], [[Staffelsee]], [[Starnberger See]], [[Stefaniesee]], [[St.-Lucia-See]], [[Taalsee]], [[Tanasee]], [[Tanganjikasee]], [[Tankumsee]], [[Tegeler See]], [[Tegernsee]], [[Texcoco-See]], [[Tharthar-See]], [[Thunersee]], [[Titicacasee]], [[Tobasee]], [[Toplitzsee]], [[Traunsee]], [[Trichonida-See]], [[Tschadsee]], [[Turkana-See]], [[Untersee]], [[Urmiasee]], [[Valenciasee]], [[Vansee]], [[Vembanadsee]], [[Victoriasee]], [[Vierwaldstättersee]], [[Walchensee]], [[Wannsee]], [[Winnipegsee]], [[Wolfgangsee]], [[Wörthersee]], [[Zürichsee]]
+:[1] ''übertragen:'' [[Asphaltsee]], [[Lavasee]], [[Pechsee]], [[Teersee]]
+
+{{Beispiele}}
+:[1] Ein ausgetrockneter ''See'' hat kein Wasser mehr.
+:[1] Am Wochenende werden wir einen schönen Ausflug zu einem ''See'' in unserer nächsten Umgebung machen.
+:[1] „Jetzt fahr'n wir über'n ''See'', über'n ''See'', jetzt fahr'n wir über'n ''See'' […]“<ref>{{Internetquelle | url=http://www.labbe.de/liederbaum/index.asp?themaid=23&titelid=539 | titel=Liederbaum | autor=Volkslied | werk= | datum= | zugriff=2017-11-29}}</ref>
+:[1] „Einer der ''Seeen,'' die diese Seeenkette bilden, heißt ‚der Stechlin‘.“<ref>{{Lit-Fontane: Der Stechlin|A=2}}, Seite 3.</ref>
+
+{{Charakteristische Wortkombinationen}}
+:[1] [[verlanden|verlandeter]] ''See''
+
+{{Wortbildungen}}
+:[[seeartig]], [[seeseitig]]
+:[[Seeabfluss]], [[Seeadler]], [[Seeanstoß]], [[Seeaussicht]], [[Seebecken]], [[Seeblick]], [[Seebreite]], [[Seebrücke]], [[Seebucht]], [[Seebühne]], [[Seefahrer]], [[Seefenster]], [[Seefisch]], [[Seeforelle]], [[Seegrundstück]], [[Seehafen]], [[Seeinsel]], [[Seekarte]], [[Seekette]], [[Seemann]], [[Seemonster]], [[Seenähe]], [[Seengebiet]], [[Seenkunde]], [[Seenlandschaft]], [[Seenplankton]], [[Seenplatte]], [[Seepost]], [[Seepromenade]], [[Seequappe]], [[Seerhein]], [[Seerose]], [[Seeschifffahrt]], [[Seeschlamm]], [[Seesteg]], [[Seestrand]], [[Seeterrasse]], [[Seeufer]], [[Seeunglück]], [[Seewasser]], [[Seewesen]], [[Seezimmer]], [[Seezufluss]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=Geografie: stehendes Gewässer, das von Land umgeben ist|Ü-Liste=
+*{{af}}: {{Ü|af|meer}}
+*{{sq}}: {{Ü|sq|liqen}} {{m}}
+*{{grc}}: {{Üt|grc|λίμνη}} {{f}}
+*{{am}}: {{Üt|am|ሐይቅ|hayq}}
+*{{ar}}: {{Üt|ar|بحيرة|buḥaira}} {{f}}
+*{{an}}: {{Ü|an|lacuna}}
+*{{hy}}: {{Üt|hy|լիճ|lič}}
+*{{az}}: {{Ü|az|göl}}
+*{{as}}: {{Üt|as|বিল|bil}}
+*{{ast}}: {{Ü|ast|llagu}}
+*{{ay}}: {{Ü|ay|quta}}
+*{{ban}}: {{Ü|ban|danu}}
+*{{ba}}: {{Üt|ba|күл|kùl}}
+*{{eu}}: {{Ü|eu|laku}}
+*{{bal}}: {{Ü|bal|هامون}}
+*{{bn}}: {{Üt|bn|হ্রদ|hrada}}
+*{{my}}: {{Üt|my|ရေကန်|rekan}}
+*{{bs}}: {{Üt|bs|језеро}} {{n}}
+*{{br}}: {{Ü|br|lenn}}
+*{{bg}}: {{Üt|bg|езеро}} {{n}}
+*{{ceb}}: {{Ü|ceb|lanaw}}, {{Ü|ceb|linaw}}
+*{{zh}}: {{Üt|zh|湖泊|húpō}}
+**{{nan}}: {{Ü|nan|ô͘}}
+*{{cr}}: {{Üt|cr|ᓵᑲᐦᐄᑲᓐ|sākahīkan}}
+*{{da}}: {{Ü|da|sø}}
+*{{egl}}: {{Ü|egl|lèg}}
+*{{en}}: {{Ü|en|lake}}
+*{{myv}}: {{Üt|myv|эрьке|èr'ke}}
+*{{eo}}: {{Ü|eo|lago}}
+*{{et}}: {{Ü|et|järv}}
+*{{fo}}: {{Ü|fo|vatn}} {{n}}
+*{{fj}}: {{Ü|fj|drano}}
+*{{fi}}: {{Ü|fi|järvi}}
+*{{fr}}: {{Ü|fr|lac}} {{m}}
+*{{fur}}: {{Ü|fur|lât}} {{m}}
+*{{gl}}: {{Ü|gl|lago}}
+*{{ka}}: {{Üt|ka|ტბა|t'ba}}
+*{{el}}: {{Üt|el|λίμνη|límni}} {{f}}
+*{{kl}}: {{Ü|kl|taseq}}
+*{{gn}}: {{Ü|gn|ypa}}
+*{{gu}}: {{Üt|gu|તળાવ|taḷāv}} {{n}}
+*{{ht}}: {{Ü|ht|lak}}
+*{{haw}}: {{Ü|haw|loko wai}}
+*{{he}}: {{Üt|he|אגם|agam}}
+*{{hi}}: {{Üt|hi|झील|jhīla}}
+*{{io}}: {{Ü|io|lago}}
+*{{ilo}}: {{Ü|ilo|danaw}}, {{Ü|ilo|dan-aw}}
+*{{id}}: {{Ü|id|danau}}
+*{{ia}}: {{Ü|ia|laco}}
+*{{ga}}: {{Ü|ga|loch}}
+*{{zu}}: {{Ü|zu|ichibi}}
+*{{is}}: {{Ü|is|vatn}}, {{Ü|is|stöðuvatn}}
+*{{it}}: {{Ü|it|lago}} {{m}}
+*{{sah}}: {{Üt|sah|күөл|kùôl}}
+*{{ja}}: {{Üt|ja|湖|こ / みずうみ, ko / mizu·umi}}, {{Üt|ja|湖水|こすい, kosui}}, {{Üt|ja|池|いけ, ike}} (''klein'')
+*{{jv}}: {{Ü|jv|tlaga}}
+*{{yi}}: {{Üt|yi|אזערע|ozere}} {{f}}
+*{{kn}}: {{Üt|kn|ಸರೋವರ|sarovara}}
+*{{kk}}: {{Üt|kk|көл}}
+*{{csb}}: {{Ü|csb|jezoro}} {{n}}
+*{{ks}}: {{Üt|ks|سَر|sar}} {{m}}
+*{{ca}}: {{Ü|ca|estany}} {{m}}, {{Ü|ca|llac}} {{m}}
+*{{km}}: {{Üt|km|បឹង|bəng}}
+*{{khw}}: {{Ü|khw|چھت}}
+*{{rw}}: {{Ü|rw|ikiyaga}}
+*{{ky}}: {{Üt|ky|көл}}
+*{{tlh}}: {{Ü|tlh|ngeng}}
+*{{kv}}: {{Üt|kv|ты|ty}}
+*{{ko}}: {{Üt|ko|호수|hosu}}
+*{{kw}}: {{Ü|kw|lynn}}
+*{{co}}: {{Ü|co|lau}} {{m}}, {{Ü|co|lagu}} {{m}}, {{Ü|co|lavu}} {{m}}
+*{{hr}}: {{Ü|hr|jezero}} {{n}}
+*{{ku}}:
+**{{kmr}}: {{Ü|kmr|gol}}
+*{{lo}}: {{Üt|lo|ໜອງ|nǭng}}
+*{{la}}: {{Ü|la|lacus}} {{m}}
+*{{ltg}}: {{Ü|ltg|azars}} {{m}}
+*{{lv}}: {{Ü|lv|ezers}} {{m}}
+*{{ln}}: {{Ü|ln|etímá}}
+*{{lt}}: {{Ü|lt|ežeras}} {{m}}
+**{{sgs}}: {{Ü|sgs|ežers}}
+*{{jbo}}: {{Ü|jbo|lalxu}}
+*{{lmo}}: {{Ü|lmo|lach}}
+*{{lb}}: {{Ü|lb|Séi}}
+*{{mg}}: {{Ü|mg|farihy}}
+*{{ms}}: {{Ü|ms|danau}}, {{Ü|ms|tasik}}
+*{{ml}}: {{Üt|ml|തടാകം|taṭākaṁ}}
+*{{dv}}: {{Üt|dv|ކުޅި|kuḷi}}, {{Üt|dv|ފެންގަނޑު|fen̊gaⁿḍu}}
+*{{mt}}: {{Ü|mt|għadira}} {{f}}, {{Ü|mt|lag}} {{m}}
+*{{mnc}}: {{Ü|mnc|ᡨᡝᠩᡤᡳᠨ}}
+*{{gv}}: {{Ü|gv|logh}}
+*{{mr}}: {{Üt|mr|सरोवर|sarovar}} {{n}}
+*{{mk}}: {{Üt|mk|езеро}} {{n}}
+*{{mn}}: {{Üt|mn|нуур|}}
+*{{nah}}:
+**{{nci}}: {{Ü|nci|ātezcatl}}
+*{{ne}}: {{Üt|ne|ताल|tāl}}
+*{{nl}}: {{Ü|nl|meer}}
+*{{se}}: {{Ü|se|jávri}}
+*{{no}}: {{Ü|no|sjø}} {{m}}, {{Ü|no|innsjø}} {{m}}
+*{{oc}}: {{Ü|oc|estanh}} {{m}}
+*{{or}}: {{Üt|or|ହ୍ରଦ|hrôdô}}
+*{{om}}: {{Ü|om|hara}}
+*{{os}}: {{Üt|os|цад|cad}}
+*{{pa}}: {{Üt|pa|ਝੀਲ|jhīla}}
+*{{ps}}: {{Üt|ps|ونګره|wann-garah}}, {{Üt|ps|جهيل|}}
+*{{fa}}: {{Üt|fa|دریاچه|daryâče}}
+*{{pl}}: {{Ü|pl|jezioro}} {{n}}
+*{{pt}}: {{Ü|pt|lago}} {{m}}
+*{{qu}}: {{Ü|qu|qucha}}
+*{{rm}}: {{Ü|rm|lai}} {{m}}
+*{{ro}}: {{Ü|ro|lac}} {{n}}
+*{{ru}}: {{Üt|ru|озеро}} {{n}}
+*{{sa}}: {{Üt|sa|जलाशय|jalazaya}} {{m}}, {{Üt|sa|सरोवर|sarovara}} {{m}}, {{Üt|sa|सरस|sarasa}} {{n}}, {{Üt|sa|सरसी|sarasi}} {{f}}
+*{{gd}}: {{Ü|gd|loch}}
+*{{sv}}: {{Ü|sv|insjö}}
+*{{sco}}: {{Ü|sco|loch}}
+*{{sr}}: {{Üt|sr|језеро}} {{n}}
+*{{sh}}: {{Üt|sh|језеро}} {{n}}
+*{{sn}}: {{Ü|sn|dziva}}
+*{{sd}}: {{Üt|sd|ڍنڍ|ḍhanḍha}} {{f}}
+*{{si}}: {{Üt|si|විල|vila}}
+*{{scn}}: {{Ü|scn|lacu}}
+*{{sk}}: {{Ü|sk|jazero}} {{n}}
+*{{sl}}: {{Ü|sl|jezero}} {{n}}
+*{{wen}}:
+**{{dsb}}: {{Ü|dsb|jazor}} {{m}}, {{Ü|dsb|jazoro}} {{n}}
+**{{hsb}}: {{Ü|hsb|jězor}} {{m}}
+*{{es}}: {{Ü|es|lago}} {{m}}
+*{{sw}}: {{Ü|sw|ziwa}}
+*{{su}}: {{Ü|su|situ}}
+*{{tg}}: {{Üt|tg|кӯл|kūl}}
+*{{tl}}: {{Ü|tl|lawa}}
+*{{ta}}: {{Üt|ta|ஏரி|eri}}
+*{{tt}}: {{Üt|tt|күл}}
+*{{te}}: {{Üt|te|సరస్సు|sarassu}}
+*{{th}}: {{Üt|th|ทะเลสาบ|thalesap}}
+*{{bo}}: {{Üt|bo|མཚོ|mtsho}}
+*{{ti}}: {{Üt|ti|ቀላይ|}}
+*{{cs}}: {{Ü|cs|jezero}} {{n}}
+*{{ce}}: {{Üt|ce|ӏам}}
+*{{cv}}: {{Üt|cv|кӳлӗ}}
+*{{tr}}: {{Ü|tr|göl}}
+*{{tk}}: {{Ü|tk|köl}}
+*{{tyv}}: {{Üt|tyv|хөл| }}
+*{{ug}}: {{Üt|ug|كۆل|köl}}
+*{{uk}}: {{Üt|uk|озеро}} {{n}}
+*{{hu}}: {{Ü|hu|tó}}
+*{{ur}}: {{Üt|ur|جھیل|jhīl}} {{f}}
+*{{uz}}: {{Ü|uz|koʻl}}
+*{{vec}}: {{Ü|vec|łago}}
+*{{vi}}: {{Ü|vi|hồ}}
+*{{vro}}: {{Ü|vro|järv}}
+*{{cy}}: {{Ü|cy|llyn}} {{m}}
+*{{wa}}: {{Ü|wa|lak}} {{m}}
+*{{war}}: {{Ü|war|danaw}}
+*{{be}}: {{Üt|be|возера}} {{n}}
+*{{fy}}: {{Ü|fy|mar}}
+*{{wo}}: {{Ü|wo|ngéej}}
+*{{yo}}: {{Ü|yo|adágún}}
+*{{bcl}}: {{Ü|bcl|danaw}}
+}}
+
+{{Referenzen}}
+:[1] {{Wikipedia}}
+:[1] {{Ref-Grimm}}
+:[1] {{Ref-DWDS}}
+:[1] {{Ref-wissen.de|Wörterbuch}}
+:[1] {{Ref-wissen.de|Herkunft}}
+:[*] {{Ref-UniLeipzig}}
+
+{{Quellen}}
+
+=== {{Wortart|Substantiv|Deutsch}}, {{f}}, ''Meer'' ===
+
+{{Deutsch Substantiv Übersicht
+|Genus=f
+|Nominativ Singular=See
+|Nominativ Plural=Seen
+|Genitiv Singular=See
+|Genitiv Plural=Seen
+|Dativ Singular=See
+|Dativ Plural=Seen
+|Akkusativ Singular=See
+|Akkusativ Plural=Seen
+|Bild=Infanta Elena (P-76) 060604-N-8547M-003.jpg|mini|1|die [[spanisch]]e [[Korvette]] Infanta Elena (P-76) auf ''See''
+}}
+
+{{Worttrennung}}
+:See, {{Pl.}} Se·en
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|zeː}}
+:{{Hörbeispiele}} {{Audio|De-See2.ogg}}, {{Audio|De-See.ogg}}, {{Audio|De-See.OGG‎|See‎}}
+:{{Reime}} {{Reim|eː|Deutsch}}
+
+{{Bedeutungen}}
+:[1] {{K|Kollektivum|kPl.}} Sammelbegriff für alle sehr großen, zusammenhängenden, nicht fließenden Gewässer, Meere und [[Randmeer]]e
+:[2] {{K|Seemannssprache|kPl.}} Bewegung der Oberfläche eines Meeres oder Sees
+:[3] {{K|Seemannssprache}} hohe [[Welle]]
+
+{{Herkunft}}
+:aus dem Niederdeutschen, ansonsten Etymologie wie oben zu ''der See''. Das Femininum tritt vom 16. Jahrhundert an auf und hat die Differenzierung der Bedeutungen zur Folge.<ref>{{Lit-Kluge: Etymologisches Wörterbuch|A=24}}, Stichwort: „See“, Seite 836&nbsp;f.</ref>
+
+{{Synonyme}}
+:[1] [[Meer]], [[Ozean]]
+:[2] [[Seegang]]
+
+{{Sinnverwandte Wörter}}
+:[3] [[Brecher]]
+
+{{Gegenwörter}}
+:[1] [[Himmel]], [[Land]]
+:[1] [[Bach]], [[Fluss]], [[Rinnsal]], (der) [[#Substantiv, m|See]], [[Teich]], [[Tümpel]]
+
+{{Oberbegriffe}}
+:[1] [[Gewässer]]
+:[2] [[Wellengang]]
+
+{{Unterbegriffe}}
+:[1] ''allgemein:'' [[Hochsee]], [[Tiefsee]], [[Übersee]]
+:[1] ''Toponyme:'' [[Ålandsee]], [[Amundsensee]], [[Andamanensee]], [[Arafurasee]], [[Ariake-See]], [[Balisee]], [[Bandasee]], [[Barentssee]], [[Beaufortsee]], [[Bellingshausensee]], [[Beltsee]], [[Bismarcksee]], [[Bottensee]], [[Celebessee]], [[Davissee]], [[D’Urville-See]], [[Floressee]], [[Grönlandsee]], [[Haakon-VII.-See]], [[Halmaherasee]], [[Hebriden-See]], [[Irische See]], [[Irmingersee]], [[Javasee]], [[Karasee]], [[Keltische See]], [[Kirchsee]], [[Kooperationssee]], [[Korallensee]], [[Korosee]], [[Kosmonautensee]], [[Labradorsee]], [[Lakkadivensee]], [[Laptewsee]], [[Lasarew-See]], [[Lincolnsee]], [[Mawsonsee]], [[Mindanaosee]], [[Molukkensee]], [[Natunasee]], [[Nordsee]], [[Norwegische See]], [[Ostsee]], [[Ostsibirische See]], [[Petschorasee]], [[Philippinensee]], [[Riiser-Larsen-See]], [[Salomonensee]]/[[Salomonsee]], [[Sargassosee]], [[Sawusee]], [[Schottische See]], [[Scotiasee]], [[Seramsee]], [[Seto-Inlandsee]], [[Sibuyan-See]], [[Somali-See]], [[Somow-See]], [[Südsee]], [[Sulawesisee]], [[Sulusee]], [[Tasmansee]], [[Timorsee]], [[Tschuktschensee]], [[Wandelsee]], [[Yatsushiro-See]]
+:[2] [[Dwarssee]], [[Hecksee]], [[Kreuzsee]], [[Quersee]], [[Widersee]]
+:[3] [[Grundsee]], [[Sturzsee]]
+
+{{Beispiele}}
+:[1] „Die ''See'' wird vor ihnen auftauchen, von Sonnenlicht überflutet.“<ref>{{Literatur | Autor=James Salter | Titel=Ein Spiel und ein Zeitvertreib|TitelErg=Roman| Verlag=Rowohlt Taschenbuch Verlag| Ort=Reinbek| Jahr=2000 | ISBN=3-499-22440-2 | Seiten= 148}}.</ref>
+:[1] „Die ''See'' lag unbeweglich.“<ref>{{Literatur| Autor=Jens Rehn, Nachwort von Ursula März |Titel=Nichts in Sicht |Verlag=Schöffling |Ort=Frankfurt/Main |Jahr=2018| Seiten=14 |ISBN=978-3-89561-149-0}}. Erstmals 1954 erschienen.</ref>
+:[2] „Schon seit Tagen umtoste uns die ''See.''“<ref>{{Literatur|Autor=Klaus Willmann|Titel=Das Boot U 188. Zeitzeugenbericht aus dem Zweiten Weltkrieg|Verlag=Rosenheimer|Ort=Rosenheim|Jahr=2008}}, Seite 7. {{#isbn:978-3-475-53954-1}}.</ref>
+:[2] „Allein in rabenschwarzer Finsternis, mußte Saltash alle Schläge erleiden, die ''See'' und Sturm auszuteilen vermochten: sie stampfte, schlingerte und arbeitete verzweifelt.“<ref>{{Literatur | Autor=Nicholas Monsarrat | Titel=Grausamer Atlantik | Verlag=Wissen | Ort=Herrsching | Jahr=1989 | Kommentar=Der Roman erschien zuerst englisch unter dem Titel ''The Cruel Sea''. | ISBN=3-8075-0002-2}}, Zitat: Seite 392. Kursiv gedruckt: ''Saltash.''</ref>
+:[2] „Am nächsten Tag ging die ''See'' höher, und das Mädchen fragte sich, ob ihr diese Unruhe zusagte oder ob sie schon kalte Schläfen bekam.“<ref>{{Literatur |Autor=Halldór Laxness|Titel= Das wiedergefundene Paradies|TitelErg= Roman |Übersetzer= Bruno Kress| Verlag= Aufbau-Verlag|Ort= Berlin und Weimar |Jahr=1971| Seiten= 228.|ISBN= }} Isländisch 1960.</ref>
+:[3] „Manchmal wurde Compass Rose schon von der folgenden ''See'' erfaßt, wenn sie noch schwerfällig schwankend im Tal lag, und erlitt einen Schlag, bevor sie sich wieder aufrichten konnte.“<ref>{{Literatur | Autor=Nicholas Monsarrat | Titel=Grausamer Atlantik | Verlag=Wissen | Ort=Herrsching | Jahr= 1989 | Kommentar=Der Roman erschien zuerst englisch unter dem Titel ''The Cruel Sea''. | ISBN=3-8075-0002-2}}, Zitat: Seite 82. Kursiv gedruckt: ''Compass Rose''.</ref>
+:[3] „Die tobenden ''Seen'' können uns schütteln und den Einsatz unserer Waffen beschränken: überwältigen können sie uns nicht.“<ref>Lothar-Günther Buchheim: ''Jäger im Weltmeer.'' Piper, München/Zürich/Bonn 2009, Seite 28. {{#isbn:978-3-492-24470-1}}. Geschrieben 1943, erstmals publiziert 1996, Vorwort Seiten 9–18: 1996.</ref>
+:[3] „Wenn der Wind gegen die jeweilige Tide steht, bauen sich hohe ''Seen'' auf.“<ref>{{Literatur | Autor=Eigel Wiese | Titel=Das Geisterschiff | TitelErg=Die Geschichte der Mary Celeste | Verlag=Europa Verlag | Ort=Hamburg, Wien | Jahr=2001 | ISBN=3-203-75103-8 | Seiten=23}}.</ref>
+
+{{Redewendungen}}
+:[1] [[auf hoher See|auf hoher ''See'']]
+:[1] [[auf See bleiben|auf ''See'' bleiben]]
+:[1] [[in See gehen|in ''See'' gehen]]
+:[1] [[in See stechen|in ''See'' stechen]]
+:[1] [[schwere See|schwere ''See'']]
+:[1] [[über See|über ''See'']]
+:[1] [[zur See fahren|zur ''See'' fahren]]
+
+{{Wortbildungen}}
+:''Adjektive:'' [[seeklar]], [[seekrank]], [[seetauglich]], [[seetüchtig]]
+:''Substantive:'' [[Seeaal]], [[Seeadler]], [[Seeamt]], [[Seeanemone]], [[Seebad]], [[Seebär]], [[Seebeben]], [[Seebestattung]], [[Seeblick]], [[Seeblockade]], [[Seebrise]], [[Seebund]], [[Seebündnis]], [[Seedrache]], [[Seedrohne]], [[Seeelefant]], [[Seefahrer]], [[Seefahrt]], [[Seefisch]], [[Seeforelle]], [[Seefracht]], [[Seefunk]], [[Seegang]], [[Seegefecht]], [[Seegras]], [[Seegrenze]], [[Seegurke]], [[Seehafen]], [[Seehandel]], [[Seehandelsweg]], [[Seehecht]], [[Seeherrschaft]], [[Seehund]], [[Seeigel]], [[Seejungfrau]], [[Seekarte]], [[Seeklima]], [[Seekrieg]], [[Seekriegführung]]/[[Seekriegsführung]], [[Seekuh]], [[Seelachs]], [[Seeluft]], [[Seemacht]], [[Seemann]], [[Seemine]], [[Seemöwe]], [[Seenadel]], [[Seenot]], [[Seeohr]], [[Seepferd]], [[Seepromenade]], [[Seeräuber]], [[Seesack]], [[Seeschlacht]], [[Seeschlamm]], [[Seeschlange]], [[Seeschwalbe]], [[Seeseite]], [[Seesieg]], [[Seesperre]], [[Seespinne]], [[Seestern]], [[Seestraße]], [[Seestreitkraft]], [[Seestück]], [[Seetang]], [[Seetier]], [[Seeufer]], [[Seeungeheuer]], [[Seeverkehr]], [[Seeversicherung]], [[Seevogel]], [[Seewasser]], [[Seeweg]], [[Seewesen]], [[Seewind]], [[Seezunge]], [[Unterseeboot]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=Sammelbegriff für alle sehr großen Gewässer|Ü-Liste=
+*{{ar}}: {{Üt|ar|بحر|baḥr}}
+*{{hy}}: {{Üt|hy|ծով}}
+*{{zh}}: {{Üt|zh|海|hai}}
+*{{en}}: {{Ü|en|sea}}
+*{{fi}}: {{Ü|fi|meri}}
+*{{fr}}: {{Ü|fr|mer}}
+*{{ka}}: {{Üt|ka|ზღვა|zghva}}
+*{{ia}}: {{Ü|ia|mar}}
+*{{is}}: {{Ü|is|sjór}} {{m}}, {{Ü|is|haf}} {{n}}
+*{{it}}: {{Ü|it|mare}}
+*{{ca}}: {{Ü|ca|mar}}
+*{{la}}: {{Ü|la|mare}}
+*{{lt}}: {{Ü|lt|jūra}}
+*{{nl}}: {{Ü|nl|zee}}
+*{{fa}}: {{Üt|fa|دریا|daryā}}
+*{{pl}}: {{Ü|pl|morze}}
+*{{pt}}: {{Ü|pt|mar}} {{m}}
+*{{ru}}: {{Üt|ru|море}}
+*{{sv}}: {{Ü|sv|hav}} {{n}}, {{Ü|sv|sjö}} {{u}}
+*{{es}}: {{Ü|es|mar}}
+*{{cs}}: {{Ü|cs|moře}} {{n}}
+*{{tr}}: {{Ü|tr|deniz}}
+*{{uk}}: {{Üt|uk|море}}
+*{{hu}}: {{Ü|hu|tenger}}
+}}
+
+{{Ü-Tabelle|2|G=Seemannssprache: Bewegung der Oberfläche eines Meeres oder Sees|Ü-Liste=
+*{{en}}: {{Ü|en|}}
+*{{fr}}: {{Ü|fr|}}
+}}
+
+{{Ü-Tabelle|3|G=Seemannssprache: hohe Welle|Ü-Liste=
+*{{en}}: {{Ü|en|}}
+*{{fr}}: {{Ü|fr|}}
+*{{uk}}: {{Üt|uk|хвилі}}
+}}
+
+{{Referenzen}}
+:[1] {{Wikipedia|Meer}}
+:[1] {{Wikipedia|Binnensee}}
+:[1, 3] {{Ref-DWDS|See#2|See<sup><small>2</small></sup>}}
+:[1, 2] {{Ref-Duden|See Meer|See (Meer)}}
+:[1–3] {{Ref-wissen.de|Wörterbuch}}
+:[*] {{Ref-wissen.de|Herkunft}}
+
+{{Quellen}}
+
+{{Ähnlichkeiten 1|[[-see]], [[Fee]], [[Lee]], [[nee]], [[säe]], [[sehe]], [[sei]], [[Sem]], [[Sex]], [[Sie]], [[Tee]]}}

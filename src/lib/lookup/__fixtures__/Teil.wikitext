@@ -1,0 +1,275 @@
+== Teil ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Substantiv|Deutsch}}, {{n}}, ''Stück'' ===
+
+{{Deutsch Substantiv Übersicht
+|Genus=n
+|Nominativ Singular=Teil
+|Nominativ Plural=Teile
+|Genitiv Singular=Teils
+|Genitiv Singular*=Teiles
+|Genitiv Plural=Teile
+|Dativ Singular=Teil
+|Dativ Singular*=Teile
+|Dativ Plural=Teilen
+|Akkusativ Singular=Teil
+|Akkusativ Plural=Teile
+}}
+
+{{Nicht mehr gültige Schreibweisen}}
+:[[Theil]]
+
+{{Worttrennung}}
+:Teil, {{Pl.}} Tei·le
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|taɪ̯l}}
+:{{Hörbeispiele}} {{Audio|De-Teil.ogg}}
+:{{Reime}} {{Reim|aɪ̯l|Deutsch}}
+
+{{Bedeutungen}}
+:[1] ''oft im [[Zusammenhang]] mit [[leblos]]en Gegenständen:'' ein [[Element]], [[Stück]] oder [[Teilmenge]] eines Ganzen
+:[2] {{K|ugs.}} ein [[Kleidungsstück]]
+:[3] {{K|ugs.}} ein beliebiger [[Gegenstand]]
+
+{{Herkunft}}
+:[[mittelhochdeutsch]] ''{{Ü|gmh|teil}}'', [[althochdeutsch]] ''{{Ü|goh|teil}}'', [[germanisch]] *''[[daili-]]'' „Teil“, belegt seit dem 8. Jahrhundert<ref>{{Lit-Kluge: Etymologisches Wörterbuch|A=24}}, Stichwort: „Teil“, Seite 911.</ref>
+
+{{Synonyme}}
+:[1] [[Part]]
+:[2] [[Kleidungsstück]]
+
+{{Sinnverwandte Wörter}}
+:[1] [[Element]], [[Stück]]
+:[3] [[Ding]], [[Dingens]], [[Dings]], [[Dingsbums]], [[Dingsda]]
+
+{{Verkleinerungsformen}}
+:[*] [[Teilchen]]
+
+{{Unterbegriffe}}
+:[1] [[Abteil]], [[Altenteil]], [[Anbauteil]], [[Ausbauteil]], [[Auslieferungsteil]], [[Automobilteil]] ([[Autoteil]]), [[Bauteil]], [[Bestandteil]], [[Einbauteil]], [[Einzelteil]], [[Elektronikteil]], [[Elementarteil]], [[Ersatzteil]], [[Fahrzeugteil]], [[Fertigteil]], [[Flügelteil]], [[Geschlechtsteil]], [[Geschossteil]], [[Glasteil]], [[Gummiteil]], [[Gutteil]], [[Gussteil]], [[Hinterteil]], [[Holzteil]], [[Karosserieteil]], [[Kinderteil]], [[Kleinteil]], [[Knochenteil]], [[Kopfteil]], [[Kristallteil]], [[Kunststoffteil]], [[Lüftungsteil]], [[Metallteil]], [[Mittelteil]], [[Musterteil]], [[Paketteil]], [[Plastikteil]], [[Praxisteil]], [[Puzzleteil]], [[Raketenteil]], [[Rumpfteil]], [[Stahlteil]], [[Trümmerteil]], [[Wagenteil]], [[Werkteil]], [[Wrackteil]], [[Zubehörteil]], [[Zukaufteil]]
+:[1, 2] [[Rückteil]], [[Vorderteil]]
+:[2] [[Oberteil]], [[Unterteil]]
+:[3] [[Kristallteil]], [[Scheißteil]]
+
+{{Beispiele}}
+:[1] Wie passen die ''Teile'' zusammen?
+:[2] Wir haben jedes ''Teil'' in verschiedenen Größen da.
+:[3] Was ist das da für ein komisches ''Teil?''
+:[3] Pass auf das ''Teil'' da vorne auf!
+
+{{Charakteristische Wortkombinationen}}
+:[1] [[einzeln]]es ''Teil''
+
+{{Wortbildungen}}
+:''[[Adjektiv]]e/[[Adverb]]ien:'' [[teils]], [[teilweise]]
+:''[[Substantiv]]e:'' [[Teilbetragsrechnung]], [[Teilrechnung]], [[Teilstrecke]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G= Element, Stück oder Teilmenge eines Ganzen|Ü-Liste=
+*{{bg}}: {{Üt|bg|част|čast}} {{f}}
+*{{en}}: {{Ü|en|deal}}, {{Ü|en|part}}, {{Ü|en|piece}}
+*{{eo}}: {{Ü|eo|parto}}
+*{{fi}}: {{Ü|fi|osa}}
+*{{fr}}: {{Ü|fr|pièce}} {{f}}, {{Ü|fr|partie}} {{f}}
+*{{ka}}: {{Üt|ka|ნაწილი|nats'ili}}
+*{{el}}: {{Üt|el|κομμάτι|kommáti}} {{n}}
+*{{io}}: {{Ü|io|parto}}
+*{{ia}}: {{Ü|ia|parte}}
+*{{it}}: {{Ü|it|parte}} {{f}}
+*{{ja}}: {{Üt?|ja|個、一つの物|こ、ひとつのもの,ko, hototsunomono}}
+*{{ca}}: {{Ü|ca|peça}} {{f}}, {{Ü|ca|element}} {{m}}
+*{{tlh}}: {{Ü|tlh|’ay’}}
+*{{hr}}: {{Ü|hr|dio}} {{m}}
+*{{lv}}: {{Ü|lv|daļa}} {{f}}
+*{{nl}}: {{Ü|nl|deel}}, {{Ü|nl|stuk}}, {{Ü|nl|onderdeel}}
+**{{vls}}: {{Ü|vls|dêel}}
+*{{no}}:
+**{{nb}}: {{Ü|no|del}} {{m}}
+**{{nn}}: {{Ü|nn|del}} {{m}}
+*{{oc}}: {{Ü|oc|part}} {{f}}
+*{{pl}}: {{Ü|pl|część}} {{f}}
+*{{pt}}: {{Ü|pt|parte}} {{f}}
+*{{ro}}: {{Ü|ro|parte}} {{f}}, {{Ü|ro|piesă}} {{f}}
+*{{ru}}: {{Üt|ru|часть}} {{f}}
+*{{sv}}: {{Ü|sv|del}}
+*{{scn}}: {{Ü|scn|parti}} {{f}}
+*{{es}}: {{Ü|es|parte}} {{f}}
+*{{cs}}: {{Ü|cs|část}} {{f}}, {{Ü|cs|díl}} {{m}}, {{Ü|cs|díl}} {{m}}
+*{{tr}}: {{Ü|tr|kısım}}, {{Ü|tr|parça}}
+*{{uk}}: {{Üt|uk|частина}} {{f}}
+*{{hu}}: {{Ü|hu|rész}}, {{Ü|hu|darab}}
+*{{ur}}: {{Üt|ur|حصہ|}} {{m}}
+|Dialekttabelle=
+*Mitteldeutsch:
+** [[moselfränkisch]]: dääl {{Lautschrift|dæːl}}
+**{{pfl}}: [1] {{Lautschrift|dɛːl}}
+*Oberdeutsch:
+}}
+
+{{Ü-Tabelle|2|G=umgangssprachlich: ein Kleidungsstück|Ü-Liste=
+*{{en}}: {{Ü|en|piece}}
+*{{ca}}: {{Ü|ca|peça}} {{f}}, {{Ü|ca|element}} {{m}}
+*{{nl}}: {{Ü|nl|kledingstuk}}
+*{{no}}:
+**{{nb}}: {{Ü|no|plagg}} {{n}}
+**{{nn}}: {{Ü|nn|plagg}} {{n}}
+*{{pt}}: {{Ü|pt|parte}} {{f}}
+*{{ro}}: {{Ü|ro|piesă}} {{f}}
+*{{sv}}: {{Ü|sv|del}}
+*{{hu}}: {{Ü|hu|rész}}, {{Ü|hu|darab}}
+|Dialekttabelle=
+*Mitteldeutsch:
+** [[moselfränkisch]]: dääl {{Lautschrift|dæːl}}
+**{{pfl}}: [1] {{Lautschrift|dɛːl}}
+*Oberdeutsch:
+}}
+
+{{Ü-Tabelle|3|G=umgangssprachlich: ein beliebiger Gegenstand|Ü-Liste=
+*{{fr}}: {{Ü|fr|engin}} {{m}}
+*{{nl}}: {{Ü|nl|ding}}
+*{{no}}:
+**{{nb}}: {{Ü|no|greie}} {{mf}}
+**{{nn}}: {{Ü|nn|greie}} {{f}}
+*{{pt}}: {{Ü|pt|parte}} {{f}}, {{Ü|pt|coisa}} {{f}}, {{Ü|pt|troço}} {{m}}
+*{{ro}}: {{Ü|ro|piesă}} {{f}}
+*{{ru}}: {{Üt|ru|часть}} {{f}}
+*{{sv}}: {{Ü|sv|del}}
+*{{tr}}: {{Ü|tr|şey}}
+|Dialekttabelle=
+*Mitteldeutsch:
+** [[moselfränkisch]]: dääl {{Lautschrift|dæːl}}
+**{{pfl}}: [1] {{Lautschrift|dɛːl}}
+*Oberdeutsch:
+}}
+
+{{Referenzen}}
+:[1] {{Wikipedia}}
+:[1, (3)] {{Ref-DWDS}}
+:[*] {{Ref-UniLeipzig}}
+:[1–3] {{Ref-FreeDictionary}}
+:[1, 3] {{Ref-Duden}}
+:[1] {{Ref-wissen.de|Wörterbuch}}
+:[1] {{Ref-wissen.de|Lexikon}}
+:[*] {{Ref-wissen.de|Synonym}}
+:[1] {{Ref-Grimm}}
+
+{{Quellen}}
+
+=== {{Wortart|Substantiv|Deutsch}}, {{m}}, ''Untermenge'' ===
+
+{{Deutsch Substantiv Übersicht
+|Genus=m
+|Nominativ Singular=Teil
+|Nominativ Plural=Teile
+|Genitiv Singular=Teils
+|Genitiv Singular*=Teiles
+|Genitiv Plural=Teile
+|Dativ Singular=Teil
+|Dativ Plural=Teilen
+|Akkusativ Singular=Teil
+|Akkusativ Plural=Teile
+}}
+
+{{Nicht mehr gültige Schreibweisen}}
+:[[Theil]]
+
+{{Worttrennung}}
+:Teil, {{Pl.}} Tei·le
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|taɪ̯l}}
+:{{Hörbeispiele}} {{Audio|De-Teil.ogg}}
+:{{Reime}} {{Reim|aɪ̯l|Deutsch}}
+
+{{Bedeutungen}}
+:[1] ''meist im Zusammenhang mit lebenden Dingen und abstrakten Gegenständen:'' ein [[Element]], [[Stück]] des Ganzen
+:[2] ein Element im Größenverhältnis zum Ganzen
+:[3] ''als Wendung „zum Teil“, wenn nicht Bedeutung 2:'' einige davon
+
+{{Herkunft}}
+:mittelhochdeutsch ''teil,'' althochdeutsch ''teil,'' germanisch ''*daili-'' „Teil“, belegt seit dem 8. Jahrhundert<ref>{{Lit-Kluge: Etymologisches Wörterbuch|A=24}}, Stichwort „Teil“, Seite 911.</ref>
+
+{{Synonyme}}
+:[1] [[Element]], [[Stück]]
+:[2] [[Anfügung]], [[Beitrag]], [[Einfügung]]
+
+{{Unterbegriffe}}
+:[?] [[Lieblingsteil]]
+:[1] [[Abbildungsteil]], [[Anlagenteil]], [[Annoncenteil]], [[Anteil]], [[Anzeigenteil]], [[Bauteil]], [[Bestandteil]], [[Betriebsteil]], [[Beuteteil]], [[Bevölkerungsteil]], [[Bildteil]], [[Blütenteil]], [[Eisenteil]], [[Elementarteil]], [[Elternteil]], [[Erbteil]], [[Erdteil]], [[Ersatzteil]], [[Fahrzeugteil]], [[Faltenteil]], [[Formteil]], [[Gebäudeteil]], [[Geschwisterteil]], [[Gleichgewichtsteil]], [[Großelternteil]], [[Großteil]], [[Holzteil]], [[Inseratenteil]], [[Kindsteil]], [[Konzernteil]], [[Kopfteil]], [[Körperteil]], [[Kraftteil]], [[Kulturteil]], [[Kursteil]], [[Landesteil]], [[Leistungsteil]], [[Lokalteil]], [[Mantelteil]], [[Mauerteil]], [[Mittelteil]], [[Nachteil]], [[Pflanzenteil]], [[Pflichtteil]], [[Politikteil]], [[Programmteil]], [[Realteil]], [[Redeteil]], [[Regalteil]], [[Regionalteil]], [[Reserveteil]], [[Rezensionsteil]], [[Satzteil]], [[Schlussteil]], [[Seelenteil]], [[Siebteil]], [[Sonderteil]], [[Sportteil]], [[Streitteil]], [[Taktteil]], [[Textteil]], [[Theorieteil]], [[Truppenteil]], [[Übungsteil]], [[Unterhaltungsteil]], [[Unternehmensteil]], [[Vasalteil]], [[Vermögensteil]], [[Verschlussteil]], [[Vertragsteil]], [[Volksteil]], [[Vorteil]], [[Wehrmachtsteil]], [[Weltteil]], [[Wirtschaftsteil]], [[Wortteil]], [[Wrackteil]], [[Zusatzteil]]
+:[2] [[Bruchteil]], [[Dorfteil]], [[Einzelteil]], [[Gebietsteil]], [[Gemeindeteil]], [[Halbteil]], [[Hauptteil]], [[Hinterteil]], [[Nordteil]], [[Oberteil]], [[Ortsteil]], [[Ostteil]], [[Stadtteil]], [[Südteil]], [[Unterteil]], [[Vorderteil]], [[Westteil]]
+
+{{Beispiele}}
+:[1] Diese Aufgabe wird ''Teil'' der Prüfung am nächsten Dienstag sein.
+:[1] „Bei Zirkusakrobaten, Kunstturnern, Eiskunstläufern, Kunstfliegern werden Vertigoerlebnisse ''Teil'' einer künstlerischen Gesamtleistung.“<ref>{{Literatur | Autor= Siegbert A. Warwitz| Titel= Sinnsuche im Wagnis| TitelErg= Leben in wachsenden Ringen. Erklärungsmodelle für grenzüberschreitendes Verhalten | Verlag= Schneider | Ort= Baltmannsweiler | Jahr= 2016 | ISBN= 978-3-8340-1620-1}}, Seite 59.</ref>
+:[1] „Werke, […] die zum ''Theil'' auf einer Reihe von akademischen Ausstellungen die Haupt- und Zugbilder gewesen sind, verleihen dieser Ausstellung eine Bedeutung, welche bisher noch keine andere hier gehabt hat.“<ref>{{Literatur | Titel= Unsere Zeit | Verlag=Brockhaus | Ort=Leipzig | Jahr=1866|Band=Zweiter Jahrgang. Zweite Hälfte. | Seiten=395| Online=Zitiert nach {{GBS|1y735TRd00MC|PA395|Hervorhebung="die zum Theil auf einer Reihe von akademischen Ausstellungen die Haupt- und Zugbilder gewesen sind, verleihen dieser Ausstellung eine Bedeutung, welche bisher noch keine andere hier gehabt hat."}}}}.</ref>
+:[2] Der größte ''Teil'' Russlands liegt in Asien.
+:[2] Heute ist der dritte ''Teil (= ein Drittel)'' des Mondes zu sehen.
+:[2] „In manchen ''Teilen'' der Biosphäre wimmelt es von Leben, weil dort die Lebensbedingungen beinahe ideal sind. Andere ''Teile'' sind nur spärlich besiedelt, weil extreme Kälte oder Hitze das Überleben schwierig macht.“<ref>{{Literatur | Titel=Das große Arena Lexikon der Natur| Auflage=1. | Verlag=Arena Verlag GmbH | Ort=Würzburg | Jahr=2005 | ISBN=3-401-05780-4| Seiten=16 }}</ref>
+:[3] „Weit über hundert Anwohner, unter ihnen zehn Kinder, wurden ''zum Teil'' schwer verletzt.“<ref>Quelle: FAZ vom 18.08.2009 Seite 5 Spalte 2; gemeint ist „über hundert wurden verletzt, ''einige von ihnen'' schwer“, eine Teilmenge der Anwohner, aber niemand ''zum Teil''</ref>
+
+{{Redewendungen}}
+:[1] [[der Teil und das Ganze|der ''Teil'' und das Ganze]]
+
+{{Charakteristische Wortkombinationen}}
+:[1] [[nur]] ein ''Teil''
+:[3] [[zum Teil|zum ''Teil'']]
+
+{{Wortbildungen}}
+:''Adjektive/Adverbien:'' [[anteilig]], [[teilautonom]], [[teils]], [[teilstaatlich]], [[teilweise]]
+:''Substantive:'' [[Teilansicht]], [[Teilautonomie]], [[Teilbereich]], [[Teilbetrag]], [[Teildauerwelle]], [[Teildruck]], [[Teilerfolg]], [[Teilfach]], [[Teilgebiet]], [[Teilgeständnis]], [[Teilhaber]], [[Teilkapitulation]], [[Teilkasko]], [[Teillösung]], [[Teilmenge]], [[Teilrepublik]], [[Teilsprache]], [[Teilstaat]], [[Teilstrecke]], [[Teilstück]], [[Teilurteil]], [[Teilwelle]], [[Teilzahlung]], [[Teilzeit]]
+:''Verben:'' [[beteiligen]], [[teilen]], [[teilhaben]], [[teilnehmen]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=ein Element, Stück des Ganzen|Ü-Liste=
+*{{da}}: {{Ü|da|del}}
+*{{en}}: {{Ü|en|part}}
+*{{fi}}: {{Ü|fi|osa}}
+*{{fr}}: {{Ü|fr|partie}} {{f}}, {{Ü|fr|part}} {{f}}
+*{{el}}: {{Üt|el|μέρος|méros}} {{n}}, {{Üt|el|τμήμα|tmíma}} {{n}}
+*{{is}}: {{Ü|is|hluti}}
+*{{ja}}: {{Üt?|ja|(全体の中の)一部分|(ぜんたいのなかの)いちぶぶん,(zentainonakano)ichibubun}}
+*{{ca}}: {{Ü|ca|part}} {{f}}
+*{{no}}:
+**{{nb}}: {{Ü|nb|del}} {{m}}
+**{{nn}}: {{Ü|nn|del}}
+*{{pl}}: {{Ü|pl|część}} {{f}}
+*{{pt}}: {{Ü|pt|parte}} {{f}}
+*{{ro}}: {{Ü|ro|parte}} {{f}}
+*{{ru}}: {{Üt|ru|часть}} {{f}}
+*{{sv}}: {{Ü|sv|del}}
+*{{cs}}: {{Ü|cs|část}} {{f}}
+*{{tr}}: {{Ü|tr|bölüm}}
+*{{hu}}: {{Ü|hu|rész}}
+}}
+
+{{Ü-Tabelle|2|G=ein Element im Größenverhältnis zum Ganzen|Ü-Liste=
+*{{en}}: {{Ü|en|portion}}, {{Ü|en|fraction}}
+*{{fr}}: {{Ü|fr|partie}} {{f}}, {{Ü|fr|part}} {{f}}, {{Ü|fr|portion}} {{f}}
+*{{no}}:
+**{{nb}}: {{Ü|nb|del}} {{m}}
+**{{nn}}: {{Ü|nn|del}}
+*{{pt}}: {{Ü|pt|parte}} {{f}}
+*{{ro}}: {{Ü|ro|parte}} {{f}}
+*{{ru}}: {{Üt|ru|часть}} {{f}}
+*{{cs}}: {{Ü|cs|část}} {{f}}
+*{{tr}}: {{Ü|tr|bölüm}}, {{Ü|tr|kısım}}
+*{{hu}}: {{Ü|hu|rész}}
+}}
+
+{{Ü-Tabelle|3|G=als Wendung „zum Teil“, wenn nicht Bedeutung 2: einige davon|Ü-Liste=
+*{{pt}}: {{Ü|pt|parte}} {{f}}
+*{{ru}}: {{Üt|ru|часть}} {{f}}
+*{{tr}}: {{Ü|tr|bölüm}}, {{Ü|tr|kısım}}
+}}
+
+{{Referenzen}}
+:[1] {{Wikipedia}}
+:[1, 2] {{Ref-DWDS}}
+:[*] {{Ref-UniLeipzig}}
+:[1–3] {{Ref-FreeDictionary}}
+:[1, 2] {{Ref-Duden}}
+:[1, 2] {{Ref-Grimm}}
+
+{{Quellen}}
+
+{{Ähnlichkeiten 1|[[Beil]], [[Heil]], [[Teig]], [[weil]]|Anagramme=[[eilt]], [[leit]], [[Leit]]}}

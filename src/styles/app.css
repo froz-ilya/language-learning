@@ -1,0 +1,606 @@
+/* Design tokens + shared utility classes. Components use these instead of ad-hoc colors. */
+:root {
+  --bg: #f4f4f7;
+  --surface: #ffffff;
+  --surface-2: #ececf1;
+  --text: #16161a;
+  --muted: #6b6b76;
+  --border: #dedee5;
+  --accent: #3b5bdb;
+  --accent-text: #ffffff;
+  --good: #1f9d55;
+  --bad: #d9364a;
+  --warn: #c98a00;
+  /* Noun genders: der = blue, die = red, das = green */
+  --der: #2f6fde;
+  --die: #d9364a;
+  --das: #1f9d55;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 2px 8px rgb(0 0 0 / 0.04);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Motion: iOS-like ease-out. Durations are for CSS; JS uses dur() from lib/motion.ts. */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 160ms;
+  --dur: 300ms;
+  --dur-slow: 450ms;
+  /* Height of the bottom tab bar incl. safe area; 0 on pages without it (see TabBar). */
+  --tabbar-h: 0px;
+  /* Translucent bars, raised surfaces (dialogs/sheets), overlays */
+  --chrome-bg: rgb(249 249 251 / 0.82);
+  --surface-raised: #ffffff;
+  --backdrop: rgb(0 0 0 / 0.38);
+  --focus-ring: rgb(59 91 219 / 0.28);
+  --toast-bg: #1f1f24;
+  --toast-text: #ffffff;
+  --toast-action: #9db1ff;
+  --skeleton-shine: #f7f7fa;
+  color-scheme: light dark;
+}
+
+/* Pages on a tab root leave room for the fixed tab bar. */
+html:has(.app-tabbar) {
+  --tabbar-h: calc(56px + var(--safe-bottom));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121214;
+    --surface: #1d1d21;
+    --surface-2: #2a2a30;
+    --text: #f2f2f5;
+    --muted: #9a9aa6;
+    --border: #33333a;
+    --accent: #6b8cff;
+    --accent-text: #0d0d10;
+    --good: #3cc97a;
+    --bad: #ff5c6f;
+    --warn: #f2b632;
+    --der: #6b9cff;
+    --die: #ff6b7d;
+    --das: #45d189;
+    --shadow: none;
+    --chrome-bg: rgb(29 29 33 / 0.78);
+    --surface-raised: #26262b;
+    --backdrop: rgb(0 0 0 / 0.55);
+    --focus-ring: rgb(107 140 255 / 0.35);
+    --toast-bg: #34343b;
+    --toast-text: #f2f2f5;
+    --toast-action: #8ea6ff;
+    --skeleton-shine: #3a3a42;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.4 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* ≥16px prevents iOS from zooming into focused inputs. */
+input,
+select,
+textarea {
+  font-size: 17px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* ---------- Layout ---------- */
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(var(--safe-top) + 8px) 16px calc(max(var(--safe-bottom), var(--tabbar-h)) + 32px);
+}
+
+.section {
+  margin-top: 24px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 14px;
+}
+
+.center {
+  text-align: center;
+}
+
+/* ---------- Surfaces ---------- */
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+/* Grouped list, iOS-settings style: <div class="list"><a class="list-item">…</a></div> */
+.list {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 16px;
+  color: inherit;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.list-item + .list-item {
+  border-top: 1px solid var(--border);
+}
+
+.list-item {
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+
+.list-item:active {
+  background: var(--surface-2);
+  transition-duration: 0s;
+}
+
+/* Any tappable card/tile: <button class="card pressable"> */
+.pressable {
+  transition: transform var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+  cursor: pointer;
+}
+
+.pressable:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+.list-item .title {
+  font-weight: 500;
+}
+
+.list-item .sub {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 32px 16px;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    opacity var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+
+.btn:active {
+  opacity: 0.8;
+  transform: scale(0.97);
+}
+
+.btn:disabled:active {
+  transform: none;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--bad);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--accent);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-lg {
+  min-height: 54px;
+  font-size: 18px;
+}
+
+/* Round icon button (speaker, star, …) */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+.icon-btn:active {
+  background: var(--surface-2);
+  transform: scale(0.92);
+}
+
+/* ---------- Forms ---------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field > label,
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  outline: none;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+textarea.input {
+  min-height: 90px;
+  resize: vertical;
+}
+
+/* Segmented control: <div class="segmented"><button class:active={…}>…</button>…</div> */
+.segmented {
+  display: flex;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 3px;
+}
+
+.segmented button {
+  flex: 1;
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+.segmented button.active {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ---------- German ---------- */
+
+.g-m {
+  color: var(--der);
+}
+.g-f {
+  color: var(--die);
+}
+.g-n {
+  color: var(--das);
+}
+
+.good {
+  color: var(--good);
+}
+.bad {
+  color: var(--bad);
+}
+
+/* ---------- Focus ---------- */
+
+/* Keyboard focus only (taps don't show rings). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn:focus-visible,
+.icon-btn:focus-visible,
+.segmented button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring), inset 0 0 0 1.5px var(--accent);
+}
+
+.list-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* ---------- Motion utilities ---------- */
+/* Use on any element: class="fade-in" / "anim-pop" / "anim-shake" / "anim-pulse". Re-trigger by
+   re-mounting (e.g. {#key}) or toggling the class. */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes pulse-good {
+  0% {
+    box-shadow: 0 0 0 0 rgb(31 157 85 / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgb(31 157 85 / 0);
+  }
+}
+
+.fade-in {
+  animation: fade-in var(--dur) var(--ease) both;
+}
+
+.anim-pop {
+  animation: pop var(--dur) var(--ease) both;
+}
+
+.anim-shake {
+  animation: shake 0.4s var(--ease-in-out);
+}
+
+.anim-pulse {
+  animation: pulse-good 0.6s var(--ease);
+}
+
+/* ---------- Page transitions (View Transitions API, driven by lib/router.svelte.ts) ---------- */
+/* <html data-nav="forward|back|tab"> is set for the duration of a navigation. */
+
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: var(--dur);
+  animation-timing-function: var(--ease);
+}
+
+html[data-nav='forward']::view-transition-old(root),
+html[data-nav='forward']::view-transition-new(root),
+html[data-nav='back']::view-transition-old(root),
+html[data-nav='back']::view-transition-new(root) {
+  mix-blend-mode: normal;
+  animation-fill-mode: both;
+}
+
+/* forward: new page slides in from the right over the old one, which shifts left and dims */
+html[data-nav='forward']::view-transition-old(root) {
+  animation-name: vt-shift-out;
+}
+html[data-nav='forward']::view-transition-new(root) {
+  animation-name: vt-slide-in;
+  box-shadow: -8px 0 28px rgb(0 0 0 / 0.14);
+}
+
+/* back: the reverse; the leaving page stays on top */
+html[data-nav='back']::view-transition-old(root) {
+  z-index: 1;
+  animation-name: vt-slide-out;
+  box-shadow: -8px 0 28px rgb(0 0 0 / 0.14);
+}
+html[data-nav='back']::view-transition-new(root) {
+  animation-name: vt-shift-in;
+}
+
+/* tab: quick crossfade; the tab bar stays put */
+html[data-nav='tab']::view-transition-old(root),
+html[data-nav='tab']::view-transition-new(root),
+html[data-nav='tab']::view-transition-group(tabbar),
+html[data-nav='tab']::view-transition-old(tabbar),
+html[data-nav='tab']::view-transition-new(tabbar) {
+  animation-duration: var(--dur-fast);
+}
+html[data-nav='tab'] .app-tabbar {
+  view-transition-name: tabbar;
+}
+
+@keyframes vt-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes vt-shift-out {
+  to {
+    transform: translateX(-30%);
+    filter: brightness(0.85);
+  }
+}
+@keyframes vt-slide-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes vt-shift-in {
+  from {
+    transform: translateX(-30%);
+    filter: brightness(0.85);
+  }
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  .btn:active,
+  .icon-btn:active,
+  .pressable:active {
+    transform: none;
+  }
+}

@@ -1,0 +1,19 @@
+== ging ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Konjugierte Form|Deutsch}} ===
+
+{{Worttrennung}}
+:ging
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ɡɪŋ}}
+:{{Hörbeispiele}} {{Audio|De-ging.ogg}}
+:{{Reime}} {{Reim|ɪŋ|Deutsch}}
+
+{{Grammatische Merkmale}}
+*1. Person Singular Indikativ Präteritum Aktiv des Verbs '''[[gehen]]'''
+*3. Person Singular Indikativ Präteritum Aktiv des Verbs '''[[gehen]]'''
+
+{{Grundformverweis Konj|gehen}}
+
+{{Ähnlichkeiten 1|[[Gong]]}}
+{{Ähnlichkeiten 2|[[king]]}}

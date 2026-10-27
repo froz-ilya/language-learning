@@ -1,0 +1,252 @@
+== Tisch ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Substantiv|Deutsch}}, {{m}} ===
+
+{{Deutsch Substantiv Übersicht
+|Genus=m
+|Nominativ Singular=Tisch
+|Nominativ Plural=Tische
+|Genitiv Singular=Tischs
+|Genitiv Singular*=Tisches
+|Genitiv Plural=Tische
+|Dativ Singular=Tisch
+|Dativ Singular*=Tische
+|Dativ Plural=Tischen
+|Akkusativ Singular=Tisch
+|Akkusativ Plural=Tische
+|Bild=Table.png|mini|1|ein ''Tisch''
+}}
+
+{{Worttrennung}}
+:Tisch, {{Pl.}} Ti·sche
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|tɪʃ}}
+:{{Hörbeispiele}} {{Audio|De-Tisch.ogg}}, {{Audio|De-Tisch2.ogg}}
+:{{Reime}} {{Reim|ɪʃ|Deutsch}}
+
+{{Bedeutungen}}
+:[1] {{K|Möbel}} [[Möbelstück]], das aus einer [[Platte]] mit vier oder drei [[Bein]]en oder [[mittig]]en [[Standfuß]] besteht
+:[2] um einen Tisch <sup>[1]</sup> [[versammelt]]e [[Gesellschaft]]
+:[3] [[Mahlzeit]]
+
+{{Herkunft}}
+:von [[mittelhochdeutsch]] ''{{Ü|gmh|tisch}},'' [[althochdeutsch]] ''{{Ü|goh|tisc}},'' belegt seit dem 8. Jahrhundert, das vom [[lateinisch]]en ''{{Ü|la|discus}} („Schüssel“)'' stammt, das wiederum aufs [[griechisch]]e ''{{Üt|grc|δίσκος|diskos}} („Scheibe“)'' zurückgeht. In seiner ursprünglichen Bedeutung bezeichnete das Wort kein Möbelstück im heutigen Sinn, sondern kleine hölzerne Platten, die einem einzelnen Esser zugleich als Tisch und Teller dienten. Vergleiche [[altenglisch]] ''{{Ü|ang|disc}},'' [[altsächsisch]] ''{{Ü|osx|disc}}'' und [[altnordisch]] ''{{Ü|non|diskr}},'' alle mit der Bedeutung ''„[[Schüssel]]“''.<ref>{{Lit-Kluge: Etymologisches Wörterbuch|A=24}}, Stichwort: „Tisch“, Seite 917&nbsp;f.</ref>
+
+{{Synonyme}}
+:[1] [[Tafel]]
+:[2] [[Messe]], [[Tafelrunde]], [[Tischrunde]], [[Tischgesellschaft]]
+:[3] [[Essen]]
+
+{{Gegenwörter}}
+:[1] [[Bett]], [[Stuhl]]
+
+{{Verkleinerungsformen}}
+:[1] [[Tischchen]], [[Tischlein]]
+
+{{Oberbegriffe}}
+:[1] [[Einrichtungsgegenstand]], [[Möbel]]
+
+{{Unterbegriffe}}
+:[1] [[Abendbrottisch]], [[Abhörtisch]], [[Absetztisch]], [[Absprungtisch]], [[Abstelltisch]], [[Abwaschtisch]], [[Altartisch]], [[Anrichtetisch]], [[Arbeitstisch]], [[Aufwaschtisch]], [[Auslagetisch]]/[[Auslagentisch]], [[Ausziehtisch]], [[Auszugstisch]], [[Autopsietisch]], [[Backtisch]], [[Barocktisch]], [[Bartisch]], [[Beistelltisch]], [[Besprechungstisch]], [[Betontisch]], [[Biertisch]], [[Billardtisch]], [[Bistrotisch]], [[Blumentisch]], [[Bostontisch]], [[Brettertisch]], [[Bridgetisch]], [[Büchertisch]]/[[Buchtisch]], [[Bürotisch]], [[Caféhaustisch]], [[Cafétisch]], [[Campingtisch]], [[Cocktailtisch]], [[Computertisch]], [[Couchtisch]], [[Ecktisch]], [[Eichenholztisch]], [[Eichentisch]], [[Einlegetisch]], [[Eisentisch]], [[Elferratstisch]], [[Esstisch]], [[Familientisch]], [[Fenstertisch]], [[Frisiertisch]], [[Frühstückstisch]], [[Fußballtisch]], [[Gabentisch]], [[Gartentisch]], [[Geburtstagstisch]], [[Gesindetisch]], [[Gletschertisch]], [[Gottestisch]], [[Grabbeltisch]], [[Holztisch]], [[Jogltisch]] ([[Jokeltisch]]), [[Kabinettstisch]], [[Kaffeehaustisch]], [[Kaffeetisch]], [[Kartentisch]], [[Kassentisch]], [[Katzentisch]], [[Kickertisch]], [[Kindertisch]], [[Klapptisch]], [[Kneipentisch]], [[Konferenztisch]], [[Konsoltisch]], [[Korbtisch]], [[Küchentisch]], [[Kurbeltisch]], [[Labortisch]], [[Ladentisch]], [[Lagetisch]], [[Liegnitzer Ringtisch]], [[Lombretisch]], [[Marmortisch]], [[Maschinentisch]], [[Messtisch]], [[Metalltisch]], [[Mitteltisch]], [[Mosaiktisch]], [[Nachbartisch]], [[Nachttisch]], [[Nähtisch]], [[Nebentisch]], [[Nierentisch]], [[Obduktionstisch]], [[Objekttisch]], [[Operationstisch]] ([[OP-Tisch]]), [[Opfertisch]], [[Packtisch]], [[Pharaotisch]], [[Picknicktisch]], [[Plastiktisch]], [[Pokertisch]], [[Präsidiumstisch]], [[Prunktisch]], [[Quertisch]], [[Rattantisch]], [[Rauchtisch]], [[Rauchertisch]], [[Rechentisch]], [[Regierungstisch]], [[Regietisch]], [[Restetisch]], [[Richtertisch]], [[Rütteltisch]], [[Satztisch]], [[Schachtisch]], [[Schalttisch]], [[Schanktisch]]/[[Schänktisch]]/[[Schenktisch]], [[Schanzentisch]], [[Schiebetisch]], [[Schminktisch]], [[Schneidertisch]], [[Schneidetisch]], [[Schreibtisch]], [[Schwingtisch]], [[Sechsertisch]], [[Seitentisch]], [[Serviertisch]], [[Seziertisch]], [[Snookertisch]], [[Sofatisch]], [[Spiegeltisch]], [[Spieltisch]], [[Spültisch]], [[Stehtisch]], [[Steintisch]], [[Stempeltisch]], [[Tapeziertisch]], [[Teakholztisch]], [[Telefontisch]], [[Tischfußballtisch]], [[Tischtennistisch]], [[Toilettentisch]], [[Trompetertisch]], [[Übungstisch]], [[Verhandlungstisch]], [[Verkaufstisch]], [[Versammlungstisch]], [[Vierertisch]], [[Vorstandstisch]], [[Wandtisch]], [[Waschtisch]], [[Weihnachtstisch]], [[Werktisch]], [[Wickeltisch]], [[Wohnzimmertisch]], [[Wühltisch]], [[Würfeltisch]], [[Wutzeltisch]]/[[Wuzeltisch]]/[[Wuzzeltisch]], [[Zahltisch]], [[Zeichentisch]], [[Zweiertisch]]
+:[1–3] [[Abendtisch]], [[Mittagstisch]]
+:[1, 2] [[Stammtisch]]
+:[3] [[Abendmahlstisch]], [[Freitisch]], [[Kaffeetafel]], [[Nachtisch]], [[Teetisch]]
+
+{{Beispiele}}
+:[1] Der ''Tisch'' ist für die vielen Personen heute zu klein.
+:[1] „Der ''Tisch'' steht direkt neben dem Herd.“<ref>{{Literatur | Autor= James Salter | Titel= Ein Spiel und ein Zeitvertreib|TitelErg= Roman| Auflage = |Verlag= Rowohlt Taschenbuch Verlag| Ort= Reinbek| Jahr= 2000 | ISBN=3-499-22440-2 | Seiten= 139.}}</ref>
+:[1] „In der Schublade des ''Tisches'' waren ein paar Gabeln, Löffel und ein Messer gewesen.“<ref>{{Literatur|Autor=Erich Maria Remarque|Titel=Der Funke Leben|TitelErg=Roman|Auflage=2.|Verlag=Kiepenheuer & Witsch|Ort=Köln|Jahr=2022|ISBN=978-3-462-05448-3|Seiten=505.}} Zuerst 1952.</ref>
+:[1] „Er nahm ein Skalpell vom ''Tisch'' und begann, an den Augen zu arbeiten.“<ref>{{Literatur |Autor=Jo Nesbø|Titel= Minnesota| TitelErg= Kriminalroman|Übersetzer= Günther Frauenlob| Auflage= 3.|Verlag= Ullstein|Ort= Berlin |Jahr=2026| Seiten= 153.|ISBN=978-3-550-20309-1}} Norwegisch 2025.</ref>
+:[2] Der ganze ''Tisch'' blickte sich um.
+:[3] Wir sehen uns nach ''Tisch.''
+:[3] Sie ist zu ''Tisch.''
+:[3] „Um zwei Uhr essen wir. Herr Casanova wird uns hoffentlich das Vergnügen machen, mit uns zu speisen, und gleich nach ''Tisch'' fahren wir ab. “<ref>{{DiB-Projekt Gutenberg-DE|Online=https://www.projekt-gutenberg.org/casanova/band03/chap03.html|Autor=Casanova|Titel=Erinnerungen, Band 3|Band=3|Kapitel=Drittes Kapitel|Jahr=1911|Übersetzer=Heinrich Conrad|Verlag=Georg Müller|Zugriff=2022-11-10}}</ref>
+
+{{Redewendungen}}
+:[[auf den Tisch hauen|auf den ''Tisch'' hauen]] – deutlich seine Meinung kundtun und sich am besten auch durchsetzen
+:[[auf den Tisch kommen|auf den ''Tisch'' kommen]]
+:[[bei Tisch|bei ''Tisch'']]
+:[[die Beine unter jemandes Tisch strecken|die Beine unter jemandes ''Tisch'' strecken]] – sich versorgen lassen
+:[[die Karten auf den Tisch legen|die Karten auf den ''Tisch'' legen]] / [[alle Karten auf den Tisch legen|alle Karten auf den ''Tisch'' legen]]
+:[[die Karten offen auf den Tisch legen|die Karten offen auf den ''Tisch'' legen]] – ehrlich sein, die Wahrheit sagen
+:[[etwas auf den Tisch bringen|etwas auf den ''Tisch'' bringen]]
+:[[etwas auf den Tisch legen|etwas auf den ''Tisch'' legen]]
+:[[etwas unter den Tisch fallen lassen|etwas unter den ''Tisch'' fallen lassen]] – etwas nicht berücksichtigen
+:[[etwas unter den Tisch kehren|etwas unter den ''Tisch'' kehren]]
+:[[etwas vom Tisch fegen|etwas vom ''Tisch'' fegen]] / [[etwas vom Tisch wischen|etwas vom ''Tisch'' wischen]]
+:[[grüner Tisch|grüner ''Tisch'']]
+:[[jemanden an einen Tisch bringen|jemanden an einen ''Tisch'' bringen]]
+:[[jemanden über den Tisch ziehen|jemanden über den ''Tisch'' ziehen]] – jemanden übervorteilen
+:[[jemanden unter den Tisch trinken|jemanden unter den ''Tisch'' trinken]] – mehr Alkohol trinken als der andere kann
+:[[reinen Tisch machen|reinen ''Tisch'' machen]] – ehrlich sein, die Wahrheit sagen
+:[[Runder Tisch|Runder ''Tisch'']] / [[runder Tisch|runder ''Tisch'']]
+:[[sich nicht über den Tisch ziehen lassen|sich nicht über den ''Tisch'' ziehen lassen]]
+:[[sich nicht vom Tisch fegen lassen|sich nicht vom ''Tisch'' fegen lassen]] / [[sich nicht vom Tisch wischen lassen|sich nicht vom ''Tisch'' wischen lassen]]
+:[[sich über den Tisch ziehen lassen|sich über den ''Tisch'' ziehen lassen]]
+:[[über den Tisch gehen|über den ''Tisch'' gehen]]
+:[[unter den Tisch fallen|unter den ''Tisch'' fallen]]
+:[[vom grünen Tisch aus|vom grünen ''Tisch'' aus]] – ohne Kenntnis der tatsäclichen Gegebenheiten
+:[[vom Tisch sein|vom ''Tisch'' sein]] – nicht mehr diskutiert werden
+:[[von Tisch und Bett getrennt sein|von ''Tisch'' und Bett getrennt sein]] – keinen gemeinsamen Haushalt mehr haben
+
+{{Sprichwörter}}
+:[[ist die Katze aus dem Haus, tanzen die Mäuse auf dem Tisch|ist die Katze aus dem Haus, tanzen die Mäuse auf dem ''Tisch'']] / [[wenn die Katze aus dem Haus ist, tanzen die Mäuse auf dem Tisch|wenn die Katze aus dem Haus ist, tanzen die Mäuse auf dem ''Tisch'']]
+
+{{Charakteristische Wortkombinationen}}
+:[1] [[gedeckter]] ''Tisch'', [[grün]]er ''Tisch'', ''Tisch'' [[decken]]/[[abdecken]], am ''Tisch'' [[sitzen]], einen ''Tisch'' [[reservieren]], den ''Tisch'' [[wischen]]
+:[2] [[rund]]er ''Tisch''
+:[3] zu ''Tisch'' [[bitten]], bei ''Tisch'' [[sitzen]]
+
+{{Wortbildungen}}
+:[1] [[Tischauflage]], [[Tischbein]], [[Tischbesteck]], [[Tischbohrmaschine]], [[Tischbuchung]], [[Tischdecke]], [[Tischdekoration]], [[Tischdrucker]], [[Tischende]], [[Tischfußball]], [[Tischglocke]], [[Tischgrill]], [[Tischkante]], [[Tischkicker]], [[Tischlampe]], [[Tischlappen]], [[Tischläufer]], [[Tischler]], [[Tischmikrophon]], [[Tischplatte]], [[Tischrand]], [[Tischrechner]], [[Tischreihe]], [[Tischreservierung]], [[Tischrücken]], [[Tischschublade]], [[Tischseite]], [[Tischtelefon]], [[Tischtennis]], [[Tischtrockenhaube]], [[Tischvorlage]], [[Tischtuch]], [[Tischventilator]], [[Tischwäsche]], [[Tischzarge]]
+:[2] [[Tischdame]], [[Tischgast]], [[Tischgebet]], [[Tischgenosse]], [[Tischgesellschaft]], [[Tischgespräch]], [[Tischherr]], [[Tischkleid]], [[Tischnachbar]], [[Tischordnung]], [[Tischrede]], [[Tischrunde]]
+:[3] [[auftischen]], [[Tischbesteck]], [[tischfertig]], [[Tischgeschirr]], [[Tischkarte]], [[Tischkultur]], [[Tischmanieren]], [[Tischwein]], [[Tischzeit]]
+:[[Tischmanieren]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=Möbelstück, das aus einer Platte mit vier oder drei Beinen oder mittigen Standfuß besteht|Ü-Liste=
+*{{sq}}: {{Ü|sq|tavolinë}} {{f}}, {{Ü|sq|tryezë}} {{f}}
+*{{grc}}: {{Üt|grc|τράπεζα}} {{f}}
+*{{am}}: {{Üt?|am|սեղան|seghan}}
+*{{ar}}: {{Üt|ar|طاولة|ṭāwila}} {{f}}, {{Üt|ar|منضدة|minḍada}} {{f}}
+*{{an}}: {{Ü|an|mesa}} {{f}}
+*{{hy}}: {{Üt|hy|սեղան}}
+*{{az}}: {{Ü|az|stol}}, {{Ü|az|masa}}
+*{{ast}}: {{Ü|ast|mesa}} {{f}}
+*{{ba}}: {{Üt|ba|өҫтәл|}}
+*{{eu}}: {{Ü|eu|mahai}}
+*{{bs}}: {{Ü|bs|sto}} {{m}}, {{Ü|bs|stol}} {{m}}
+*{{br}}: {{Ü|br|taol}} {{f}}
+*{{bg}}: {{Üt|bg|маса}} {{f}}
+*{{da}}: {{Ü|da|bord}} {{n}}
+*{{en}}: {{Ü|en|table}}
+*{{eo}}: {{Ü|eo|tablo}}
+*{{et}}: {{Ü|et|laud}}
+*{{fo}}: {{Ü|fo|borð}} {{n}}
+*{{fi}}: {{Ü|fi|pöytä}}
+*{{fr}}: {{Ü|fr|table}} {{f}}
+*{{fur}}: {{Ü|fur|taule}} {{f}}
+*{{gl}}: {{Ü|gl|mesa}} {{f}}
+*{{ka}}: {{Üt|ka|მაგიდა|magida}}
+*{{el}}: {{Üt|el|τραπέζι|trapézi}} {{n}}
+*{{kl}}: {{Ü|kl|nerrivik}}
+*{{he}}: {{Üt|he|שולחן|shulkhán}}
+*{{hi}}: {{Üt|hi|मेज़|mez}}, {{Üt|hi|टेबल|ṭebal}}
+*{{io}}: {{Ü|io|tablo}}
+*{{ia}}: {{Ü|ia|tabula}}
+*{{ga}}: {{Ü|ga|bord}} {{m}}, {{Ü|ga|tábla}} {{m}}
+*{{zu}}: {{Ü|zu|itafula}}
+*{{is}}: {{Ü|is|borð}} {{n}}
+*{{it}}: {{Ü|it|desco}} {{m}}, {{Ü|it|tavola}} {{f}}, {{Ü|it|tavolo}} {{m}}
+*{{sah}}: {{Üt|sah|остуол|}}
+*{{ja}}: {{Üt|ja|机|つくえ, tsukue}}, {{Üt|ja|テーブル|tēburu}}
+*{{yi}}: {{Üt|yi|טיש|tish}} {{m}}
+*{{kk}}: {{Üt|kk|үстел|}}
+*{{ca}}: {{Ü|ca|taula}} {{f}}
+*{{ky}}: {{Üt|ky|үстөл|}}
+*{{tlh}}: {{Ü|tlh|raS}}
+*{{kv}}: {{Üt|kv|пызан| }}
+*{{koi}}: {{Üt|koi|пызан|pyzán}}
+*{{ko}}: {{Üt|ko|테이블|teibeul}}
+*{{kw}}: {{Ü|kw|bord}} {{m}}, {{Ü|kw|moos}} {{f}}
+*{{co}}: {{Ü|co|tavula}} {{f}}
+*{{hr}}: {{Ü|hr|stol}} {{m}}
+*{{ku}}:
+**{{kmr}}: {{Ü|kmr|mase}}
+**{{ckb}}: {{Üt|ckb|مێز|mêz}}
+*{{la}}: {{Ü|la|mensa}} {{f}}
+*{{lv}}: {{Ü|lv|galds}} {{m}}
+*{{lt}}: {{Ü|lt|stalas}} {{m}}
+*{{lb}}: {{Ü|lb|Dësch}} {{m}}
+*{{mt}}: {{Ü|mt|mejda}} {{f}}
+*{{gv}}: {{Ü|gv|boayrd}} {{m}}, {{Ü|gv|taabyl}} {{m}}
+*{{mi}}: {{Ü|mi|tēpu}}
+*{{mk}}: {{Üt|mk|стол}} {{m}}, {{Üt|mk|астал}} {{m}}
+*{{nap}}: {{Ü|nap|tàvula}} {{f}}
+*{{nl}}: {{Ü|nl|tafel}} {{f}}
+*{{se}}: {{Ü|se|beavdi}}
+*{{no}}: {{Ü|no|bord}} {{n}}
+*{{nov}}: {{Ü|nov|table}}
+*{{oc}}: {{Ü|oc|taula}} {{f}}
+*{{fa}}: {{Üt|fa|میز|miz}}
+*{{pdt}}: {{Ü|pdt|Desch}} {{m}}
+*{{pl}}: {{Ü|pl|stół}} {{m}}
+*{{pt}}: {{Ü|pt|mesa}} {{f}}
+*{{rm}}: {{Ü|rm|meisa}} {{f}}, {{Ü|rm|mesa}} {{f}}
+*{{ro}}: {{Ü|ro|masă}} {{f}}
+*{{ru}}: {{Üt|ru|стол}} {{m}}
+*{{sc}}: {{Ü|sc|banca}} {{f}}, {{Ü|sc|mesa}} {{f}}
+*{{gd}}: {{Ü|gd|bòrd}} {{m}}
+*{{sv}}: {{Ü|sv|bord}} {{n}}
+*{{sr}}: {{Üt|sr|сто}} {{m}}, {{Üt|sr|стол}} {{m}}
+*{{scn}}: {{Ü|scn|tàula}} {{f}}, {{Ü|scn|tàvula}} {{f}}
+*{{sk}}: {{Ü|sk|stôl}} {{m}}
+*{{sl}}: {{Ü|sl|miza}} {{f}}
+*{{wen}}:
+**{{dsb}}: {{Ü|dsb|blido}} {{n}}
+**{{hsb}}: {{Ü|hsb|blido}} {{n}}
+*{{es}}: {{Ü|es|mesa}} {{f}}
+*{{sw}}: {{Ü|sw|meza}}
+*{{sux}}: {{Ü|sux|banšur}}
+*{{tg}}: {{Üt|tg|миз|}}
+*{{tt}}: {{Üt|tt|өстәл}}
+*{{tet}}: {{Ü|tet|meza}}
+*{{cs}}: {{Ü|cs|stůl}} {{m}}
+*{{ce}}: {{Üt|ce|шун}}, {{Üt|ce|ховшг}}, {{Üt|ce|текхь}}
+*{{cv}}: {{Üt|cv|сӗтел}}
+*{{tr}}: {{Ü|tr|masa}}
+*{{tk}}: {{Ü|tk|stol}}
+*{{tyv}}: {{Üt|tyv|стол| }}
+*{{ug}}: {{Üt|ug|جوزا|joza}}, {{Üt|ug|ئۈستەل|üstel}}
+*{{uk}}: {{Üt|uk|стіл}} {{m}}
+*{{hu}}: {{Ü|hu|asztal}}
+*{{ur}}: {{Üt|ur|میز|mez}}, {{Üt|ur|ٹیبل|ṭebal|ٹیبَل}}
+*{{uz}}: {{Ü|uz|stol}}
+*{{vec}}: {{Ü|vec|toła}} {{f}}
+*{{vo}}: {{Ü|vo|tab}}
+*{{cy}}: {{Ü|cy|bwrdd}} {{m}}
+*{{wa}}: {{Ü|wa|tåve}} {{f}}
+*{{be}}: {{Üt|be|стол}} {{m}}
+*{{fy}}: {{Ü|fy|tafel}}
+|Dialekttabelle=
+*Bairisch: Disch
+*Eiflerisch: Disch/Desch
+*Kölsch: Desch
+*Mosel-Fränkisch: Desch
+*Niederfränkisch (Niederrhein): Döösch, Toaffel
+}}
+
+{{Ü-Tabelle|2|G=um einen Tisch <sup>[1]</sup> versammelte Gesellschaft|Ü-Liste=
+*{{am}}: {{Üt?|am|սեղան|seghan}}
+*{{fr}}: {{Ü|fr|table}} {{f}}, {{Ü|fr|tablée}} {{f}}
+|Dialekttabelle=
+*Bairisch: Disch
+*Eiflerisch: Disch/Desch
+*Kölsch: Desch
+*Mosel-Fränkisch: Desch
+*Niederfränkisch (Niederrhein): Döösch, Toaffel
+}}
+
+{{Ü-Tabelle|3|G=Mahlzeit|Ü-Liste=
+*{{fr}}: {{Ü|fr|table}} {{f}}, {{Ü|fr|repas}} {{m}}
+*{{it}}: {{Ü|it|pasto}} {{m}}
+|Dialekttabelle=
+*Bairisch: Disch
+*Eiflerisch: Disch/Desch
+*Kölsch: Desch
+*Mosel-Fränkisch: Desch
+*Niederfränkisch (Niederrhein): Döösch, Toaffel
+}}
+
+{{Referenzen}}
+:[1] {{Wikipedia}}
+:[1, 3] {{Ref-Grimm}}
+:[1, 3] {{Ref-DWDS}}
+:[1–3] {{Ref-Duden}}
+:[*] {{Ref-UniLeipzig}}
+:[1–3] {{Ref-FreeDictionary}}
+:[1] {{Ref-PONS}}
+
+{{Quellen}}
+
+{{Ähnlichkeiten 1|[[etisch]], [[Fisch]], [[misch]], [[Tusch]], [[Wisch]]|Anagramme=[[sicht]], [[Sicht]], [[stich]], [[Stich]]}}

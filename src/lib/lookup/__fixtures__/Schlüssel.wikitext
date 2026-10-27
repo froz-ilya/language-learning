@@ -1,0 +1,326 @@
+== Schlüssel ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Substantiv|Deutsch}}, {{m}} ===
+
+{{Deutsch Substantiv Übersicht
+|Genus=m
+|Nominativ Singular=Schlüssel
+|Nominativ Plural=Schlüssel
+|Genitiv Singular=Schlüssels
+|Genitiv Plural=Schlüssel
+|Dativ Singular=Schlüssel
+|Dativ Plural=Schlüsseln
+|Akkusativ Singular=Schlüssel
+|Akkusativ Plural=Schlüssel
+|Bild 1=Chiave Zeiss.JPG|mini|1|[[mehrere]] ''Schlüssel'' mit [[Anhänger]]
+|Bild 2=Disc tumbler with key.png|mini|1|ein ''Schlüssel'' in einem [[Schloss]]
+|Bild 3=Bremen Wappen(Mittel).svg|mini|1a|''Schlüssel'' im Wappen der Hansestadt Bremen
+|Bild 4=Notenschluessel.svg|mini|2|ein ''Schlüssel,'' der ein Notenschlüssel ist
+|Bild 5=Bremsleitungsschluessel.JPG|mini|4|ein 8-er und ein 10-er ''Schlüssel''
+}}
+
+{{Worttrennung}}
+:Schlüs·sel, {{Pl.}} Schlüs·sel
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ˈʃlʏsl̩}}
+:{{Hörbeispiele}} {{Audio|De-Schlüssel.ogg}}
+:{{Reime}} {{Reim|ʏsl̩|Deutsch}}
+
+{{Bedeutungen}}
+:[1] Gegenstand zum Schließen und <!-- späteren -->Öffnen eines [[Schloss]]es
+::[1a] in der [[Heraldik]] Darstellungselement im [[Wappenschild]], symbolisiert Aufgeschlossenheit
+::[1b] Symbol des [[Apostel]]s [[w:Simon Petrus|Simon Petrus]]
+:[2] {{K|Musik}} ''kurz für'' [[Notenschlüssel]]
+:[3] {{K|Informatik}} Information, um eine Nachricht zu verschlüsseln oder zu entschlüsseln
+:[4] {{K|Technik}} Werkzeug zum Anziehen oder <!-- späteren -->Lösen von Schrauben
+:[5] {{K|Datenbanken}} ''kurz für'' [[Datenbankschlüssel]] – eindeutige Kennzeichnung von Datensätzen
+:[6] Mittel, um ein Ziel zu erreichen oder ein Problem zu lösen
+:[7] Lösungen zu gestellten Fragen
+:[8] Schema, wie ([[Geldmittel|Geld-]] oder [[Personalmittel|Personal-]])[[Mittel]] zugewiesen, aufgeteilt, verteilt oder aufgegliedert werden
+
+{{Herkunft}}
+:von [[mittelhochdeutsch]] ''{{Ü|gmh|slüʒʒel}}'', [[althochdeutsch]] ''{{Ü|goh|sluʒʒil}}'', seit dem 9.&nbsp;Jahrhundert belegt, zu ''[[schließen]]''.<ref>{{Ref-Duden}}</ref><ref>{{Ref-DWDS}}</ref>
+
+{{Synonyme}}
+:[2] [[Notenschlüssel]]
+:[3] [[Code]], [[Geheimzahl]]
+:[4] [[Schraubenschlüssel]]
+
+{{Oberbegriffe}}
+:[1] [[Öffner]]
+:[2] [[Musik]]
+:[3] [[Verschlüsselung]]
+:[4] [[Werkzeug]]
+
+{{Unterbegriffe}}
+:[1] [[Aufzugsschlüssel]], [[Autoschlüssel]], [[Ersatzschlüssel]], [[Generalschlüssel]], [[Hauptschlüssel]], [[Hausschlüssel]], [[Haustürschlüssel]], [[Hotelschlüssel]], [[Kassenschlüssel]], [[Kellerschlüssel]], [[Kirchenschlüssel]], [[Kofferschlüssel]], [[Ladenschlüssel]], [[Lenkradschlüssel]], [[Messingschlüssel]], [[Nachschlüssel]], [[Originalschlüssel]], [[Passepartout]], [[Reserveschlüssel]], [[Safeschlüssel]], [[Schlagschlüssel]], [[Schließfachschlüssel]], [[Sicherheitsschüssel]], [[Sonderschlüssel]], [[Tankschlüssel]], [[Torschlüssel]], [[Türschlüssel]], [[Universalschlüssel]], [[Wagenschlüssel]], [[Wohnungsschlüssel]], [[Zentralschlüssel]], [[Zimmerschlüssel]], [[Zündschlüssel]], [[Zweitschlüssel]]
+:[1, 4] [[Kombischlüssel]]
+:[2] [[Altschlüssel]], [[Baritonschlüssel]], [[Bassschlüssel]], [[C-Schlüssel]], [[Diskantschlüssel]], [[F-Schlüssel]], [[Mezzosopranschlüssel]], [[Sopranschlüssel]], [[Tenorschlüssel]], [[Violinschlüssel]]
+:[3] [[Aufteilungsschlüssel]], [[Codeschlüssel]], [[Lizenzschlüssel]], [[Registrierungsschlüssel]]
+:[3] [[geheim]]er Schlüssel, [[öffentlich]]er Schlüssel
+:[3] [[API-Schlüssel]], [[Handschlüssel]], [[Maschinenschlüssel]]
+:[4] [[Doppelgelenkschlüssel]], [[Drehmomentschlüssel]], [[Gabelschlüssel]], [[Kerzenschlüssel]], [[Kreuzschlüssel]], [[Maulschlüssel]], [[Ringschlüssel]], [[Rohrschlüssel]], [[Steckschlüssel]]
+:[5] ''siehe'' [[Datenbankschlüssel]], [[Gemeindeschlüssel]]
+:[6] [[Umlageschlüssel]], [[Verteilerschlüssel]] ([[Verteilungsschlüssel]]), [[Zuckerschlüssel]]
+:[8] [[Betreuungsschlüssel]], [[Personalschlüssel]], [[Verteilerschlüssel]], [[Verteilungsschlüssel]]
+
+{{Beispiele}}
+:[1] Ich finde meine ''Schlüssel'' nicht.
+:[1] „An Helenas Schlüsselbund hing manchmal der verrostete ''Schlüssel'' und erinnerte daran, daß es noch ein anderes und besonderes Schloß gab.“<ref>{{Literatur | Autor= Lizzie Doron | Titel= Warum bist du nicht vor dem Krieg gekommen? |TitelErg= | Auflage= 6.|Verlag= Jüdischer Verlag im Suhrkamp Verlag| Ort= Frankfurt| Jahr= 2015 | ISBN=978-3-518-45769-6 | Seiten=122.}} Hebräisches Original 1998.</ref>
+:[1] „Er schnappte es sich und knallte mir einen ''Schlüssel'' hin.“<ref>{{Literatur | Autor= Charles Bukowski | Titel= Ausgeträumt| TitelErg= Roman |Übersetzer=Carl Weissner |Verlag= Deutscher Taschenbuch Verlag| Ort= München| Jahr= 1997 | ISBN=3-423-12342-7 | Seiten= 120.}}</ref>
+:[1] „Aus seiner Hosentasche holt Schneider einen ''Schlüssel'' und schließt das Badehaus auf.“<ref>{{Literatur | Autor= Björn Kuhligk, Tom Schulz | Titel= Rheinfahrt |TitelErg= Ein Fluss. Seine Menschen. Seine Geschichten | Übersetzer= |Verlag= Orell Füssli| Ort= Zürich| Jahr= 2017 | ISBN=978-3-280-05630-1 | Seiten=206.}}</ref>
+:[1] „Er klingelte, obwohl er einen ''Schlüssel'' für ihr Appartement hatte.“<ref>{{Literatur | Autor=Claire Mattie-Seibt, Manfred Kirchner | Herausgeber=Ruth Finckh, Manfred Kirchner und andere| Titel=Zwischen den Stühlen. Ein Tandem-Projekt | Sammelwerk=Augen Blicke | WerkErg=Eine Sammlung von Texten aus der Schreibwerkstatt der Universität des Dritten Lebensalters Göttingen | Verlag=BoD Books on Demand | Ort=Norderstedt | Jahr=2019 | Seiten=38–52, Zitat Seite 49 | ISBN=978-3-7504-1653-6}}.</ref>
+:[2] Schau dir an, in welchem ''Schlüssel'' das Lied notiert ist.
+:[3] Ich brauche einen ''Schlüssel,'' um die Nachricht zu verstehen.
+:[3] „Der ''Schlüssel'' ist demgegenüber die Angabe, wie denn nun ein Klartext konkret in einen Geheimtext übersetzt werden soll.<ref>Albrecht Beutelspacher: ''Geheimsprachen. Geschichte und Techniken.'' Beck, München 1997, Seite 21. {{#isbn:3-406-41871-6}}. Kursiv gedruckt: ''Schlüssel.''</ref>
+:[4] Reich mir bitte mal den ''Schlüssel,'' ich muss noch eine Schraube anziehen.
+:[5] „Ein ''Schlüssel'' ist eine Menge von Attributen (also eines oder mehrere), die eine Datenzeile (Tupel) einer Tabelle eindeutig identifiziert.“<ref>{{Internetquelle | url= http://v.hdm-stuttgart.de/~riekert/lehre/db-kelz/chap4.htm | titel=Relationale Datenbanken - Eine Einführung | zugriff=2014-03-06}}</ref>
+:[6] „Argelander vermutet den ''Schlüssel'' für die Sozialprobleme in der schon sehr früh aufgetretenen Leidenschaft für den Flugsport.“<ref>{{Literatur | Autor= Siegbert A. Warwitz| Titel= Sinnsuche im Wagnis| TitelErg= Leben in wachsenden Ringen. Erklärungsmodelle für grenzüberschreitendes Verhalten | Verlag= Schneider | Ort= Baltmannsweiler | Jahr= 2016 | ISBN= 978-3-8340-1620-1}}, Seite 107.</ref>
+:[6] Wenn er wüsste, worin der ''Schlüssel'' zur Lösung des Problems liegt, ihm wäre wohler zumute.
+:[6] Wissen ist der ''Schlüssel'' zum Erfolg: Was ein Landwirt gelernt hat, kann ihm keiner mehr nehmen.<ref>{{Per-Deutsche Welle | Online=http://dw.com/p/18U3P | Autor=Ludger Schadomsky | Titel=Interview - Aigner: "Ausbildung ist Schlüssel zum Erfolg für Afrikas Landwirtschaft“ | TitelErg=Auf ihrer Afrika-Reise macht Bundeslandwirtschaftsministerin Ilse Aigner in Südafrika und Äthiopien Station. Dabei will sie auch heikle Themen wie den freien Zugang zum Land ansprechen, sagt sie im DW-Interview | Tag=08 | Monat=05 | Jahr=2013 | Zugriff=2016-08-28}}</ref>
+:[6] Innenpolitisch am wichtigsten war heute aber die Ankündigung, mehr in den Wohnungsbau investieren zu wollen. Das Thema gilt als ''Schlüssel,'' um Wahlen zu gewinnen - oder zu verlieren.<ref>{{Per-Deutschlandradio | Online=http://www.deutschlandfunk.de/brexit-die-kosten-des-ausstiegs.769.de.html?dram:article_id=401333 | Autor=Friedbert Meurer | Titel=Brexit - Die Kosten des Ausstiegs | TitelErg=Dass der Brexit für die Briten teuer wird, ist schon länger klar. Nun bezifferte der britische Schatzkanzler, welche Auswirkungen der EU-Ausstieg auf den britischen Haushalt hat. Umgerechnet 3,4 Milliarden Euro werden zur Vorbereitung des Brexit beiseite gelegt | Tag=22 | Monat=11 | Jahr=2017 | Zugriff=2017-11-23 | Kommentar=Deutschlandfunk/Köln, Sendung: Wirtschaft und Gesellschaft }}</ref>
+:[7] Ein sehr gutes Buch mit Prüfungsfragen und Antworten zur Jägerprüfung, im Anhang gibt es einen ''Schlüssel'' zur Wissensüberprüfung.
+:[8] Die Betriebskosten werden nach einem festgelegten ''Schlüssel'' auf die einzelnen Mietparteien verteilt.
+:[8] Es gibt keinen festen ''Schlüssel'' z.B. pro 11 Kinder muß 1 Erzieher da sein.<ref>{{Internetquelle | url=http://www.lea-hamburg.de/kitapersonalbedarf | titel=Personalbedarf in Kindertagesstätten | zugriff=2014-03-06}}</ref>
+:[8] „Zudem ist die Einwohnerzahl der Provinzen der ''Schlüssel'' für die föderalen Zuwendungen aus dem jährlichen nationalen Steueraufkommen sowie für die Quotenaufteilung zum Zugang in den Staatsdienst.“<ref>{{Literatur|Autor=Katja Mielke/Conrad Schetter|Titel=Pakistan: Land der Extreme|Auflage=1.|Verlag=C.H.Beck|Ort=München|Jahr=2013|ISBN=978-3-406-65295-0|Seiten=22}}.</ref>
+
+{{Redewendungen}}
+:[[der Schlüssel ist stärker als das Schloss|Der ''Schlüssel'' ist stärker als das Schloss]]. ''(Sprichwort aus Russland)''
+:[[der Schlüssel zum Erfolg|''der Schlüssel zum Erfolg'']]
+:[[ein goldener Schlüssel schließt auch das Zarenherz auf|Ein goldener ''Schlüssel'' schließt auch das Zarenherz auf]]. ''(Sprichwort aus Russland)''
+
+{{Charakteristische Wortkombinationen}}
+:[1] ein [[neu]]er / [[passend]]er / [[verrostet]]er ''Schlüssel'', der ''Schlüssel'' [[drehen|dreht]] sich (nicht) / [[passen|passt]] (nicht); der ''Schlüssel'' [[stecken|steckt]] im Schloss; den ''Schlüssel'' (von innen / von außen) ins Schloss stecken; einen ''Schlüssel'' [[anfertigen]] (lassen) / [[finden]] / [[nachmachen]] (lassen) / [[suchen]]; einen ''Schlüssel'' [[abziehen]] / [[stecken lassen]]; einen ''Schlüssel'' [[aushändigen]]; der [[Bart]] des ''Schlüssels'' ist abgebrochen; den (Bart) des ''Schlüssel(s)'' abbrechen; der [[golden]]e Schlüssel des Rathauses / der Stadt
+:[2] einen ''Schlüssel'' in die Notenlinien [[malen]] / [[schreiben]] / [[setzen]] / [[zeichnen]]
+:[3] den ''Schlüssel'' [[kennen]] / [[knacken]]; eine geheime Nachricht mit / nach einem ''Schlüssel'' [[entziffern]]; nach einem bestimmten ''Schlüssel'' [[kodieren]]
+:[4] den ''Schlüssel'' [[geben]] / [[reichen]]; mit einem ''Schlüssel'' [[arbeiten]]; mit einem ''Schlüssel'' eine [[Schraube]] [[anziehen]] / [[nachziehen]] / [[lösen]]
+:[6] der ''Schlüssel'' [[zu]]m [[Erfolg]]; der ''Schlüssel'' [[zu]]r [[Lösung]] einer [[Aufgabe]] / eines [[Problem]]s; (etwas) liefert einen ''Schlüssel'' für ein (bestimmtes) Verhalten
+:[8] etwas nach einem bestimmten ''Schlüssel'' [[berechnen]] / [[errechnen]] / [[verteilen]]
+
+{{Wortbildungen}}
+:''[[Adjektiv]]e:'' [[schlüsselfertig]], [[schlüssig]]
+:''[[Substantiv]]e:'' [[Schlüssel-Schloss-Prinzip]], [[Schlüsselanhänger]], [[Schlüsselattribut]], [[Schlüsselbart]], [[Schlüsselbegriff]], [[Schlüsselbein]], [[Schlüsselbezeichnung]], [[Schlüsselbild]], [[Schlüsselblume]], [[Schlüsselbrett]], [[Schlüsselbund]], [[Schlüsseldienst]], [[Schlüsseleigenschaft]], [[Schlüsselereignis]], [[Schlüsselerlebnis]], [[Schlüsselerzählung]], [[Schlüsselfigur]], [[Schlüsselfrage]], [[Schlüsselgewalt]], [[Schlüsselhaken]], [[Schlüsselindustrie]], [[Schlüsselkandidat]], [[Schlüsselkarte]], [[Schlüsselkasten]], [[Schlüsselkette]], [[Schlüsselkind]], [[Schlüsselkorb]], [[Schlüsselliteratur]], [[Schlüsselloch]], [[Schlüsselmacher]], [[Schlüsselmerkmal]], [[Schlüsselpaar]], [[Schlüsselposition]], [[Schlüsselraum]], [[Schlüsselreiz]], [[Schlüsselrolle]], [[Schlüsselroman]], [[Schlüsselschalter]], [[Schlüsselschrift]], [[Schlüsselspieler]], [[Schlüsseltechnologie]], [[Schlüsselübergabe]], [[Schlüsselwerkstatt]], [[Schlüsselwert]], [[Schlüsselwort]], [[Schlüsselzeuge]]
+:''[[Verb]]en:'' [[entschlüsseln]], [[umschlüsseln]], [[verschlüsseln]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=Gegenstand zum Schließen und Öffnen eines Schlosses|Ü-Liste=
+*{{sq}}: {{Ü|sq|çelës}} {{m}}
+*{{ar}}: {{Üt|ar|مفتاح|}} (miftāḥ)
+*{{ba}}: {{Üt|ba|асҡыс}}
+*{{my}}: {{Üt|my|သော့တံ|sau.tam}}
+*{{bs}}: {{Ü|bs|ključ}} {{m}}
+*{{bg}}: {{Üt|bg|ключ}} {{m}}
+*{{zh}}:
+**{{zh-tw}}: {{Üt|zh|鑰匙|yàoshi}}
+**{{zh-cn}}: {{Üt|zh|钥匙|yàoshi}}
+*{{da}}: {{Ü|da|nøgle}} {{u}}
+*{{en}}: {{Ü|en|key}}
+*{{eo}}: {{Ü|eo|ŝlosilo}}
+*{{et}}: {{Ü|et|võti}}
+*{{fo}}: {{Ü|fo|lykil}} {{m}}
+*{{fi}}: {{Ü|fi|avain}}
+*{{fr}}: {{Ü|fr|clé}} {{f}}, {{Ü|fr|clef}} {{f}}
+*{{el}}: {{Üt|el|κλειδί|klidí}} {{n}}
+*{{kl}}: {{Ü|kl|imusaq}}, {{Ü|kl|matuersaat}}
+*{{ha}}: {{Ü|ha|mabuɗi}} {{m}}
+*{{io}}: {{Ü|io|klefo}}
+*{{ga}}: {{Ü|ga|eochair}}
+*{{is}}: {{Ü|is|lykill}}
+*{{it}}: {{Ü|it|chiave}} {{f}}
+*{{ja}}: {{Üt|ja|鍵|かぎ, kagi}}, {{Üt|ja|キー|kī}}
+*{{ca}}: {{Ü|ca|clau}} {{f}}
+*{{km}}: {{Üt|km|កូនសោ|}}
+*{{ko}}: {{Üt|ko|열쇠|}}
+*{{kw}}: {{Ü|kw|alhwedh}}
+*{{hr}}: {{Ü|hr|ključ}} {{m}}
+*{{la}}: {{Ü|la|clavis}} {{f}}
+*{{lv}}: {{Ü|lv|atslēga}} {{f}}
+*{{lt}}: {{Ü|lt|raktas}} {{m}}
+*{{lb}}: {{Ü|lb|Schlëssel}} {{m}}
+*{{mt}}: {{Ü|mt|cavetta}} {{f}}
+*{{gv}}: {{Ü|gv|ogher}}
+*{{mk}}: {{Üt|mk|клуч}} {{m}}
+*{{nl}}: {{Ü|nl|sleutel}} {{m}}
+*{{se}}: {{Ü|se|čoavdda}}
+*{{no}}: {{Ü|no|nøkkel}} {{m}}
+*{{nov}}: {{Ü|nov|klefe}}
+*{{oc}}: {{Ü|oc|clau}} {{f}}
+*{{pl}}: {{Ü|pl|klucz}} {{m}}
+*{{pt}}: {{Ü|pt|chave}} {{f}}
+*{{ro}}: {{Ü|ro|cheie}}
+*{{ru}}: {{Üt|ru|ключ}} {{m}}
+*{{sa}}: {{Üt|sa|कुञ्चिका|kujcika}} {{f}}
+*{{gd}}: {{Ü|gd|iuchair}}
+*{{sv}}: {{Ü|sv|nyckel}} {{u}}
+*{{sr}}: {{Üt|sr|кључ}} {{m}}
+*{{sh}}: {{Üt|sh|кључ}} {{m}}
+*{{sd}}: {{Üt|sd|چاٻي|}}
+*{{sk}}: {{Ü|sk|kľúč}} {{m}}
+*{{sl}}: {{Ü|sl|ključ}} {{m}}
+*{{wen}}:
+**{{dsb}}: {{Ü|dsb|kluc}} {{m}}
+**{{hsb}}: {{Ü|hsb|kluč}} {{m}}
+*{{es}}: {{Ü|es|llave}} {{f}}
+*{{cs}}: {{Ü|cs|klíč}} {{m}}
+*{{tr}}: {{Ü|tr|anahtar}}
+*{{uk}}: {{Üt|uk|ключ}} {{m}}
+*{{hu}}: {{Ü|hu|kulcs}}
+*{{vo}}: {{Ü|vo|kik}}
+*{{cy}}: {{Ü|cy|agoriad}}, {{Ü|cy|allwedd}}
+*{{wa}}: {{Ü|wa|clé}}
+*{{be}}: {{Üt|be|ключ}} {{m}}
+*{{fy}}: {{Ü|fy|kaai}}
+|Dialekttabelle=
+*[[Frankfurterisch]]: [ʃliz̥l̩]
+*{{ksh}}: Schlössel
+*[[Niedersächsisch]]: [[Slötel]]
+*[[Riograndenser Hunsrückisch]]: [[Schlissel]] {{m}}
+*{{wym}}: {{Ü|wym|śłysuł}} {{m}}
+}}
+
+{{Ü-Tabelle|2|G=Musik: kurz für Notenschlüssel|Ü-Liste=
+*{{sq}}: {{Ü|sq|çelës}} {{m}}
+*{{bg}}: {{Üt|bg|ключ}} {{m}}
+*{{da}}: {{Ü|da|nøgle}} {{u}}
+*{{en}}: {{Ü|en|key}}
+*{{eo}}: {{Ü|eo|kleo}}
+*{{fi}}: {{Ü|fi|nuottiavain}}
+*{{el}}: {{Üt|el|κλειδί|klidí}} {{n}}
+*{{ca}}: {{Ü|ca|clau}} {{f}}
+*{{oc}}: {{Ü|oc|clau}} {{f}}
+*{{pl}}: {{Ü|pl|klucz}} {{m}}
+*{{ro}}: {{Ü|ro|cheie}}
+*{{ru}}: {{Üt|ru|ключ}} {{m}}
+*{{sa}}: {{Üt|sa|कुञ्चिका|kujcika}} {{f}}
+*{{sv}}: {{Ü|sv|nyckel}} {{u}}
+*{{es}}: {{Ü|es|llave}} {{f}}
+*{{cs}}: {{Ü|cs|klíč}} {{m}}
+*{{tr}}: {{Ü|tr|anahtar}}
+|Dialekttabelle=
+*[[Frankfurterisch]]: [ʃliz̥l̩]
+*{{ksh}}: Schlössel
+*[[Niedersächsisch]]: [[Slötel]]
+*[[Riograndenser Hunsrückisch]]: [[Schlissel]] {{m}}
+}}
+
+{{Ü-Tabelle|3|G=Informatik: Information, um eine Nachricht zu verschlüsseln oder zu entschlüsseln|Ü-Liste=
+*{{sq}}: {{Ü|sq|çelës}} {{m}}
+*{{bg}}: {{Üt|bg|ключ}} {{m}}
+*{{da}}: {{Ü|da|nøgle}} {{u}}
+*{{en}}: {{Ü|en|key}}
+*{{eo}}: {{Ü|eo|ĉifro}}
+*{{el}}: {{Üt|el|κλειδί|klidí}} {{n}}
+*{{pl}}: {{Ü|pl|klucz}} {{m}}
+*{{ro}}: {{Ü|ro|cheie}}
+*{{ru}}: {{Üt|ru|ключ}} {{m}}
+*{{sa}}: {{Üt|sa|कुञ्चिका|kujcika}} {{f}}
+*{{es}}: {{Ü|es|clave}}
+*{{cs}}: {{Ü|cs|klíč}} {{m}}
+*{{tr}}: {{Ü|tr|anahtar}}
+|Dialekttabelle=
+*[[Frankfurterisch]]: [ʃliz̥l̩]
+*{{ksh}}: Schlössel
+*[[Niedersächsisch]]: [[Slötel]]
+*[[Riograndenser Hunsrückisch]]: [[Schlissel]] {{m}}
+}}
+
+{{Ü-Tabelle|4|G=Technik: Werkzeug zum Anziehen oder Lösen von Schrauben|Ü-Liste=
+*{{sq}}: {{Ü|sq|çelës}} {{m}}
+*{{bs}}: {{Ü|bs|ključ}} {{m}}
+*{{bg}}: {{Üt|bg|ключ}} {{m}}
+*{{en}}: {{Ü|en|spanner}}, {{Ü|en|wrench}}
+*{{eo}}: {{Ü|eo|ŝraubŝlosilo}}
+*{{el}}: {{Üt|el|κλειδί|klidí}} {{n}}
+*{{ca}}: {{Ü|ca|clau}} {{f}}
+*{{hr}}: {{Ü|hr|ključ}} {{m}}
+*{{mk}}: {{Üt|mk|клуч}} {{m}}
+*{{oc}}: {{Ü|oc|clau}} {{f}}
+*{{pl}}: {{Ü|pl|klucz}} {{m}}
+*{{ro}}: {{Ü|ro|cheie}}
+*{{ru}}: ''({{Üt|ru|гаечный}} )'' [[ключ]] {{m}} (''gáečnij'' ključ)
+*{{sv}}: {{Ü|sv|nyckel}} {{u}}
+*{{sr}}: {{Üt|sr|кључ}} {{m}}
+*{{sh}}: {{Üt|sh|кључ}} {{m}}
+*{{sk}}: {{Ü|sk|kľúč}} {{m}}
+*{{sl}}: {{Ü|sl|ključ}} {{m}}
+*{{es}}: {{Ü|es|llave}} {{f}}
+*{{cs}}: {{Ü|cs|klíč}} {{m}}
+*{{tr}}: {{Ü|tr|anahtar}}
+|Dialekttabelle=
+*[[Frankfurterisch]]: [ʃliz̥l̩]
+*{{ksh}}: Schlössel
+*[[Niedersächsisch]]: [[Slötel]]
+*[[Riograndenser Hunsrückisch]]: [[Schlissel]] {{m}}
+}}
+
+{{Ü-Tabelle|5|G=kurz für Datenbankschlüssel – eindeutige Kennzeichnung von Datensätzen|Ü-Liste=
+*{{sq}}: {{Ü|sq|çelës}} {{m}}
+*{{bg}}: {{Üt|bg|ключ}} {{m}}
+*{{en}}: {{Ü|en|key}}
+*{{pl}}: {{Ü|pl|klucz}} {{m}}
+*{{ro}}: {{Ü|ro|cheie}}
+*{{cs}}: {{Ü|cs|klíč}} {{m}}
+*{{tr}}: {{Ü|tr|anahtar}}
+|Dialekttabelle=
+*[[Frankfurterisch]]: [ʃliz̥l̩]
+*{{ksh}}: Schlössel
+*[[Niedersächsisch]]: [[Slötel]]
+*[[Riograndenser Hunsrückisch]]: [[Schlissel]] {{m}}
+}}
+
+{{Ü-Tabelle|6|G=Mittel, um ein Ziel zu erreichen oder ein Problem zu lösen|Ü-Liste=
+*{{sq}}: {{Ü|sq|çelës}} {{m}}
+*{{bs}}: {{Ü|bs|ključ}} {{m}}
+*{{bg}}: {{Üt|bg|ключ}} {{m}}
+*{{hr}}: {{Ü|hr|ključ}} {{m}}
+*{{mk}}: {{Üt|mk|клуч}} {{m}}
+*{{pl}}: {{Ü|pl|klucz}} {{m}}
+*{{ro}}: {{Ü|ro|cheie}}
+*{{sr}}: {{Üt|sr|кључ}} {{m}}
+*{{sh}}: {{Üt|sh|кључ}} {{m}}
+*{{sk}}: {{Ü|sk|kľúč}} {{m}}
+*{{sl}}: {{Ü|sl|ključ}} {{m}}
+*{{cs}}: {{Ü|cs|klíč}} {{m}}
+*{{tr}}: {{Ü|tr|anahtar}}
+|Dialekttabelle=
+*[[Frankfurterisch]]: [ʃliz̥l̩]
+*{{ksh}}: Schlössel
+*[[Niedersächsisch]]: [[Slötel]]
+*[[Riograndenser Hunsrückisch]]: [[Schlissel]] {{m}}
+}}
+
+{{Ü-Tabelle|7|G=Lösungen zu gestellten Fragen|Ü-Liste=
+*{{sq}}: {{Ü|sq|çelës}} {{m}}
+*{{bg}}: {{Üt|bg|ключ}} {{m}}
+*{{pl}}: {{Ü|pl|klucz}} {{m}}
+*{{ro}}: {{Ü|ro|cheie}}
+*{{sv}}: {{Ü|sv|facit}} {{n}}
+*{{cs}}: {{Ü|cs|klíč}} {{m}}
+*{{tr}}: {{Ü|tr|anahtar}}
+|Dialekttabelle=
+*[[Frankfurterisch]]: [ʃliz̥l̩]
+*[[Riograndenser Hunsrückisch]]: [[Schlissel]] {{m}}
+}}
+
+{{Ü-Tabelle|8|G=Schema, wie Mittel zugewiesen, aufgeteilt, verteilt oder aufgegliedert werden|Ü-Liste=
+*{{en}}: {{Ü|en|key}}
+|Dialekttabelle=
+*[[Frankfurterisch]]: [ʃliz̥l̩]
+*[[Riograndenser Hunsrückisch]]: [[Schlissel]] {{m}}
+}}
+
+{{Referenzen}}
+:[1] {{Wikipedia}}
+:[2] {{Wikipedia|Notenschlüssel}}
+:[3] {{Wikipedia|Schlüssel (Kryptologie)}}
+:[4] {{Wikipedia|Schraubenschlüssel}}
+:[5] {{Wikipedia|Schlüssel (Datenorganisation)}}
+:[5] {{Wikipedia|Schlüssel (Datenbank)}}
+:[1–3, 4, 6] {{Ref-Grimm}}
+:[1–3, 4, 6] {{Ref-DWDS}}
+:[*] {{Ref-UniLeipzig}}
+:[8] {{Ref-Duden}}
+
+{{Quellen}}
+
+{{Ähnlichkeiten 1|[[Schüssel]]|Anagramme=[[schlüssle]]}}

@@ -1,0 +1,60 @@
+== Hausschlüssel ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Substantiv|Deutsch}}, {{m}} ===
+
+{{Deutsch Substantiv Übersicht
+|Genus=m
+|Nominativ Singular=Hausschlüssel
+|Nominativ Plural=Hausschlüssel
+|Genitiv Singular=Hausschlüssels
+|Genitiv Plural=Hausschlüssel
+|Dativ Singular=Hausschlüssel
+|Dativ Plural=Hausschlüsseln
+|Akkusativ Singular=Hausschlüssel
+|Akkusativ Plural=Hausschlüssel
+}}
+
+{{Worttrennung}}
+:Haus·schlüs·sel, {{Pl.}} Haus·schlüs·sel
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ˈhaʊ̯sˌʃlʏsl̩}}
+:{{Hörbeispiele}} {{Audio|De-Hausschlüssel.ogg}}
+
+{{Bedeutungen}}
+:[1] Schlüssel für die [[Eingangstür]] eines [[Wohnhaus]]es
+
+{{Herkunft}}
+:[[Determinativkompositum]] aus den Substantiven ''[[Haus]]'' und ''[[Schlüssel]]''
+
+{{Synonyme}}
+:[1] [[Haustürschlüssel]]
+
+{{Sinnverwandte Wörter}}
+:[1] [[Wohnungsschlüssel]], [[Wohnungstürschlüssel]]
+
+{{Oberbegriffe}}
+:[1] [[Schlüssel]]
+
+{{Beispiele}}
+:[1] Ich habe meinen ''Hausschlüssel'' verloren.
+:[1] „Während ich ihn suchte, fiel mir ein, daß Monika ja den ''Hausschlüssel'' hatte.“<ref>{{Literatur | Autor= Heinrich Böll | Titel= Ansichten eines Clowns | TitelErg= Roman | Verlag = Insel | Ort= Leipzig | Jahr=1990 | ISBN= 3-7351-0161-5 | Seiten= 158.}}</ref>
+:[1] „Seine ''Hausschlüssel'' hatte Rotermund der Mutter beim Fortgehen ausgehändigt.“<ref>{{Literatur | Autor= Heidi Frommann | Titel= Die Tante verschmachtet im Genuß nach Begierde und zehn andere Erzählungen | Verlag= Diogenes | Ort= Zürich | Jahr=1981 | ISBN=3-257-01616-6 | Seiten=153}}.</ref>
+:[1] „Agatha Runcible wohnte nicht weit, doch bemerkte sie zu ihrem Ärger, daß sie ihren ''Hausschlüssel'' vergessen hatte.“<ref>{{Literatur|Autor=Evelyn Waugh| Titel=Aber das Fleisch ist schwach |TitelErg= Roman|Übersetzer= Hermen von Kleeborn| Verlag=Rowohlt|Ort= Reinbek|Jahr= 1959 |Seiten= 41.}} Englisches Original 1930.</ref>
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=Schlüssel für die Eingangstür eines Wohnhauses|Ü-Liste=
+* {{en}}: {{Ü|en|}}
+* {{fr}}: {{Ü|fr|clé de porte de maison|L=e}} {{f}}, {{Ü|fr|clé de maison|L=e}} {{f}}
+* {{it}}: {{Ü|it|}}
+* {{es}}: {{Ü|es|}}
+}}
+
+{{Referenzen}}
+:[*] {{Ref-Grimm}}
+:[*] {{Ref-OWID|elexiko|196681}}
+:[1] {{Ref-DWDS}}
+:[*] {{Ref-PONS}}
+:[*] {{Ref-UniLeipzig}}
+:[1] {{Ref-Duden}}
+
+{{Quellen}}

@@ -1,0 +1,7 @@
+node_modules
+dist
+dev-dist
+.DS_Store
+*.local
+scripts/levels/.cache
+scripts/reading/.cache

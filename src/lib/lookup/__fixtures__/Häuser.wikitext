@@ -1,0 +1,19 @@
+== Häuser ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Deklinierte Form|Deutsch}} ===
+
+{{Worttrennung}}
+:Häu·ser
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ˈhɔɪ̯zɐ}}
+:{{Hörbeispiele}} {{Audio|De-Häuser.ogg‎|Häuser‎}}, {{Audio|De-Häuser2.ogg}}, {{Audio|LL-Q188 (deu)-Sebastian Wallroth-Häuser.wav}}
+:{{Reime}} {{Reim|ɔɪ̯zɐ|Deutsch}}
+
+{{Grammatische Merkmale}}
+*Nominativ Plural des Substantivs '''[[Haus]]'''
+*Genitiv Plural des Substantivs '''[[Haus]]'''
+*Akkusativ Plural des Substantivs '''[[Haus]]'''
+
+{{Grundformverweis Dekl|Haus}}
+
+{{Ähnlichkeiten 1|Anagramme=[[Häuers]]}}

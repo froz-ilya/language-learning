@@ -1,0 +1,507 @@
+== gehen ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Verb|Deutsch}}, {{unreg.}}, {{intrans.}} ===
+
+{{Deutsch Verb Übersicht
+|Präsens_ich=gehe
+|Präsens_du=gehst
+|Präsens_er, sie, es=geht
+|Präteritum_ich=ging
+|Partizip II=gegangen
+|Konjunktiv II_ich=ginge
+|Imperativ Singular=geh
+|Imperativ Singular*=gehe
+|Imperativ Plural=geht
+|Imperativ Plural*=gehet
+|Hilfsverb=sein
+|Bild=Blender3D NormalWalkCycle.gif|mini|1|Animation einer ''gehenden'' Person
+}}
+
+{{Nebenformen}}
+:[[gehn]]
+
+{{Worttrennung}}
+:ge·hen, {{Prät.}} ging, {{Part.}} ge·gan·gen
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ˈɡeːən}}, ''in Österreich auch und allgemein [[spontansprachlich]]:'' {{Lautschrift|ɡeːn}}<ref>{{Lit-Duden: Aussprachewörterbuch|A=7}}, Seite 775, Hinweiskasten „sehen“.</ref><ref>nach {{Lit-Muhr: Österreichisches Aussprachewörterbuch|A=1}}, Seite 212.</ref>
+:{{Hörbeispiele}} {{Audio|De-gehen.ogg}}, {{Audio|De-gehen2.ogg}}, {{Audio|Bar-gehen.ogg|spr=by}}
+:{{Reime}} {{Reim|eːən|Deutsch}}
+
+{{Bedeutungen}}
+*{{K|intrans.}}
+:[1] sich [[schreiten]]d, schrittweise fortbewegen
+:[2] in eine veränderte Lebenssituation eintreten
+:[3] einen Ort oder eine Zusammenkunft verlassen
+:[4] ''mit einem abhängigen Infinitiv eines Verbs:'' einen anderen Ort aufsuchen, um dort die mit dem anderen Verb beschriebene Handlung auszuführen
+:[5] funktionieren / funktionsfähig sein
+:[6] mit einer Vorrichtung als Subjekt: die diesem eigene, charakteristische Aktion ausführen
+:[7] viel gekauft werden
+:[8] sich räumlich erstrecken
+:[9] irgendwohin führen
+:[10] [bereits] im Gange sein, ''(abgeschlossene Vorgänge:)'' dauern
+:[11] (der [[Teig]] beim Backen): sich in der Ruhephase beim Gärprozess befinden, aufgehen, gären
+:[12] akzeptabel sein, erlaubt sein, einen Rahmen einhalten
+:[13] funktionieren, machbar sein
+:[14] [[Aussage]] treffen über das [[Wohlbefinden]] oder den [[Gesundheitszustand]]
+:[15] (Computer) ''auf etwas gehen'': den [[Mauszeiger]] auf etwas bewegen und ggf. [[anklicken]] oder [[öffnen]]
+:[16] ''etwas geht auf jemanden'': (kurz für:) Etwas geht auf jemandes Rechnung.
+:[17] eine Beschäftigung oder Stelle aufgeben, kündigen
+:[18] mit Ortsergänzung: sich (durch eine Menge oder einen Körper) wellenartig fortpflanzen
+:[19] Spezialisierung mit ''Ruck''
+:[20] (planmäßig) abfahren, ablegen, abfliegen
+:[21] eine partnerschaftliche Beziehung beenden (Spezialisierung von [3])
+:[22] mit einer bestimmten Bekleidung oder Ausstattung herumlaufen oder an die Öffentlichkeit oder zu einem Zielort gehen
+:[23] irgendwo hineinpassen oder hindurchgehen (häufig negativ)
+:[24] einen (mehr oder weniger) definierten oder vorgeschriebenen Verlauf haben (oft als Frage: wie geht das (nochmal) …?)
+:[25] ein persönliches Geschmacksurteil abgeben zu etwas (Variante von [13])
+
+{{Herkunft}}
+:[[mittelhochdeutsch]] ''{{Ü|gmh|gān}}, {{Ü|gmh|gēn}},'' [[althochdeutsch]] ''{{Ü|goh|gān}}, {{Ü|goh|gēn}},'' [[germanisch]] *''gæ-'' „gehen“, belegt seit dem 8. Jahrhundert<ref>{{Lit-Kluge: Etymologisches Wörterbuch|A=24}}, Stichwort: „gehen“, Seite 339.</ref>
+
+{{Synonyme}}
+:[3] [[abhauen]], [[abmarschieren]], [[aufbrechen]], [[weggehen]]
+:[5] [[funktionieren]], [[intakt]] sein, [[laufen]]
+:[7] sich gut [[verkaufen]] lassen, ein [[Renner]] sein
+:[8] [[erstrecken|sich erstrecken]], [[ausdehnen|sich ausdehnen]]
+:[10] [[andauern]], [[dauern]], [[passieren]]
+:[15, 18, 20] [[bewegen]]
+:[17] [[aufgeben]]
+:[17, 24] [[kündigen]]
+:[20] [[ablegen]], [[fahren]] ([[abfahren]]), [[fliegen]] ([[abfliegen]])
+:[25] [[gefallen]], [[mögen]]
+
+
+{{Sinnverwandte Wörter}}
+:[1] [[klabastern]], [[laufen]]
+
+{{Gegenwörter}}
+:[1] [[stehen]]; [[rennen]], [[schleichen]]; [[fahren]]
+:[3] [[kommen]]; [[bleiben]], [[verweilen]]
+:[5] [[kaputt]] sein
+:[6] [[unmöglich]] sein
+:[7] ein [[Ladenhüter]] sein
+
+{{Oberbegriffe}}
+:[1] sich [[fortbewegen]]
+:[5] [[einsatzfähig]] sein
+:[8] [[existieren]]
+:[10] [[geschehen]]
+:[11] [[gären]]
+
+{{Unterbegriffe}}
+:[1] [[abgehen]], [[abwärts gehen]], [[angehen]], [[aufgehen]], [[aufwärts gehen]], [[ausgehen]], [[auseinandergehen]], [[auswärtsgehen]], [[bankrott gehen]], [[begehen]], [[dabei gehen]], [[danebengehen]], [[darangehen]], [[dazwischengehen]], [[draufgehen]], [[durchgehen]], [[durcheinandergehen]], [[eingehen]], [[einhergehen]], [[einwärtsgehen]], [[emporgehen]], [[entgehen]], [[entgegengehen]], [[entlanggehen]], [[entzweigehen]], (sich) [[ergehen]], [[fehlgehen]], [[fortgehen]], [[fremdgehen]], ''(Sport), '' [[gut gehen]] ([[gutgehen]]), [[heimgehen]], [[hergehen]], [[herangehen]], [[herausgehen]], [[herumgehen]], [[heruntergehen]], [[herübergehen]], [[hervorgehen]], [[hinabgehen]], [[hinaufgehen]], [[hinausgehen]], [[hineingehen]], [[hingehen]], [[hintergehen]], [[hinterhergehen]], [[hinübergehen]], [[hinweggehen]], [[hinuntergehen]], [[hochgehen]], [[irregehen]], [[kaputtgehen]], [[klargehen]], [[langgehen]], [[längsgehen]], [[losgehen]], [[mitgehen]], [[nachgehen]], [[nahegehen]], [[niedergehen]], [[pleite gehen]], [[rangehen]], [[raufgehen]], [[rausgehen]], [[reingehen]], [[rübergehen]], [[rückgehen]], [[rumgehen]], [[runtergehen]], [[schiefgehen]], [[spazieren gehen]], [[stiften gehen]], [[tot gehen]], [[übergehen]], [[umgehen]], [[untergehen]], [[vergehen]], [[verloren gehen]] ([[verlorengehen]]), [[verschüttgehen]], [[vonstattengehen]], [[vorangehen]], [[voraufgehen]], [[vorausgehen]], [[vorbeigehen]], [[vorgehen]], [[vorhergehen]], [[vorübergehen]], [[vorwärtsgehen]], [[weitergehen]], [[zergehen]], [[zugehen]], [[zugrunde gehen]], [[zurückgehen]], [[zusammengehen]]
+:[1] [[balancieren]], [[beeilen]], [[bummeln]], [[eilen]], [[erklimmen]], [[flanieren]], [[flippsen]], [[fortbewegen]], [[gleiten]], [[hasten]], [[herbeikommen]], [[hickeln]], [[hinken]], [[hinunterklettern]], [[hinunterkommen]], [[hinuntersteigen]], [[hochklettern]], [[hochsteigen]], [[hoppeln]], [[hopsen]], [[humpeln]], [[hüpfen]], [[huschen]], [[kriechen]], [[kommen]], [[latschen]], [[marschieren]], [[nordic walken]], [[runterklettern]], [[rutschen]], [[schlendern]], [[schlittern]], [[schlurfen]], [[schreiten]], [[schwanken]], [[spazieren]], [[springen]], [[stampfen]], [[stapfen]], [[stöckeln]], [[stolzieren]], [[stolpern]], [[tänzeln]], [[tanzen]], [[taumeln]], [[tippeln]], [[trampeln]], [[trippeln]], [[trödeln]], [[überwinden]], [[walken]], [[wandeln]], [[wandern]], [[waten]], [[watscheln]]
+
+{{Beispiele}}
+:[1] „Ich bin der Meinung, dass alles besser gehen würde, wenn man mehr ''ginge&nbsp;…''“ (Johann Gottfried Seume)
+:[1] Ich ''gehe'' über die Straße.
+:[2] Ich ''gehe'' nächste Woche für einige Monate nach London.
+:[3] Als Maria kam, war Peter bereits ''gegangen.''
+:[4] Ich ''gehe'' mich waschen.
+:[4] Ich ''gehe'' einkaufen.
+:[4] Ich ''gehe'' arbeiten.
+:[1] „Nur die, denen es finanziell gut geht, ''gehen'' in ein Restaurant.“<ref>{{Per-taz Online | Online=https://taz.de/Mini-Essays-der-Buchpreistraegerin-2024/!6052746/ | Autor=Martina Hefter | Titel=Mini-Essays der Buchpreisträgerin 2024 – Das Gegenteil von Chaos | TitelErg= | Tag=26 | Monat=12 | Jahr=2024 | Zugriff=2024-12-26 | Kommentar= }}</ref>
+:[5] Die Uhr ''geht'' nicht.
+:[6] Ich hörte unten die Tür ''gehen.'' Dann ''ging'' das Telefon.
+:[7] Der dritte Band der Memoiren von Effenberg ''geht'' nicht mehr so gut.
+:[8] Die Hauptstraße ''geht'' bis zum Bahnhof.
+:[8] Unser Garten ''geht'' bis zu den Bäumen da hinten.
+:[9] Der Weg ''geht'' zur nächsten Telefonzelle.
+:[9] Die Preise ''gingen'' kräftig nach oben.
+:[10] Der Streit ''geht'' (so)(schon) seit Jahren.
+:[10] Die Vorstellung ''ging'' bis Mitternacht.
+:[11] Der Teig muss noch ''gehen.''
+:[12] Man kann in der Bücherei keine laute Musik spielen; das ''geht'' doch nicht.
+:[13] „Ich bin der Meinung, dass alles besser ''gehen'' würde, wenn man mehr ginge&nbsp;…“ (Johann Gottfried Seume)
+:[13] Kannst du am Freitag kommen? Ja, das ''geht.''
+:[14] Wie ''geht'' es dir? Gut.
+:[14] Lass es dir gut ''gehen.''
+:[15] Erst ''gehst'' du auf „Öffnen“ und dann klickst du auf „OK“.
+:[16] Die Speisen ''gehen'' heute auf mich, die Getränke zahlt ihr bitte selbst.
+:[17] Es wurden keine Leute entlassen, ein paar sind freiwillig ''gegangen.''
+:[18] Ein Rauschen ''ging'' durch den Blätterwald. Eine Bewegung ''ging'' durch die Reihen der Zuschauer. Ein Aufschrei ''ging'' durch die Menge. Die Meldung ''ging'' durch alle Zeitungen. Ein Zittern ''ging'' durch seinen Körper. Eine Erschütterung ''ging'' durch das Schiff. Ein Raunen ''ging'' durch die Zuhörer.
+:[19] Durch Deutschland muss ein Ruck ''gehen.'' Hier sollte ein Ruck durch die Schullandschaft ''gehen.'' Beim Anblick der vielen Fans ''ging'' ein Ruck durch die Mannschaft.
+:[20] Wann ''geht'' der nächste Zug nach Berlin? Heute ''geht'' leider kein Flug mehr nach Ägypten. ''Geht'' heute noch eine Fähre?
+:[21] Er will ''gehen.'' Sie ist ''gegangen.''
+:[22] Der ''geht'' doch glatt in Badeschlappen auf die Straße. Sie ''geht'' nur noch in Samt und Seide. Du kannst doch nicht in diesen Jeans zum Vorstellungsgespräch ''gehen.'' Ich würde bei diesem Wetter nicht ohne Schirm ''gehen.''
+:[23] Der Schrank ''geht'' nicht durch die Tür. Es ''gehen'' nicht acht Leute in diesen Aufzug. ''Geht'' das nicht in deinen Kopf?
+:[24] Wie ''geht'' nochmal der Text von dem Lied? Kannst du mir nochmal zeigen, wie das mit den Favoriten im Internet Explorer ''geht?'' Ganz falsch, der Witz ''geht'' so: Kommt'n Zebra in die Apotheke …
+:[25] Wie war der Film? - ''Geht'' so. / ''Ging'' so einigermaßen. / ''Geht.''
+:[25] Ich hoffe, das ''geht, '' das mit diesen Schuhen zu dem Rock. / Ist der Rock zu kurz? - Nein, das ''geht.''
+
+{{Redewendungen}}
+:[[an die Decke gehen|an die Decke ''gehen'']] - explodieren, sauer werden
+:[[ans Eingemachte gehen|ans Eingemachte ''gehen'']] - beschwerliche Themen ansprechen
+:[[ans Limit gehen|ans Limit ''gehen'']] - das Äußerste geben
+:[[auf dem Zahnfleisch gehen|auf dem Zahnfleisch ''gehen'']] - völlig fertig sein
+:[[auf die Barrikaden gehen|auf die Barrikaden ''gehen'']] - protestieren
+:[[auf die Palme gehen|auf die Palme ''gehen'']] - wütend werden
+:[[auf die Straße gehen|auf die Straße ''gehen'']] - demonstrieren gehen
+:[[auf keine Kuhhaut gehen|auf keine Kuhhaut ''gehen'']] - sehr viel sein
+:[[auf Nummer sicher gehen|auf Nummer sicher ''gehen'']] - sich absichern
+:[[auf Tauchstation gehen|auf Tauchstation ''gehen'']] - abtauchen, verschwinden
+:[[auf Tuchfühlung gehen|auf Tuchfühlung ''gehen'']] - näher kommen
+:[[aufs Ganze gehen|aufs Ganze ''gehen'']] - alles riskieren
+:[[aus dem Leim gehen|aus dem Leim ''gehen'']] - betrogen werden
+:[[aus den Fugen gehen|aus den Fugen ''gehen'']] - zunehmen, kaputtgehen
+:[[den Bach hinunter gehen|den Bach hinunter ''gehen'']] - verschwinden
+:[[den Weg alles Irdischen gehen|den Weg alles Irdischen ''gehen'']] - sterben
+:[[durch die Hölle gehen|durch die Hölle ''gehen'']] - leiden
+:[[durch die Decke gehen|durch die Decke ''gehen'']] - wütend werden
+:[[durch Mark und Bein gehen|durch Mark und Bein ''gehen'']] - körperlich unangenehm intensiv sein
+:[[durchs Feuer gehen|durchs Feuer ''gehen'']] - vertrauen
+:[[ein und aus gehen|ein und aus ''gehen'']] - regelmäßig auftauchen
+:[[einer Sache auf den Grund gehen|einer Sache auf den Grund ''gehen'']] - untersuchen
+:[[flöten gehen|flöten ''gehen'']] - verschwinden
+:[[für jemanden bis ans Ende der Welt gehen|für jemanden bis ans Ende der Welt ''gehen'']] - viel für jemanden tun
+:[[für jemanden durchs Feuer gehen|für jemanden durchs Feuer ''gehen'']] - viel für jemanden tun
+:[17] [[gegangen werden|''gegangen'' werden]] - gekündigt werden
+:[[in den Arsch gehen|in den Arsch ''gehen'']]
+:[[in den Keller gehen|in den Keller ''gehen'']] - sinken
+:[[in die Beine gehen|in die Beine ''gehen'']] - anstrengend sein
+:[[in die Binsen gehen|in die Binsen ''gehen'']] - missglücken
+:[[in die Brüche gehen|in die Brüche ''gehen'']] - kaputt gehen
+:[[in die Hose gehen|in die Hose ''gehen'']] - missglücken
+:[[in die Irre gehen|in die Irre ''gehen'']] - sich verlaufen
+:[[in die Luft gehen|in die Luft ''gehen'']] - wütend werden
+:[[in die Pilze gehen|in die Pilze ''gehen'']] - Pilze sammeln gehen
+:[[in die Vollen gehen|in die Vollen ''gehen'']] - vollen Einsatz zeigen
+:[[in die Tiefe gehen|in die Tiefe ''gehen'']] - genau ausloten
+:[[ins Auge gehen|ins Auge ''gehen'']] - missglücken
+:[[in See gehen|in See ''gehen'']]
+:[[ins Ohr gehen|ins Ohr ''gehen'']] - gut zu hören sein
+:[[ins Wasser gehen|ins Wasser ''gehen'']] - sich ertränken
+:[[jemandem am Arsch vorbei gehen|jemandem am Arsch vorbei ''gehen'']] - egal sein
+:[[jemandem an die Hand gehen|jemandem an die Hand ''gehen'']] - helfen
+:[[jemandem an die Wäsche gehen|jemandem an die Wäsche ''gehen'']] - unsittlich anfassen
+:[[jemandem auf den Geist gehen|jemandem auf den Geist ''gehen'']] - nerven
+:[[jemandem auf den Keks gehen|jemandem auf den Keks ''gehen'']] - belästigen
+:[[auf den Leim gehen|jemandem auf den Leim ''gehen'']] - auf jemanden hereinfallen
+:[[jemandem auf den Senkel gehen|jemandem auf den Senkel ''gehen'']] - nerven
+:[[jemandem auf den Wecker gehen|jemandem auf den Wecker ''gehen'']] - nerven
+:[[jemandem aus dem Weg gehen|jemandem aus dem Weg ''gehen'']] - vermeiden
+:[[jemandem durch die Lappen gehen|jemandem durch die Lappen ''gehen'']] - nicht bekommen können
+:[[jemandem durch und durch gehen|jemandem durch und durch ''gehen'']] - sehr beeindrucken
+:[[jemandem gegen den Strich gehen|jemandem gegen den Strich ''gehen'']] - den eigenen Vorstellungen zuwiderlaufen
+:[[jemandem gehen die Nerven durch|jemandem ''gehen'' die Nerven durch]] - handgreiflich werden
+:[[jemandem gehen die Pferde durch|jemandem ''gehen'' die Pferde durch]] - handgreiflich werden
+:[[jemandem geht der Arsch auf Grundeis|jemandem ''geht'' der Arsch auf Grundeis]] - Angst haben
+:[[jemandem geht die Düse|jemandem ''geht'' die Düse]] - Angst haben
+:[[jemandem geht die Muffe|jemandem ''geht'' die Muffe]] - Angst haben
+:[[jemandem zur Hand gehen|jemandem zur Hand ''gehen'']] - helfen
+:[[Kommen und Gehen|Kommen und ''Gehen'']]
+:[[mit dem Kopf durch die Wand gehen|mit dem Kopf durch die Wand ''gehen'']] - sich durchsetzen
+:[[mit etwas schwanger gehen|mit etwas schwanger ''gehen'']] - vorbereiten
+:[[nach dem Mond gehen|nach dem ''Mond'' gehen]]
+:[[sich etwas durch den Kopf gehen lassen|sich etwas durch den Kopf ''gehen'' lassen]] - nachdenken
+:[[über den Jordan gehen|über den Jordan ''gehen'']] - verschwinden, sterben
+:[[über die Wupper gehen|über die Wupper ''gehen'']] - verschwinden, sterben
+:[[über Leichen gehen|über Leichen ''gehen'']] - rücksichtslos sein
+:[[es geht um die Wurst|um die Wurst ''gehen'']] - entscheidend sein
+:[[unter die Gürtellinie gehen|unter die Gürtellinie ''gehen'']] - unfair sein
+:[[vor die Hunde gehen|vor die Hunde ''gehen'']] - sterben, alles verlieren
+:[[wie auf Eiern gehen|wie auf Eiern ''gehen'']] - vorsichtig sein
+:[[zum Lachen in den Keller gehen|zum Lachen in den Keller ''gehen'']]
+:[[zum Teufel gehen|zum Teufel ''gehen'']]
+
+{{Sprichwörter}}
+:[[der Krug geht so lange zum Brunnen, bis er bricht|der Krug ''geht'' so lange zum Brunnen, bis er bricht]]
+:[[der Student geht so lange zur Mensa, bis er bricht|der Student ''geht'' so lange zur Mensa, bis er bricht]] - Studi-Spruch
+:[[Freunde in der Not gehen tausend auf ein Lot|Freunde in der Not ''gehen'' tausend auf ein Lot]], [[Freunde in der Not gehen hundert auf ein Lot|Freunde in der Not ''gehen'' hundert auf ein Lot]] – erst in echter Notsituation zeigt sich wahre Freundschaft
+:[[geh mit Gott, aber geh|''geh'' mit Gott, aber ''geh''!]] – ironische Aufforderung, den Sprecher in Ruhe zu lassen und wegzugehen
+:[[Liebe geht durch den Magen|Liebe ''geht'' durch den Magen]]
+:[[der Mohr hat seine Schuldigkeit getan, der Mohr kann gehen|der Mohr hat seine Schuldigkeit getan, der Mohr kann ''gehen'']] – Kommentar zu: jemand wird nicht mehr gebraucht, jemand fühlt sich überflüssig
+:[[wenn der Berg nicht zum Propheten kommt, muss der Prophet zum Berg gehen|wenn der Berg nicht zum Propheten kommt, muss der Prophet zum Berg ''gehen'']] – man muss das tun, was möglich ist
+
+{{Charakteristische Wortkombinationen}}
+:[1] zur [[Kirche]] ''gehen'' ({{Audio|De-zur Kirche gehen.ogg|Audio}})
+:[[um etwas gehen|um etwas ''gehen'']], worum ''geht'' es?, es ''geht'' um Folgendes
+
+{{Wortbildungen}}
+:Adjektive: [[gehbehindert]], [[gehbereit]], [[gehfertig]]
+:Substantive: [[Gang]], [[Gehbehinderung]], [[Gehen]], [[Geher]], [[Gehfehler]], [[Gehfußball]], [[Gehgips]], [[Gehhilfe]], [[Gehintervall]], [[Gehminute]], [[Gehpause]], [[Gehrock]], [[Gehschule]], [[Gehsteig]], [[Gehstock]], [[Gehstunde]], [[Gehtempo]], [[Gehtraining]], [[Gehübung]], [[Gehversuch]], [[Gehwagen]], [[Gehweg]], [[Kinogänger]]
+:Verb: [[gehenlassen]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=sich schreitend, schrittweise fortbewegen|Ü-Liste=
+*{{sq}}: {{Ü|sq|shkon}}
+*{{ar}}: {{Üt|ar|ذهب|}}
+*{{hy}}: {{Üt|hy|գնալ}}
+*{{eu}}: {{Ü|eu|joan}}
+*{{my}}: {{Üt|my|pergi|}}
+*{{bs}}: {{Ü|bs|hodati}}, {{Ü|bs|ići}}
+*{{bg}}: {{Üt|bg|ходя}}, {{Üt|bg|вървя}}
+*{{zh}}: {{Üt|zh|走|zǒu}}
+*{{da}}: {{Ü|da|gå}}
+*{{en}}: {{Ü|en|walk}}, {{Ü|en|go}}
+*{{eo}}: {{Ü|eo|iri}}
+*{{fo}}: {{Ü|fo|ganga}}
+*{{fi}}: {{Ü|fi|mennä}}, {{Ü|fi|kävellä}}
+*{{fr}}: {{Ü|fr|aller}}
+*{{ka}}: {{Üt|ka|მიდის|midis}}, {{Üt|ka|დადის|dadis}}
+*{{el}}: {{Üt|el|πηγαίνω|pigéno}}, {{Üt|el|πάω|páo}}, {{Üt|el|βαδίζω|vadízo}}, {{Üt|el|περπατώ|perpató}}
+*{{kl}}: {{Ü|kl|pisuppoq}}
+*{{io}}: {{Ü|io|irar}}, {{Ü|io|marchar}}
+*{{id}}: {{Ü|id|pergi}}
+*{{ia}}: {{Ü|ia|vader}}, {{Ü|ia|ir}}
+*{{is}}: {{Ü|is|ganga}}
+*{{it}}: {{Ü|it|camminare}},  {{Ü|it|andare}}
+*{{ja}}: {{Üt|ja|歩く|あるく, aruku}}, {{Üt|ja|歩む|あゆむ, ayumu}}; {{Üt|ja|行く|いく, iku}}
+*{{ca}}: {{Ü|ca|caminar}} (wandern), {{Ü|ca|anar}}
+*{{tlh}}: {{Ü|tlh|yIt}}, {{Ü|tlh|jaH}}
+*{{ko}}: {{Üt|ko|걷다|geodda}}, {{Üt|ko|걸어가다|georeogada}}, {{Üt|ko|가다|gada}}
+*{{crh}}: {{Ü|crh|ketmek}}
+*{{hr}}: {{Ü|hr|hodati}}, {{Ü|hr|ići}}
+*{{la}}: {{Ü|la|ire}}
+*{{lv}}: {{Ü|lv|iet}}
+*{{lt}}: {{Ü|lt|eiti}}
+*{{lb}}: {{Ü|lb|goen}}
+*{{mk}}: {{Üt|mk|оди}}
+*{{nds}}:
+** Niedersächsisch: {{Ü|nds|gahn}}
+*{{nl}}: {{Ü|nl|lopen}}
+*{{no}}: {{Ü|no|gå}}
+*{{oc}}: {{Ü|oc|anar}}
+*{{ps|DMG}}: {{Üxx4|ps|تلل|d=…|DMG=0}}<ref>{{Literatur | Autor=Akram Malakzay; unter Mitwirkung von David Neil MacKenzie | Titel=Grosses Wörterbuch Deutsch–Paschto | Verlag=Helmut Buske Verlag | Ort=Hamburg | Jahr=2009 (Lexicographia orientalis ; Band 7, {{ISSN|0940-2985}}) | ISBN=978-4-87548-516-6 }}, Stichwort »gehen«, Seite 251.</ref><ref>{{Literatur | Autor=Mohammed Arif | Titel=Dreisprachiges Wörterbuch | TitelErg=Deutsch – Dari (Persisch) – Paschtu | Verlag=Selbstverlag | Ort=Bonn | Jahr=[2010] | ISBN=978-4-00-031296-0 }}, Stichwort »gehen«, Seite 365.</ref>
+*{{pl}}: {{Ü|pl|chodzić}}, {{Ü|pl|iść}}
+*{{pt}}: {{Ü|pt|andar}}, {{Ü|pt|ir}}
+*{{ro}}: {{Ü|ro|merge}}
+*{{ru}}: {{Üt|ru|идти}}, {{Üt|ru|пойти}}, {{Üt|ru|ходить}}, {{Üt|ru|отправляться}}/{{Üt|ru|отправиться}}
+*{{sa}}: {{Üt|sa|होडति|hodati}}
+*{{sc}}: {{Ü|sc|acchirriare}}
+*{{sv}}: {{Ü|sv|gå}}
+*{{sr}}: {{Üt|sr|ходати}}, {{Üt|sr|ићи}}
+*{{sh}}: {{Üt|sh|ходати}}, {{Üt|sh|ићи}}
+*{{sk}}: {{Ü|sk|chodiť}}, {{Ü|sk|ísť}}
+*{{sl}}: {{Ü|sl|hoditi}}, {{Ü|sl|iti}}
+*{{wen}}:
+**{{dsb}}: {{Ü|dsb|chójźiś}}, {{Ü|dsb|hyś}}
+**{{hsb}}: {{Ü|hsb|chodźić}}, {{Ü|hsb|hić}}
+*{{es}}: {{Ü|es|caminar}}; {{Ü|es|ir}}, {{Ü|es|andar}}
+*{{sux}}: {{Üt|sux|𒁺|ĝen}}
+*{{cs}}: {{Ü|cs|jít}}, {{Ü|cs|chodit}}
+*{{tr}}: {{Ü|tr|yürümek}}
+*{{uk}}: {{Üt|uk|ходити}}, {{Üt|uk|йти}}
+*{{hu}}: {{Ü|hu|jár}}
+*{{vec}}: {{Ü|vec|caminar}}, {{Ü|vec|ndar}}
+*{{be}}: {{Üt|be|хадзіць}}, {{Üt|be|ісці}}
+*{{zza}}: {{Ü?|zza|şiyaene}}
+|Dialekttabelle=
+{{überarbeiten|alle Angaben sollten überprüft und belegt werden, [[Benutzer:Caligari|Caligari]] [[Benutzer_Diskussion:Caligari|<span style="font-family: 'Arial Unicode MS', sans-serif;"><span class="ipa" style="padding: 0 1px; text-decoration: none;"><sup>Ɔ</sup>ɐ<sup>ƀïи</sup>Ϡ<sub>Ⴕ</sub></span></span>]] 17:42, 23. Jul. 2015 (MESZ)|Deutsch}}
+*Alemanisch: [?] „'''Gö''' ma do ane“; [Schweizerdeutsch/Mundart] „'''Gangsch''' e mol“; [?] „Huam '''go'''“
+*Schwäbisch: [1] "gehen" wird schwäbisch mit "laofa" ['lao̯fɐ̃] ''laufen'' wiedergegeben; [3] "gehen" selbst hat schwäbisch den Sinn von "weg-, fortgehen". Der Infinitiv lautet zumeist "gao" ['gao̯], das Partizip Perfekt immer "ganga" ['gãŋɐ̃]. Finite Präsensformen: In "du gåsch" [gɒ:ʃ] und "är/sui/s gåt lebt der althochdeutsche a-Stammvokal weiter; der Einheitsplural lautet "gend".<ref>Vgl. Fischer, Schwäbisches Wörterbuch Bd. 4, Sp.198ff und Sp. 210&nbsp;f.</ref>
+*Bairisch: geh, gea
+*Berlinerisch: jeen
+*Tirolerisch: gean, gian (mit der zusätzlichen Verwendung als Hilfsverb; vergleiche englisch ''going-to future'')
+*Erzgebirgisch: [1–16] gii(n) (Präsens: gii, gist, gitt, gii(n), giit, gii(n), Partizip: gonge)
+*Ripuarisch: [?] jonn
+}}
+{{Ü-Tabelle|2|G=in eine veränderte Lebenssituation eintreten|Ü-Liste=
+*{{ja}}: {{Üt|ja|行く|いく, iku}}, {{Üt|ja|行く|ゆく, yuku}}
+}}
+{{Ü-Tabelle|3|G=einen Ort oder eine Zusammenkunft verlassen|Ü-Liste=
+*{{bg}}: {{Üt|bg|отида}}
+*{{en}}: {{Ü|en|go}}, {{Ü|en|leave}}
+*{{eo}}: {{Ü|eo|foriri}}
+*{{fr}}: {{Ü|fr|partir}}
+*{{el}}: {{Üt|el|φεύγω|févgo}}
+*{{it}}: {{Ü|it|andarsene}}
+*{{ca}}: {{Ü|ca|anar-se'n}}, {{Ü|ca|sortir}}, {{Ü|ca|marxar}}
+*{{crh}}: {{Ü|crh|ketmek}}
+*{{mk}}: {{Üt|mk|оди}}
+*{{nds}}:
+** Niedersächsisch: {{Ü|nds|gahn}}
+*{{nl}}: {{Ü|nl|gaan}}
+*{{no}}: {{Ü|no|gå}}
+*{{oc}}: {{Ü|oc|sortir}}, {{Ü|oc|gésser}} ([[aranesisch]])
+*{{pl}}: {{Ü|pl|odchodzić}}, {{Ü|pl|odejść}}
+*{{pt}}: {{Ü|pt|ir}}
+*{{ru}}: {{Üt|ru|уходить}}/{{Üt|ru|уйти}}
+*{{sv}}: {{Ü|sv|gå}}
+*{{es}}: {{Ü|es|retirarse}}
+*{{sux}}: {{Üt|sux|𒁺|ĝen}}
+*{{tr}}: {{Ü|tr|gitmek}} 
+*{{hu}}: {{Ü|hu|megy}}
+}}
+{{Ü-Tabelle|4|G=einen anderen Ort aufsuchen, um dort die mit dem anderen Verb beschriebene Handlung auszuführen|Ü-Liste=
+*{{en}}: {{Ü|en|go}}
+*{{fr}}: {{Ü|fr|aller}}
+*{{it}}: {{Ü|it|ricominciare}}
+*{{nl}}: {{Ü|nl|gaan}}
+*{{no}}: {{Ü|no|gå}}
+*{{pl}}: {{Ü|pl|iść}}
+*{{pt}}: {{Ü|pt|ir}}
+*{{ru}}: {{Üt|ru|идти}}, {{Üt|ru|пойти}}, {{Üt|ru|ходить}}, {{Üt|ru|отправляться}}/{{Üt|ru|отправиться}}
+*{{sv}}: {{Ü|sv|gå}}
+*{{cs}}: {{Ü|cs|jít}}, {{Ü|cs|chodit}}
+*{{tr}}: {{Ü|tr|gitmek}} 
+}}
+{{Ü-Tabelle|5|G=funktionieren / funktionsfähig sein|Ü-Liste=
+*{{en}}: {{Ü|en|work}}, be {{Ü|en|operable}}
+*{{eo}}: {{Ü|eo|funkcii}}
+*{{fr}}: {{Ü|fr|marcher}}
+*{{el}}: {{Üt|el|λειτουργώ|litourgó}}
+*{{io}}: {{Ü|io|marchar}}
+*{{it}}: {{Ü|it|funzionare}}, {{Ü|it|marciare}}
+*{{ca}}: {{Ü|ca|marxar}}, {{Ü|ca|funcionar}}
+*{{ko}}: {{Üt|ko|가다|gada}}
+*{{nds}}:
+** Niedersächsisch: {{Ü|nds|gahn}}
+*{{nl}}: {{Ü|nl|lopen}}
+*{{no}}: {{Ü|no|gå}}
+*{{pl}}: {{Ü|pl|działać}}
+*{{pt}}: {{Ü|pt|funcionar}}
+*{{ru}}: {{Üt|ru|действовать}}, {{Üt|ru|идти}} (Uhr)
+*{{sv}}:{{Ü|sv|gå}}
+*{{es}}: {{Ü|es|funcionar}}, {{Ü|es|andar}}
+*{{cs}}: {{Ü|cs|jít}}, {{Ü|cs|chodit}}
+*{{tr}}: {{Ü|tr|çalışmak}}, {{Ü|tr|işlemek}} 
+}}
+{{Ü-Tabelle|6|G=mit einer Vorrichtung als Subjekt: die diesem eigene, charakteristische Aktion ausführen|Ü-Liste=
+*{{io}}: {{Ü|io|marchar}}
+*{{it}}: {{Ü|it|funzionare}}
+*{{nl}}: {{Ü|nl|gaan}}
+*{{sv}}: ''Tür:'' {{Ü|sv|öppnas}}, {{Ü|sv|stängas}}, ''Telefon:'' {{Ü|sv|ringa}}
+*{{tr}}: {{Ü|tr|çalışmak}}, {{Ü|tr|işlemek}} 
+}}
+{{Ü-Tabelle|7|G=viel gekauft werden|Ü-Liste=
+*{{en}}: {{Ü|en|sell}}
+*{{fr}}: {{Ü|fr|marcher}}
+*{{it}}: {{Ü|it|marciare}}
+*{{ca}}: {{Ü|ca|marxar}}, {{Ü|ca|vendre's bé}}
+*{{nds}}:
+** Niedersächsisch: {{Ü|nds|gahn}}
+*{{nl}}: {{Ü|nl|lopen}}
+*{{ru}}: {{Üt|ru|ладиться}}, {{Üt|ru|идти}} (Geschäft)
+*{{sv}}: {{Ü|sv|gå}}
+*{{tr}}: {{Ü|tr|satmak}}
+}}
+{{Ü-Tabelle|8|G=sich räumlich erstrecken|Ü-Liste=
+*{{en}}: {{Ü|en|go}}, {{Ü|en|extend}}, {{Ü|en|reach}}
+*{{it}}: {{Ü|it|estendersi}}
+*{{nl}}: {{Ü|nl|lopen}}
+*{{pl}}: {{Ü|pl|rozciągać}}
+*{{pt}}: {{Ü|pt|ir}}
+*{{ru}}: {{Üt|ru|простираться}}, {{Üt|ru|идти}}
+*{{sv}}: {{Ü|sv|sträcka sig}}
+*{{tr}}: {{Ü|tr|yetişmek}}
+*{{tr}}: {{Ü|tr|yetişmek}}
+}}
+{{Ü-Tabelle|9|G=irgendwohin führen|Ü-Liste=
+*{{en}}: {{Ü|en|go}}, {{Ü|en|extend}}, {{Ü|en|reach}}
+*{{it}}: {{Ü|it|estendersi}}
+*{{nl}}: {{Ü|nl|lopen}}
+*{{pl}}: {{Ü|pl|rozciągać}}
+*{{pt}}: {{Ü|pt|ir}}
+*{{ru}}: {{Üt|ru|идти}}
+*{{sv}}: {{Ü|sv|sträcka sig}}
+*{{tr}}: {{Ü|tr|yetişmek}}
+}}
+{{Ü-Tabelle|10|G=[bereits] im Gange sein, (abgeschlossene Vorgänge:) dauern|Ü-Liste=
+*{{en}}: {{Ü|en|last}}, {{Ü|en|go on}}
+*{{it}}: {{Ü|it|durare}}
+*{{nds}}:
+** Niedersächsisch: {{Ü|nds|gahn}}
+*{{pl}}: {{Ü|pl|trwać}}
+*{{pt}}: {{Ü|pt|durar}}
+*{{ru}}: {{Üt|ru|продолжаться}}, {{Üt|ru|идти}}
+*{{sv}}: {{Ü|sv|pågå}}
+*{{tr}}: {{Ü|tr|devam etmek}}
+}}
+{{Ü-Tabelle|11|G=Backen: sich in der Ruhephase beim Gärprozess befinden, aufgehen, gären|Ü-Liste=
+*{{en}}: {{Ü|en|prove}}
+*{{eo}}: {{Ü|eo|fermenti}}
+*{{it}}: {{Ü|it|lievitare}}
+*{{nl}}: {{Ü|nl|rijzen}}
+*{{pl}}: {{Ü|pl|fermentować}}
+*{{ru}}: {{Üt|ru|подниматься}}/{{Üt|ru|подняться}}, {{Üt|ru|бродить}}/{{Üt|ru|забродить}}
+*{{sv}}: {{Ü|sv|jäsa}}, {{Ü|sv|efterjäsa}}
+*{{tr}}: {{Ü|tr|ispat etmek}}, {{Ü|tr|kanıtlamak}}; 
+}}
+{{Ü-Tabelle|12|G=akzeptabel sein, erlaubt sein, einen Rahmen einhalten|Ü-Liste=
+*{{en}}: {{Ü|en|be tolerable|L=e}}
+*{{it}}: {{Ü|it|essere accettabile}}
+*{{ca}}: {{Ü|ca|ser acceptable}}
+*{{nl}}: {{Ü|nl|gaan}}
+*{{pl}}: {{Ü|pl|może być}} (kann sein), {{Ü|pl|możliwe}}, {{Ü|pl|zezwalać}}
+*{{pt}}: {{Ü|pt|ser aceitável}}
+*{{ru}}: {{Üt|ru|идти}}, {{Üt|ru|пойти}}, {{Üt|ru|сойти}}
+*{{sv}}: {{Ü|sv|passa sig}}, {{Ü|sv|gå}}
+*{{cs}}: {{Ü|cs|jít}}
+}}
+{{Ü-Tabelle|13|G=funktionieren, machbar sein|Ü-Liste=
+*{{en}}: {{Ü|en|be practicable|L=e}}
+*{{it}}: {{Ü|it|essere fattibile}}
+*{{ca}}: {{Ü|ca|ser factible}}
+*{{pl}}: {{Ü|pl|iść}}
+*{{pt}}: {{Ü|pt|funcionar}}
+*{{ru}}: {{Üt|ru|быть возможным}}
+*{{sv}}: {{Ü|sv|gå}}
+*{{cs}}: {{Ü|cs|jít}}
+}}
+{{Ü-Tabelle|14|G=Aussage treffen über das Wohlbefinden oder den Gesundheitszustand|Ü-Liste=
+*{{en}}: {{Ü|en|do}}
+*{{it}}: {{Ü|it|rivestire}}
+*{{pl}}: {{Ü|pl|iść}}
+*{{pt}}: {{Ü|pt|ir}}; [16] {{Ü|pt|ser à conta de}}
+*{{ru}}: {{Üt|ru|идти}}
+*{{sv}}: {{Ü|sv|stå till}}
+*{{cs}}: {{Ü|cs|dařit se}}
+}}
+{{Ü-Tabelle|15|G=den Mauszeiger auf etwas bewegen und ggf. anklicken oder öffnen|Ü-Liste=
+*{{en}}: {{Ü|en|go}}
+*{{eo}}: {{Ü|eo|farti}}
+*{{it}}: {{Ü|it|andare}}
+*{{pt}}: {{Ü|pt|ir}}
+*{{ru}}: {{Üt|ru|заходить}}/{{Üt|ru|зайти}}, {{Üt|ru|переходить}}/{{Üt|ru|перейти}}, {{Üt|ru|отходить}}/{{Üt|ru|отойти}}
+*{{sv}}: {{Ü|sv|gå}}
+}}
+{{Ü-Tabelle|16|G=Etwas geht auf jemandes Rechnung|Ü-Liste=
+*{{en}}: {{Ü|en|be on someone|L=e}}
+*{{it}}: ''Jugendsprache:'' {{Ü|it|infigarsi}}
+*{{pt}}: {{Ü|pt|ser à conta de}}
+*{{ru}}: {{Üt|ru|идти}}, {{Üt|ru|переходить}}/{{Üt|ru|перейти}}, {{Üt|ru|отходить}}/{{Üt|ru|отойти}}
+*{{sv}}: {{Ü|sv|stå för}}
+*{{es}}: {{Ü|es|andar}}
+}}
+{{Ü-Tabelle|17|G=eine Beschäftigung oder Stelle aufgeben, kündigen|Ü-Liste=
+*{{ru}}: {{Üt|ru|уходить}}/{{Üt|ru|уйти}}
+}}
+{{Ü-Tabelle|18|G=sich (durch eine Menge oder einen Körper) wellenartig fortpflanzen|Ü-Liste=
+*{{ru}}: {{Üt|ru|проходить}}/{{Üt|ru|пройти}}
+}}
+{{Ü-Tabelle|19|G=Spezialisierung mit Ruck|Ü-Liste=
+*{{en}}: {{Ü|en|}}
+}}
+{{Ü-Tabelle|20|G=(planmäßig) abfahren, ablegen, abfliegen|Ü-Liste=
+*{{is}}: {{Ü|is|fara}}
+*{{ru}}: {{Üt|ru|идти}}, {{Üt|ru|отправляться}}/{{Üt|ru|отправиться}}, {{Üt|ru|уходить}}/{{Üt|ru|уйти}}
+}}
+{{Ü-Tabelle|21|G=eine partnerschaftliche Beziehung beenden|Ü-Liste=
+*{{ru}}: {{Üt|ru|уходить}}/{{Üt|ru|уйти}}
+}}
+{{Ü-Tabelle|22|G=mit einer bestimmten Bekleidung oder Ausstattung herumlaufen|Ü-Liste=
+*{{ca}}: {{Ü|ca|portar}}
+*{{ru}}: {{Üt|ru|ходить}}{{Üt|ru|отправляться}}/{{Üt|ru|отправиться}}, {{Üt|ru|выходить}}
+}}
+{{Ü-Tabelle|23|G=irgendwo hineinpassen oder hindurchgehen|Ü-Liste=
+*{{ru}}: {{Üt|ru|входить}}/{{Üt|ru|войти}}, {{Üt|ru|влезать}}/{{Üt|ru|влезть}}, {{Üt|ru|помещаться}}/{{Üt|ru|поместиться}}
+}}
+{{Ü-Tabelle|24|G=einen (mehr oder weniger) definierten oder vorgeschriebenen Verlauf haben|Ü-Liste=
+*{{eo}}: {{Ü|eo|esti afero pri}}, {{Ü|eo|temi pri}}, {{Ü|eo|esti grava}}
+*{{ru}}: {{Üt|ru|идти}}, {{Üt|ru|пойти}}, {{Üt|ru|сойти}}, {{Üt|ru|годиться}}
+}}
+{{Ü-Tabelle|25|G=ein persönliches Geschmacksurteil abgeben zu etwas|Ü-Liste=
+*{{ru}}: {{Üt|ru|идти}}, {{Üt|ru|пойти}}, {{Üt|ru|сойти}}, {{Üt|ru|годиться}}
+}}
+
+{{Referenzen}}
+:[1] {{Wikipedia|Gehen}}
+:[1–9, 11, 13, 14, 22, 24, 25] {{Ref-Grimm}}
+:[1–4, 9, 14, 20, 23] {{Ref-DWDS}}
+:[1–25] {{Ref-Duden}}
+:[*] {{Ref-UniLeipzig}}
+
+{{Quellen}}
+
+{{Ähnlichkeiten 1|[[gähnen]], [[geben]], [[gegen]], [[Gehren]], [[Gelen]], [[Genen]], [[geren]], [[Rehen]], [[sehen]], [[wehen]], [[Wehen]], [[Zehen]]|Anagramme=[[hegen]]}}

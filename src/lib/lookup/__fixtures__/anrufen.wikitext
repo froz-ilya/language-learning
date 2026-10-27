@@ -1,0 +1,170 @@
+== anrufen ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Verb|Deutsch}}, ''unregelmäßig, trennbar'' ===
+
+{{Deutsch Verb Übersicht
+|Präsens_ich=rufe an
+|Präsens_du=rufst an
+|Präsens_er, sie, es=ruft an
+|Präteritum_ich=rief an
+|Partizip II=angerufen
+|Konjunktiv II_ich=riefe an
+|Imperativ Singular=ruf an
+|Imperativ Plural=ruft an
+|Hilfsverb=haben
+}}
+
+{{Anmerkung|zur Rektion}}
+:[3] Das Verb regiert standardsprachlich den [[Akkusativ]], wobei es in Südwestdeutschland und der Schweiz umgangssprachlich beziehungsweise mundartnah auch den [[Dativ]] regieren kann.<ref>{{Lit-Duden: Großes Wörterbuch|A=3|B=1}}, Seite 239.</ref><ref>{{Lit-Duden: Universalwörterbuch|A=6}}, Seite 153.</ref><ref>{{Ref-Duden|anrufen}}</ref><ref>{{Lit-Meyer: Wie sagt man in der Schweiz}}, Seite 74.</ref>
+
+{{Worttrennung}}
+:an·ru·fen, {{Prät.}} rief an, {{Part.}} an·ge·ru·fen
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ˈanˌʁuːfn̩}}
+:{{Hörbeispiele}} {{Audio|De-anrufen.ogg}}, {{Audio|De-at-anrufen.ogg|''österreichisch:'' anrufen}}
+
+{{Bedeutungen}}
+:[1] {{K|trans.}} auf sich aufmerksam machen, indem man ruft; jemanden namentlich rufen
+:[2] {{K|trans.}} jemanden bitten, sich als Helfer, Vermittler oder dergleichen entscheidend in etwas einzuschalten/auf etwas Einfluss zu nehmen
+:[3] mit jemandem telefonisch in Verbindung treten
+:[4] {{K|trans.}} etwas durch (lautes) Rufen bekannt geben, mitteilen, verkünden
+:[5] {{K|intrans.}} etwas durch (lautes) Rufen zu übertönen versuchen
+
+{{Herkunft}}
+:{{Verbherkunft|W=Partikel}}
+
+{{Synonyme}}
+:[3] {{ugs.|:}} [[antelefonieren]]/[[antelephonieren]], [[durchrufen]]; ''[[landschaftlich]]:'' [[anbimmeln]], [[anklingeln]]
+:[3] ''besonders'' {{schweiz.|:}} [[telefonieren]]/[[telephonieren]]
+:[3] ''[[Namibia]]:'' [[anbellen]]
+:[3] ''[[Südafrika]] ([[w:KwaZulu-Natal|KwaZulu-Natal]]):'' [[aufringen]]; ''[[scherzhaft]]:'' [[ankhonkhothan]]
+
+{{Sinnverwandte Wörter}}
+:[1, 2] [[rufen]] (nach)
+:[1, 2] {{geh.|:}} [[verlangen]] (nach)
+:[2] [[anflehen]], [[beten]], [[bitten]], [[ersuchen]]
+:[4] [[angeben]], [[ankündigen]], [[ansagen]], [[ausrufen]], [[ausschreien]], [[kundtun]], [[etwas bekannt geben|bekannt geben]], [[informieren]], [[melden]], [[mitteilen]], [[verlautbaren]] ([[lassen]]), [[verlauten]], [[vermelden]]
+:[4] {{geh.|:}} [[kundgeben]]
+:[4] {{va.|:}} [[austrommeln]]
+:[4] ''[[früher]]:'' [[ausläuten]]
+:[4] ''[[seemannssprachlich]]:'' [[aussingen]]
+:[5] [[anschreien]]
+
+{{Oberbegriffe}}
+:[3] [[kommunizieren]]
+
+{{Beispiele}}
+:[1] „Man wird dich einfangen und in ein Lager sperren, so daß du erst recht nicht fort kannst. Bedenke doch, wie es zugeht. Sie ''rufen'' euch ''an,'' sie rufen dreimal, dann schießen sie!“<ref>{{Literatur| Autor=Anna Seghers | Titel=Transit | TitelErg=Roman | Verlag=Luchterhand | Ort=Neuwied am Rhein/Berlin | Jahr=1963 | Seiten=237 }}.</ref>
+:[1] „[…]dann schlief Franke fest und wurde wach, als Rita ihn leise ''anrief,'' in zwanzig Minuten gäbe es Abendbrot.“<ref>{{Literatur| Autor=Erich Loest | Titel=Pistole mit sechzehn | TitelErg=Erzählungen | Verlag=Hoffmann und Campe | Ort=Hamburg | Jahr=1979 | ISBN=3-455-04525-1 | Seiten=149 | Online=Zitiert nach {{GBS|al9cAAAAMAAJ|PA149|Hervorhebung=anrief}} }}.</ref>
+:[2] Und er ''rief'' die Götter ''an,'' sie sollen ihm Kraft verleihen.
+:[2] „Warum wird die UN nicht ''angerufen?''“<ref>{{Literatur| Autor=Marion Gräfin Dönhoff | Titel=Die Bundesrepublik in der Ära Adenauer | TitelErg=Kritik und Perspektiven | Band=1.–20. Tausend | Verlag=Rowohlt | Ort=Reinbek bei Hamburg | Jahr=1963 | Seiten=79 | Online=Zitiert nach {{GBS|MucZAAAAIAAJ|PA79|Hervorhebung=angerufen}} }}.</ref>
+:[2] „Schon hatte der Räuber Obmann, der allerjüngste und frechste, das Schwert über ihm geschwungen zum Todesstreich, da hatte er, Jaakob, in höchster Not seinen Gott ''angerufen'' und den Namen des Gottes seiner Väter[…]“<ref>{{Literatur| Autor=Thomas Mann | Titel=Joseph und seine Brüder | TitelErg=Roman | Band=1. Band: Die Geschichten Jaakobs | Verlag=Fischer | Ort=Frankfurt am Main | Jahr=1962 | Seiten=219 | Online=Zitiert nach {{GBS|KFAeAAAAIAAJ|PA219|Hervorhebung=angerufen}} }}.</ref>
+:[3] Deine Mutter hat eben ''angerufen.''
+:[3] Kannst du mich/mir später ''anrufen?''
+:[3] „In Saratow schien es Halbstarke zu geben, Plakate beschäftigten sich mit diesem Problem, eine wie ein aufgeregtes Huhn dargestellte Frau rief, wo ist mein kleiner Knabe, ich habe überall ''angerufen,'' bei der Polizei, auf der Arbeitsstelle, im Club?“<ref>{{Literatur| Autor=Wolfgang Koepper | Titel=Nach Rußland und anderswohin | Verlag=Fischer Bücherei | Ort=Frankfurt am Main/Hamburg | Jahr=1961 | Seiten=127 }}.</ref>
+:[3] „Wir können ihm nicht schreiben, wir können nicht telegrafieren und ihn nicht ''anrufen'' - wir wissen überhaupt keine Adresse von ihm.“<ref>{{Literatur|Autor=Irmgard Keun|Titel=Kind aller Länder|TitelErg=Roman|Verlag=Deutscher Taschenbuch Verlag|Ort= München|Jahr=1989|ISBN=3-423-45369-7}}, Seite 24. Erste Ausgabe 1938.</ref>
+:[4] „Eben izt ''ruft'' der Nachtwächter zwey ''an.''“<ref>{{Literatur| Autor=Friedrich Schiller | Titel=Die Räuber | TitelErg=Ein Schauspiel | Auflage=1. | Ort=Frankfurt und Leipzig | Jahr=1781 | Seiten=184 | Online=Zitiert nach {{GBS|gKOyAAAAIAAJ|PA184|Hervorhebung=Nächtwächter}} }}.</ref>
+:[4] „Der Nachtwächter ''rief'' die elfte Stunde ''an.''“<ref>{{Literatur| Autor=Clemens Brentano | Titel=Geschichte vom braven Kasperl und dem schönen Annerl | Herausgeber=Christian Brentano | Sammelwerk=Clemens Brentano’s Gesammelte Schriften | Band=Vierter Band: Der kleinen Schriften erster Theil. | Verlag=J. D. Sauerländer’s Verlag | Ort=Frankfurt am Main | Jahr=1852 | Seiten=171 | Online=Zitiert nach {{GBS|aHMHAAAAQAAJ|PA171|Hervorhebung=Der+Nachtwächter+rief+die+elfte+Stunde+an}} }}.</ref>
+:[5] Er hatte versucht, gegen den Krach der Motoren ''anzurufen;'' doch die Mühe war vergebens.
+
+{{Charakteristische Wortkombinationen}}
+:[1] einen [[Freund]] (auf der [[Straße]])/einen [[Schlafenden]] ([[leise]]) anrufen; ein [[vorbeifahrend]]es [[Taxi]] anrufen; [[vom]] [[Posten]]/[[Wachposten]] angerufen werden
+:[2] [[jemanden]] als [[Zeuge]]n anrufen, [[jemanden]] um [[Gnade]]/[[Hilfe]]/[[Schutz]] anrufen; das [[Gericht]]/eine [[Schiedsstelle]]/das [[Verfassungsgericht]] anrufen; [[Gott]] um [[Gnade]] anrufen; [[Unterstützung]] anrufen; [[jemandes]] [[Entscheidung]]/[[Urteil]]/[[Vermittlung]]/[[Zeugnis]] anrufen
+:[3] [[jemanden]]/[[jemandem]] (im [[Lauf]]e des [[Tag]]es/[[mehrmals]]/[[vergeblich]]/[[zuhause]]) anrufen; die [[Auskunft]]/einen [[Bekannten]]/die [[Polizei]] anrufen; [[jemanden]] [[auf]] dem [[Handy]] anrufen; bei der [[Bank]] anrufen; in [[Berlin]]/[[Wien]]/[[Zürich]] anrufen; [[jeden]] [[Tag]] anrufen
+:[5] [[gegen]] den [[Lärm]] anrufen
+
+{{Wortbildungen}}
+:''[[Konversion]]en:'' [[angerufen]], [[Anrufen]], [[anrufend]]
+:''Substantive:'' [[Anruf]], [[Anrufer]], [[Anrufung]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=transitiv: auf sich aufmerksam machen, indem man ruft; jemanden namentlich rufen|Ü-Liste=
+*{{en}}: to {{Ü|en|call}}, to {{Ü|en|challenge}}
+*{{fr}}: {{Ü|fr|appeler}}, {{Ü|fr|interpeller}}
+*{{el}}: {{Üt|el|καλώ|kaló}}
+*{{id}}: {{Ü|id|menelepon}}
+*{{ca}}: {{Ü|ca|cridar}}
+*{{no}}:
+**{{no}}: {{Ü|nb|rope}} (til, på)
+**{{nn}}: {{Ü|nn|rope}} (til, på)
+*{{pl}}: {{Ü|pl|wołać}}
+*{{pt}}: {{Ü|pt|chamar}}
+*{{ro}}: {{Ü|ro|striga|a striga}}, {{Ü|ro|chema|a chema}}
+*{{ru}}: {{Üt|ru|позвать}}
+*{{es}}: {{Ü|es|llamar}}
+}}
+
+{{Ü-Tabelle|2|G=transitiv: jemanden bitten, sich als Helfer, Vermittler entscheidend in etwas einzuschalten|Ü-Liste=
+*{{en}}: to {{Ü|en|appeal}}, to {{Ü|en|call}} ({{Ü|en|on}}), to {{Ü|en|invoke}}
+*{{fr}}: ({{Ü|fr|en}}) {{Ü|fr|appeler}}, {{Ü|fr|invoquer}}
+*{{he|CHA}}: {{Üxx4|he|קרא|v=קָרָא|d=ḳārāʾ|CHA=0}}
+*{{ca}}: {{Ü|ca|apel·lar}}
+*{{nl}}: {{Ü|nl|inroepen}}
+*{{pl}}: {{Ü|pl|wezwać}}
+*{{pt}}: {{Ü|pt|apelar}}, {{Ü|pt|invocar}}
+*{{ro}}: {{Ü|ro|chema|a chema}}, {{Ü|ro|invoca|a invoca}}
+*{{sv}}: {{Ü|sv|anropa}}, {{Ü|sv|åkalla}}
+*{{es}}: {{Ü|es|apelar}}, {{Ü|es|invocar}}
+}}
+
+{{Ü-Tabelle|3|G=mit jemandem telefonisch in Verbindung treten|Ü-Liste=
+*{{af}}: {{Ü|af|aanbel}}, {{Ü|af|opbel}}, {{Ü|af|oplui}}
+*{{ar|DMG}}:
+**{{MHA}}: {{Üxx4|ar|هاتف|v=هَاتَفَ|d=hātafa|DMG=0}}
+*{{eu}}: (telefonoz) {{Ü|eu|deitu}}
+*{{en}}: to {{Ü|en|call}}, to {{Ü|en|call up}}, to {{Ü|en|give a bell}}, to {{Ü|en|give a call}}, to {{Ü|en|give a ring}}, to {{Ü|en|phone}}, to {{Ü|en|ring}}, to {{Ü|en|ring up}}
+*{{et}}: {{Ü?|et|helistama}}
+*{{fi}}: {{Ü|fi|soittaa}}
+*{{fr}}: {{Ü|fr|appeler}}, {{Ü|fr|téléphoner}}
+*{{ka}} <small>(DIN 32707:2010-01)</small>: {{Üt|ka|დარეკვა|darekva}}
+*{{he|CHA}}: {{Üxx4|he|צלצל|v=צִלְצֵל|d=ṣilṣēl|CHA=0}}
+*{{it}}: {{Ü|it|chiamare}}, {{Ü|it|telefonare}}
+*{{ja}} <small>([[w:Hepburn-System|Hepburn]])</small>: {{Üt|ja|電話する|でんわする, denwa suru}}
+*{{yi|YIVO}}: {{Üxx4|yi|אָנקלינגען|d=onklingen|YIVO=0}}, {{Üxx4|yi|אָנרופֿן|d=onrufn|YIVO=0}}, {{Üxx4|yi|אָנטעלעפֿאָנירן|d=ontelefonirn|YIVO=0}}
+*{{ca}}: {{Ü|ca|telefonar}}, {{Ü|ca|trucar}}
+*{{lb}}: {{Ü|lb|uruffen}}, {{Ü|lb|uschellen}}
+*{{nl}}: {{Ü|nl|aanroepen}}, {{Ü|nl|bellen}}, {{Ü|nl|opbellen}}
+*{{no}}:
+**{{no}}: {{Ü|nb|ringe}}
+**{{nn}}: {{Ü|nn|ringe}}, {{Ü|nn|ringje}}
+*{{pl}}: {{Ü|pl|dzwonić}}
+*{{pt}}: {{Ü|pt|ligar}}
+*{{ro}}: {{Ü|ro|chema|a chema}}, {{Ü|ro|suna|a suna}}
+*{{ru}}: ''imperfektiv:'' {{Üt|ru|звонить}}, ''perfektiv:'' {{Üt|ru|позвонить}}
+*{{sv}}: {{Ü|sv|ringa}}, {{Ü|sv|ringa upp}}
+*{{wen}}:
+**{{dsb}}: ''imperfektiv:'' {{Ü|dsb|zwóniś}}, ''perfektiv:'' {{Ü|dsb|zazwóniś}} ({{Ü|dsb|na}}), ''perfektiv:'' {{Ü|dsb|zatelefoněrowaś}} ({{Ü|dsb|na}})
+*{{es}}: {{Ü|es|llamar}}
+*{{cs}}: {{Ü|cs|telefonovat}}, {{Ü|cs|volat}}, {{Ü|cs|zavolat}}
+*{{tr}}: (telefonla) {{Ü|tr|aramak}}
+}}
+
+{{Ü-Tabelle|4|G=transitiv: etwas durch (lautes) Rufen bekannt geben, mitteilen, verkünden|Ü-Liste=
+*{{en}}: to {{Ü|en|call out}}, to {{Ü|en|cry out}}
+*{{fr}}: {{Ü|fr|annoncer}} ({{Ü|fr|à voix haute}} / {{Ü|fr|à haute voix}}), {{Ü|fr|clamer}}, {{Ü|fr|exclamer}}, {{Ü|fr|proclamer}}
+*{{ro}}: {{Ü|ro|țipa|a țipa}}, {{Ü|ro|striga|a striga}}
+}}
+
+{{Ü-Tabelle|5|G=intransitiv: etwas durch (lautes) Rufen zu übertönen versuchen|Ü-Liste=
+*{{en}}: to {{Ü|en|call}} ({{Ü|en|against}})
+*{{fr}}: {{Ü|fr|crier}} ({{Ü|fr|contre}})
+*{{no}}:
+**{{no}}: {{Ü|nb|overdøve}}
+**{{nn}}: {{Ü|nn|overdøyve}}
+*{{ru}}: {{Üt|ru|заглушить}}
+}}
+
+{{Referenzen}}
+:[1–4] {{Lit-Duden: Großes Wörterbuch|A=3|B=1}}, Seite 238–239.
+:[1–3] {{Lit-Duden: Universalwörterbuch|A=6}}, Seite 153.
+:[3] {{Lit-Meyer: Wie sagt man in der Schweiz}}, Seite 74.
+:[1–3, 5] {{Ref-Duden}}
+:[1–3] {{Ref-wissen.de|Wörterbuch}}
+:[1–3] {{Ref-DWDS}}
+:[1, 2] {{Ref-FreeDictionary}}
+:[*] {{Ref-UniLeipzig}}
+:[*] {{Ref-OWID}}
+
+{{Quellen}}
+
+{{Ähnlichkeiten 1|Anagramme=[[Furanen]]}}

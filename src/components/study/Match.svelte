@@ -5,6 +5,7 @@
   import { scale } from 'svelte/transition';
   import { dur } from '../../lib/motion';
   import { matchRounds } from '../../lib/study/quiz';
+  import { answerHaptic } from '../../lib/study/fx';
   import { shuffle } from '../../lib/study/session';
   import type { Card } from '../../lib/types';
 
@@ -67,11 +68,13 @@
     if (pairs(a, t)) {
       matched = { ...matched, [a.key]: true, [t.key]: true };
       matchedTotal++;
+      answerHaptic('good');
       onprogress(matchedTotal);
       if (Object.keys(matched).length === round.length * 2) setTimeout(nextRound, 350);
     } else {
       clearTimeout(wrongTimer);
       wrong = [a.key, t.key];
+      answerHaptic('bad');
       wrongTimer = setTimeout(() => (wrong = []), 600);
       if (!missed.has(a.card)) {
         missed.set(a.card, true);
@@ -136,8 +139,8 @@
   .tile {
     min-height: 64px;
     padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    border: 2px solid var(--border);
+    border-radius: 16px;
+    border: 1.5px solid var(--hairline);
     background: var(--surface);
     font-size: 16px;
     line-height: 1.25;
@@ -153,11 +156,14 @@
     transform: scale(0.97);
   }
   .tile.de {
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 17px;
   }
   .tile.selected {
     border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    box-shadow: 0 0 0 3px var(--accent-soft);
   }
   .tile.matched {
     border-color: var(--good);

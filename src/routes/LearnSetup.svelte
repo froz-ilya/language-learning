@@ -147,8 +147,11 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 16px;
+    padding: 16px;
     border: 0;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
+    box-shadow: var(--shadow-feature);
     text-align: left;
     cursor: pointer;
     transition: transform 0.12s ease;
@@ -157,11 +160,12 @@
     transform: scale(0.98);
   }
   .smart-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: var(--accent);
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: var(--accent-fill);
     color: var(--accent-text);
+    box-shadow: var(--shadow-accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -172,7 +176,9 @@
     min-width: 0;
   }
   .smart-title {
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
   }
   .options {
     margin-top: 16px;
@@ -182,8 +188,11 @@
     gap: 14px;
   }
   .opt-label {
-    font-size: 13px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 12.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     color: var(--muted);
     margin: 0 2px 6px;
   }
@@ -198,10 +207,10 @@
     background: none;
   }
   .mode-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: var(--surface-2);
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: var(--accent-soft);
     color: var(--accent);
     display: flex;
     align-items: center;
@@ -209,7 +218,8 @@
     flex-shrink: 0;
   }
   .badge {
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: 900;
     font-size: 15px;
     color: var(--der);
   }
@@ -223,7 +233,7 @@
     padding: 1px 7px;
     border-radius: 999px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     vertical-align: 2px;
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 12%, transparent);

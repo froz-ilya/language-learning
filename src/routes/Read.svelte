@@ -205,29 +205,32 @@
     color: inherit;
   }
   .eyebrow {
+    font-family: var(--font-display);
     font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--accent);
   }
   .c-title {
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-weight: 800;
     font-size: 18px;
     line-height: 1.25;
   }
   .c-bar {
     display: block;
-    height: 4px;
-    border-radius: 2px;
+    height: 6px;
+    border-radius: 999px;
     background: var(--surface-2);
     overflow: hidden;
-    margin-top: 6px;
+    margin-top: 8px;
   }
   .c-bar span {
     display: block;
     height: 100%;
-    background: var(--accent);
+    border-radius: inherit;
+    background: var(--accent-bar);
   }
   .paste {
     display: flex;
@@ -244,9 +247,9 @@
     place-items: center;
     width: 40px;
     height: 40px;
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--accent) 14%, transparent);
-    color: var(--accent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--tier-b) 15%, transparent);
+    color: var(--tier-b);
     flex-shrink: 0;
   }
   .paste-text {
@@ -258,7 +261,8 @@
   }
   .p-title {
     color: var(--text);
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-weight: 800;
   }
   .notes {
     display: flex;
@@ -274,7 +278,8 @@
     margin: 0;
     padding: 8px 12px;
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--warn) 14%, transparent);
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 22%, transparent);
     font-size: 14px;
   }
   .btn-link {

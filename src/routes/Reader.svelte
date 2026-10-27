@@ -421,7 +421,10 @@
 <style>
   .reader-head :global(h1) {
     white-space: normal;
-    font-size: 24px;
+    font-family: var(--font-read);
+    font-weight: 700;
+    letter-spacing: 0;
+    font-size: 26px;
     line-height: 1.2;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -451,10 +454,14 @@
     font-size: 13px;
     font-weight: 700;
     background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--hairline);
   }
   .pill.level {
-    background: var(--accent);
+    font-family: var(--font-display);
+    font-weight: 900;
+    background: var(--accent-fill);
     color: var(--accent-text);
+    box-shadow: none;
   }
   .pill.known {
     background: color-mix(in srgb, var(--good) 16%, transparent);
@@ -464,10 +471,10 @@
     color: var(--good);
   }
   .text {
-    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    font-family: var(--font-read);
     font-size: 19.5px;
-    line-height: 1.6;
-    color: var(--text);
+    line-height: 1.62;
+    color: var(--text-read);
     hyphens: auto;
     -webkit-hyphens: auto;
     overflow-wrap: break-word;
@@ -479,13 +486,14 @@
     margin: 0 0 1em;
   }
   .heading {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
-    font-size: 20px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 800;
+    color: var(--text);
     margin: 1.4em 0 0.5em;
   }
   .w {
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
     transition: background-color var(--dur-fast) var(--ease);
   }
@@ -500,7 +508,9 @@
     background: color-mix(in srgb, var(--accent) 10%, transparent);
   }
   .w.sel {
-    background: color-mix(in srgb, var(--accent) 26%, transparent);
+    color: var(--text);
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
   }
   .say {
     display: inline-flex;
@@ -529,8 +539,8 @@
     flex-direction: column;
     gap: 10px;
     margin-top: 12px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
+    padding-top: 18px;
+    border-top: 1px solid var(--hairline);
   }
   .next {
     display: flex;
@@ -546,7 +556,8 @@
     flex: 1;
     min-width: 0;
     color: var(--text);
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-weight: 800;
   }
   .two {
     display: grid;

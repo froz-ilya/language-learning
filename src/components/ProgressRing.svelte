@@ -28,7 +28,7 @@
   });
 
   const offset = $derived(circumference * (1 - (mounted ? clamped : 0)));
-  const tone = $derived(color ?? (clamped >= 1 ? 'var(--good)' : 'var(--accent)'));
+  const tone = $derived(color ?? (clamped >= 1 ? 'var(--good)' : 'var(--accent-bar)'));
 </script>
 
 <div
@@ -73,7 +73,7 @@
     fill: none;
   }
   .track {
-    stroke: var(--surface-2);
+    stroke: var(--ring-track, var(--surface-2));
   }
   .value {
     stroke-linecap: round;
@@ -83,8 +83,9 @@
   }
   .inner {
     position: relative;
+    font-family: var(--font-display);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 800;
     font-variant-numeric: tabular-nums;
     line-height: 1;
     text-align: center;

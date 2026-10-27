@@ -234,8 +234,9 @@
     min-width: 0;
   }
   .big-msg {
-    font-size: 22px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 900;
     color: var(--text);
   }
 </style>

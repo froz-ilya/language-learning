@@ -79,11 +79,18 @@
 <style>
   .prompt {
     text-align: center;
-    padding: 32px 16px;
+    padding: 34px 18px;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
+  }
+  .prompt .muted {
+    margin-top: 4px;
+    overflow-wrap: break-word;
   }
   .big {
-    font-size: 32px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 800;
     overflow-wrap: anywhere;
   }
   .articles {
@@ -91,13 +98,17 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
   }
+  /* Each article is a tinted tile in its gender color */
   .article {
-    min-height: 76px;
+    min-height: 84px;
     border-radius: var(--radius);
-    border: 2px solid transparent;
-    color: #fff;
-    font-size: 24px;
-    font-weight: 700;
+    border: 0;
+    color: var(--g);
+    background: color-mix(in srgb, var(--g) 15%, var(--surface));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--g) 35%, transparent);
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 900;
     cursor: pointer;
     transition:
       opacity 0.22s ease,
@@ -110,13 +121,13 @@
     }
   }
   .a-m {
-    background: var(--der);
+    --g: var(--der);
   }
   .a-f {
-    background: var(--die);
+    --g: var(--die);
   }
   .a-n {
-    background: var(--das);
+    --g: var(--das);
   }
   .article:disabled {
     cursor: default;
@@ -126,39 +137,42 @@
     transform: scale(0.97);
   }
   .article.right {
-    border-color: var(--text);
-    box-shadow: 0 0 0 3px var(--good);
+    background: var(--g);
+    color: var(--on-tone);
+    box-shadow:
+      0 0 0 2px var(--bg),
+      0 0 0 4.5px var(--good);
   }
   .article.wrong {
-    border-color: var(--text);
-    box-shadow: 0 0 0 3px var(--bad);
+    box-shadow:
+      0 0 0 2px var(--bg),
+      0 0 0 4.5px var(--bad);
   }
   .article.dim {
     opacity: 0.35;
   }
   .feedback {
-    border: 2px solid var(--border);
+    --tone: var(--border);
+    background: color-mix(in srgb, var(--tone) 10%, var(--surface));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tone) 55%, transparent);
   }
   .feedback.ok {
-    border-color: var(--good);
+    --tone: var(--good);
   }
   .feedback.no {
-    border-color: var(--bad);
+    --tone: var(--bad);
   }
   .head {
-    font-weight: 700;
-  }
-  .ok .head {
-    color: var(--good);
-  }
-  .no .head {
-    color: var(--bad);
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--tone);
   }
   .result-row {
     justify-content: space-between;
   }
   .term {
-    font-size: 24px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 800;
   }
 </style>

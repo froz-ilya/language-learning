@@ -257,11 +257,23 @@
     padding: 48px 8px 0;
   }
   .emoji {
-    font-size: 56px;
+    display: grid;
+    place-items: center;
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 6px;
+    border-radius: 32px;
+    font-size: 48px;
     line-height: 1;
+    background: var(--accent-soft);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--accent-fill) 18%, transparent),
+      0 0 60px color-mix(in srgb, var(--accent-fill) 18%, transparent);
+    transform: rotate(-6deg);
   }
   .big-msg {
-    font-size: 24px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 900;
   }
 </style>

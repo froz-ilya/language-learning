@@ -1,23 +1,49 @@
-/* Design tokens + shared utility classes. Components use these instead of ad-hoc colors. */
+/* Design tokens + shared utility classes. Components use these instead of ad-hoc colors.
+ *
+ * Theme: "ink & saffron" (dark only). A deep blue-black ink base with layered, slightly
+ * blue surfaces, hairline edges instead of borders, and one warm signature accent (saffron)
+ * for primary actions and progress. Gender colors (der/die/das) are tuned for AA contrast
+ * on every surface.
+ */
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 500 900;
+  font-display: swap;
+  src: url('/fonts/nunito-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 500 900;
+  font-display: swap;
+  src: url('/fonts/nunito-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
-  --bg: #f4f4f7;
-  --surface: #ffffff;
-  --surface-2: #ececf1;
-  --text: #16161a;
-  --muted: #6b6b76;
-  --border: #dedee5;
-  --accent: #3b5bdb;
-  --accent-text: #ffffff;
-  --good: #1f9d55;
-  --bad: #d9364a;
-  --warn: #c98a00;
-  /* Noun genders: der = blue, die = red, das = green */
-  --der: #2f6fde;
-  --die: #d9364a;
-  --das: #1f9d55;
-  --radius: 14px;
-  --radius-sm: 10px;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 2px 8px rgb(0 0 0 / 0.04);
+  /* Type */
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Nunito', ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-read: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+
+  /* Shape + spacing scale */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 26px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   /* Motion: iOS-like ease-out. Durations are for CSS; JS uses dur() from lib/motion.ts. */
@@ -28,49 +54,156 @@
   --dur-slow: 450ms;
   /* Height of the bottom tab bar incl. safe area; 0 on pages without it (see TabBar). */
   --tabbar-h: 0px;
-  /* Translucent bars, raised surfaces (dialogs/sheets), overlays */
-  --chrome-bg: rgb(249 249 251 / 0.82);
+}
+
+/*
+ * Colors. <html data-theme="light|dark"> is set by lib/theme.svelte.ts (and an inline script in
+ * index.html before first paint). Dark is also the fallback when no theme is set.
+ *
+ * Token roles (same in both themes):
+ *   --bg / --surface / --surface-2 / --surface-3 / --surface-raised   page → cards → controls → sheets
+ *   --text / --text-2 / --muted / --faint                               primary → secondary → tertiary → decorative
+ *   --accent        accent as a text/icon/progress color (AA on --bg and --surface)
+ *   --accent-fill   accent as a button/badge fill, always with --accent-text on top
+ *   --accent-bar    accent for progress bars, rings and status dots (≥3:1 on surfaces)
+ *   --on-tone       text on solid good/bad/warn/gender/--accent fills
+ */
+
+/* ---------- Dark: "ink & saffron" ---------- */
+:root,
+:root[data-theme='dark'] {
+  /* Ink: page, layered surfaces (each step a little lighter and bluer) */
+  --bg: #0d1017;
+  --surface: #161b26;
+  --surface-2: #212737;
+  --surface-3: #2b3245;
+  --surface-raised: #1b2130;
+  --border: #283044;
+  /* Soft 1px edge used on cards instead of a hard border */
+  --hairline: rgb(255 255 255 / 0.06);
+  /* Sunken wells inside a card (example sentences) */
+  --inset-bg: rgb(0 0 0 / 0.18);
+  /* Segmented control: track + selected segment */
+  --seg-bg: var(--surface);
+  --seg-active: var(--surface-3);
+  /* Feature surface (Today hero, flashcards, results): ink lit from the top-left */
+  --grad-feature: linear-gradient(155deg, #252d4d 0%, #1b2138 52%, #161b2a 100%);
+  /* The faint dawn at the top of every screen */
+  --dawn:
+    radial-gradient(90% 70% at 15% -20%, rgb(92 112 200 / 0.16), transparent 70%),
+    radial-gradient(60% 50% at 100% -10%, rgb(246 195 91 / 0.05), transparent 70%);
+  --text: #edf0f7;
+  /* Secondary text (translations under a word), then muted, then faint (chevrons, placeholders) */
+  --text-2: #c4cad8;
+  /* Reader body text: a slightly warm paper-white, easier on the eyes for long reading */
+  --text-read: #e7e3da;
+  --muted: #8f97ab;
+  --faint: #5f677b;
+
+  /* Signature accent: saffron (warm, calm, the complement of the ink blue) */
+  --accent: #f6c35b;
+  --accent-fill: #f6c35b;
+  /* Progress bars, rings and status dots */
+  --accent-bar: #f6c35b;
+  --accent-text: #1b1405;
+  --accent-soft: rgb(246 195 91 / 0.14);
+  --accent-glow: rgb(246 195 91 / 0.32);
+  --on-tone: #1b1405;
+
+  /* Feedback (hex: lib/study/fx.ts parses --good) */
+  --good: #5ad48a;
+  --bad: #ff6f7d;
+  --warn: #ff9d5c;
+  /* Noun genders: der = blue, die = rose, das = green */
+  --der: #6fb0ff;
+  --die: #ff7fa5;
+  --das: #4fd5a0;
+  /* CEFR tiers (Levels): A aqua, B periwinkle, C lilac */
+  --tier-a: #5fd3c6;
+  --tier-b: #86a8ff;
+  --tier-c: #c3a0ff;
+
+  /* Depth: a hairline edge + a soft, low shadow (dark UIs read depth from light, not shade) */
+  --shadow: inset 0 0 0 1px var(--hairline), 0 10px 24px -16px rgb(0 0 0 / 0.7);
+  --shadow-sm: 0 4px 12px -6px rgb(0 0 0 / 0.6);
+  --shadow-lg: inset 0 0 0 1px var(--hairline), 0 24px 60px -12px rgb(0 0 0 / 0.75);
+  --shadow-feature: inset 0 0 0 1px rgb(255 255 255 / 0.07), 0 20px 40px -24px rgb(0 0 0 / 0.9);
+  --shadow-accent: 0 10px 26px -10px var(--accent-glow);
+  /* Edge of a page sliding over another (page transitions, edge-swipe back) */
+  --shadow-edge: -8px 0 32px rgb(0 0 0 / 0.5);
+
+  /* Translucent bars, overlays, toasts */
+  --chrome-bg: rgb(13 16 23 / 0.8);
+  --backdrop: rgb(4 6 10 / 0.62);
+  --focus-ring: rgb(246 195 91 / 0.35);
+  --toast-bg: #262d3f;
+  --toast-text: #edf0f7;
+  --toast-action: #f6c35b;
+  --skeleton-shine: #2a3144;
+  color-scheme: dark;
+}
+
+/* ---------- Light: "paper & amber" (same brand on warm paper) ---------- */
+:root[data-theme='light'] {
+  --bg: #f6f3ec;
+  --surface: #ffffff;
+  --surface-2: #efebe2;
+  --surface-3: #e3ded2;
   --surface-raised: #ffffff;
-  --backdrop: rgb(0 0 0 / 0.38);
-  --focus-ring: rgb(59 91 219 / 0.28);
-  --toast-bg: #1f1f24;
-  --toast-text: #ffffff;
-  --toast-action: #9db1ff;
-  --skeleton-shine: #f7f7fa;
-  color-scheme: light dark;
+  --border: #e3ddd0;
+  --hairline: rgb(40 34 20 / 0.08);
+  --inset-bg: rgb(40 34 20 / 0.04);
+  --seg-bg: var(--surface-2);
+  --seg-active: #ffffff;
+  --grad-feature: linear-gradient(155deg, #fff1d2 0%, #fff8ea 48%, #ffffff 100%);
+  --dawn:
+    radial-gradient(90% 70% at 15% -20%, rgb(246 195 91 / 0.16), transparent 70%),
+    radial-gradient(60% 50% at 100% -10%, rgb(110 130 220 / 0.07), transparent 70%);
+  --text: #161a26;
+  --text-2: #3d4356;
+  --text-read: #26241f;
+  --muted: #646a7c;
+  --faint: #a4a8b3;
+
+  /* Deep amber reads as text on paper (AA); buttons keep the brighter saffron fill */
+  --accent: #9a6100;
+  --accent-fill: #f4b942;
+  --accent-bar: #c98208;
+  --accent-text: #1b1405;
+  --accent-soft: rgb(232 160 32 / 0.16);
+  --accent-glow: rgb(232 160 32 / 0.45);
+  --on-tone: #ffffff;
+
+  --good: #15803d;
+  --bad: #c9283d;
+  --warn: #c2410c;
+  --der: #1f63d6;
+  --die: #c8285a;
+  --das: #0b7a52;
+  --tier-a: #0e7f74;
+  --tier-b: #3d5fd1;
+  --tier-c: #7c4dd6;
+
+  --shadow: inset 0 0 0 1px var(--hairline), 0 1px 2px rgb(60 48 20 / 0.05), 0 10px 22px -16px rgb(60 48 20 / 0.3);
+  --shadow-sm: 0 1px 2px rgb(60 48 20 / 0.1), 0 4px 10px -6px rgb(60 48 20 / 0.25);
+  --shadow-lg: inset 0 0 0 1px var(--hairline), 0 24px 48px -16px rgb(40 34 20 / 0.28);
+  --shadow-feature: inset 0 0 0 1px rgb(154 97 0 / 0.12), 0 18px 36px -22px rgb(120 80 20 / 0.35);
+  --shadow-accent: 0 10px 22px -10px var(--accent-glow);
+  --shadow-edge: -8px 0 28px rgb(40 34 20 / 0.16);
+
+  --chrome-bg: rgb(246 243 236 / 0.84);
+  --backdrop: rgb(20 22 30 / 0.32);
+  --focus-ring: rgb(154 97 0 / 0.28);
+  --toast-bg: #1d2130;
+  --toast-text: #f3f1ec;
+  --toast-action: #f6c35b;
+  --skeleton-shine: #f9f7f2;
+  color-scheme: light;
 }
 
 /* Pages on a tab root leave room for the fixed tab bar. */
 html:has(.app-tabbar) {
-  --tabbar-h: calc(56px + var(--safe-bottom));
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121214;
-    --surface: #1d1d21;
-    --surface-2: #2a2a30;
-    --text: #f2f2f5;
-    --muted: #9a9aa6;
-    --border: #33333a;
-    --accent: #6b8cff;
-    --accent-text: #0d0d10;
-    --good: #3cc97a;
-    --bad: #ff5c6f;
-    --warn: #f2b632;
-    --der: #6b9cff;
-    --die: #ff6b7d;
-    --das: #45d189;
-    --shadow: none;
-    --chrome-bg: rgb(29 29 33 / 0.78);
-    --surface-raised: #26262b;
-    --backdrop: rgb(0 0 0 / 0.55);
-    --focus-ring: rgb(107 140 255 / 0.35);
-    --toast-bg: #34343b;
-    --toast-text: #f2f2f5;
-    --toast-action: #8ea6ff;
-    --skeleton-shine: #3a3a42;
-  }
+  --tabbar-h: calc(58px + var(--safe-bottom));
 }
 
 * {
@@ -83,9 +216,36 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 17px/1.4 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  font: 17px/1.4 var(--font-ui);
   -webkit-text-size-adjust: 100%;
-  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+  /* Horizontal only: keeps iOS's vertical rubber-band bounce, but stops sideways swipes from
+     triggering browser back/forward (the app has its own edge-swipe back). */
+  overscroll-behavior-x: none;
+}
+
+/* A faint blue dawn at the top of every screen, so the ink isn't a flat slab. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: 420px;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--dawn);
+}
+
+/* Status bar scrim: content scrolls under the translucent iOS status bar. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: var(--safe-top);
+  z-index: 25;
+  pointer-events: none;
+  background: var(--chrome-bg);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 button,
@@ -108,6 +268,21 @@ h2,
 h3 {
   margin: 0;
   line-height: 1.2;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* Long translations ("последствие; череда, ряд; эпизод") wrap instead of overflowing. */
+p,
+li,
+.title,
+.sub {
+  overflow-wrap: break-word;
 }
 
 /* ---------- Layout ---------- */
@@ -119,16 +294,17 @@ h3 {
 }
 
 .section {
-  margin-top: 24px;
+  margin-top: 28px;
 }
 
 .section-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.09em;
   color: var(--muted);
-  margin: 0 4px 8px;
+  margin: 0 4px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -183,8 +359,8 @@ h3 {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 52px;
-  padding: 10px 16px;
+  min-height: 54px;
+  padding: 11px 16px;
   color: inherit;
   text-decoration: none;
   background: none;
@@ -192,10 +368,18 @@ h3 {
   width: 100%;
   text-align: left;
   cursor: pointer;
+  position: relative;
 }
 
-.list-item + .list-item {
+/* Inset separators (start after the leading padding, like iOS) */
+.list-item + .list-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
   border-top: 1px solid var(--border);
+  opacity: 0.7;
 }
 
 .list-item {
@@ -221,7 +405,7 @@ h3 {
 }
 
 .list-item .title {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .list-item .sub {
@@ -235,20 +419,34 @@ h3 {
   padding: 32px 16px;
 }
 
+/* Tinted round icon badge: <span class="badge-icon tone-accent"><Icon …/></span> */
+.badge-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 13px;
+  color: var(--tone, var(--accent));
+  background: color-mix(in srgb, var(--tone, var(--accent)) 15%, transparent);
+}
+
 /* ---------- Buttons ---------- */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: var(--radius-sm);
+  gap: 8px;
+  min-height: 46px;
+  padding: 10px 18px;
+  border-radius: 14px;
   border: 0;
   background: var(--surface-2);
   color: var(--text);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.01em;
   cursor: pointer;
   text-decoration: none;
   user-select: none;
@@ -256,11 +454,12 @@ h3 {
   transition:
     transform var(--dur-fast) var(--ease),
     opacity var(--dur-fast) var(--ease),
-    background-color var(--dur-fast) var(--ease);
+    background-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
 }
 
 .btn:active {
-  opacity: 0.8;
+  opacity: 0.85;
   transform: scale(0.97);
 }
 
@@ -274,8 +473,16 @@ h3 {
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--accent-text);
+  box-shadow: var(--shadow-accent);
+}
+
+.btn-primary:disabled {
+  background: var(--surface-2);
+  color: var(--muted);
+  box-shadow: none;
+  opacity: 0.7;
 }
 
 .btn-danger {
@@ -293,8 +500,9 @@ h3 {
 }
 
 .btn-lg {
-  min-height: 54px;
+  min-height: 56px;
   font-size: 18px;
+  border-radius: 16px;
 }
 
 /* Round icon button (speaker, star, …) */
@@ -341,20 +549,26 @@ h3 {
 
 .input {
   width: 100%;
-  min-height: 46px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
+  min-height: 48px;
+  padding: 11px 14px;
+  border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--surface);
   outline: none;
   transition:
     border-color var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease);
+    box-shadow var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+
+.input::placeholder {
+  color: var(--faint);
 }
 
 .input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
 textarea.input {
@@ -365,40 +579,46 @@ textarea.input {
 /* Segmented control: <div class="segmented"><button class:active={…}>…</button>…</div> */
 .segmented {
   display: flex;
-  background: var(--surface-2);
-  border-radius: var(--radius-sm);
-  padding: 3px;
-  gap: 3px;
+  background: var(--seg-bg);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  border-radius: 14px;
+  padding: 4px;
+  gap: 4px;
 }
 
 .segmented button {
   flex: 1;
   min-height: 38px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
-  font-weight: 600;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-weight: 800;
   font-size: 15px;
   cursor: pointer;
   transition:
     background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
     box-shadow var(--dur-fast) var(--ease);
 }
 
 .segmented button.active {
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  background: var(--seg-active);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: 999px;
   background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--hairline);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* ---------- German ---------- */
@@ -485,10 +705,10 @@ textarea.input {
 
 @keyframes pulse-good {
   0% {
-    box-shadow: 0 0 0 0 rgb(31 157 85 / 0.45);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 45%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 14px rgb(31 157 85 / 0);
+    box-shadow: 0 0 0 14px transparent;
   }
 }
 
@@ -532,14 +752,14 @@ html[data-nav='forward']::view-transition-old(root) {
 }
 html[data-nav='forward']::view-transition-new(root) {
   animation-name: vt-slide-in;
-  box-shadow: -8px 0 28px rgb(0 0 0 / 0.14);
+  box-shadow: var(--shadow-edge);
 }
 
 /* back: the reverse; the leaving page stays on top */
 html[data-nav='back']::view-transition-old(root) {
   z-index: 1;
   animation-name: vt-slide-out;
-  box-shadow: -8px 0 28px rgb(0 0 0 / 0.14);
+  box-shadow: var(--shadow-edge);
 }
 html[data-nav='back']::view-transition-new(root) {
   animation-name: vt-shift-in;

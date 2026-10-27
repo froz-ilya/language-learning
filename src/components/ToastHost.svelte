@@ -53,10 +53,10 @@
     gap: 8px;
     min-height: 48px;
     padding: 6px 6px 6px 16px;
-    border-radius: 14px;
+    border-radius: 16px;
     background: var(--toast-bg);
     color: var(--toast-text);
-    box-shadow: 0 8px 28px rgb(0 0 0 / 0.22);
+    box-shadow: var(--shadow-lg);
     font-size: 15px;
     font-weight: 500;
   }
@@ -73,14 +73,15 @@
     border-radius: 10px;
     background: transparent;
     color: var(--toast-action);
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: 800;
     cursor: pointer;
     transition:
       background-color var(--dur-fast) var(--ease),
       transform var(--dur-fast) var(--ease);
   }
   .action:active {
-    background: rgb(255 255 255 / 0.12);
+    background: var(--accent-soft);
     transform: scale(0.96);
   }
   @media (prefers-reduced-motion: reduce) {

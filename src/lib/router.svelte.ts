@@ -1,5 +1,6 @@
 import { flushSync, tick } from 'svelte';
 import { reducedMotion } from './motion';
+import { afterOverlays } from './ui/overlay';
 
 /**
  * Minimal hash router: "#/set/12?mode=write" → { path: '/set/12', parts: ['set', '12'], query }.
@@ -11,6 +12,10 @@ import { reducedMotion } from './motion';
  * When the View Transitions API is available (and motion isn't reduced) the route update
  * runs inside document.startViewTransition() and <html data-nav="…"> tells CSS which
  * animation to play (see app.css, "Page transitions").
+ *
+ * Open dialogs and sheets add same-URL history entries ({ ...state, overlay }) so the system
+ * back button closes them first (see ui/overlay.ts). onExternal ignores those pops because the
+ * hash doesn't change; go()/replace()/switchTab()/back() drop them before navigating.
  */
 export const route = $state({
   path: '/',
@@ -161,22 +166,26 @@ function toHash(path: string, query?: Record<string, string | number>) {
 /** Navigate, e.g. go('/set/3') or go('/card/new', { set: 3 }). */
 export function go(path: string, query?: Record<string, string | number>) {
   const hash = toHash(path, query);
-  if (hash === current) return;
-  scrollMemo.set(idx, window.scrollY);
-  idx += 1;
-  // Entries after this one are gone now; forget their scroll positions.
-  for (const k of scrollMemo.keys()) if (k >= idx) scrollMemo.delete(k);
-  history.pushState({ idx }, '', hash);
-  current = hash;
-  commit(hash, 'forward');
+  afterOverlays(() => {
+    if (hash === current) return;
+    scrollMemo.set(idx, window.scrollY);
+    idx += 1;
+    // Entries after this one are gone now; forget their scroll positions.
+    for (const k of scrollMemo.keys()) if (k >= idx) scrollMemo.delete(k);
+    history.pushState({ idx }, '', hash);
+    current = hash;
+    commit(hash, 'forward');
+  });
 }
 
 /** Replace the current entry (no new history entry, no animation). */
 export function replace(path: string) {
   const hash = `#${path}`;
-  history.replaceState({ idx }, '', hash);
-  current = hash;
-  commit(hash, 'replace');
+  afterOverlays(() => {
+    history.replaceState({ idx }, '', hash);
+    current = hash;
+    commit(hash, 'replace');
+  });
 }
 
 /**
@@ -185,22 +194,26 @@ export function replace(path: string) {
  */
 export function switchTab(path: string) {
   const hash = `#${path}`;
-  if (hash === current) return;
-  history.replaceState({ idx }, '', hash);
-  current = hash;
-  commit(hash, 'tab');
+  afterOverlays(() => {
+    if (hash === current) return;
+    history.replaceState({ idx }, '', hash);
+    current = hash;
+    commit(hash, 'tab');
+  });
 }
 
 export function back(fallback = '/') {
-  if (idx > 0) {
-    history.back();
-    return;
-  }
-  // Opened directly on this page (no in-app history): go "up" to the fallback.
-  const hash = `#${fallback}`;
-  if (hash === current) return;
-  scrollMemo.delete(idx);
-  history.replaceState({ idx }, '', hash);
-  current = hash;
-  commit(hash, 'back');
+  afterOverlays(() => {
+    if (idx > 0) {
+      history.back();
+      return;
+    }
+    // Opened directly on this page (no in-app history): go "up" to the fallback.
+    const hash = `#${fallback}`;
+    if (hash === current) return;
+    scrollMemo.delete(idx);
+    history.replaceState({ idx }, '', hash);
+    current = hash;
+    commit(hash, 'back');
+  });
 }

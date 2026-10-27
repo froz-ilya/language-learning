@@ -32,13 +32,14 @@
   }
   .bar {
     height: 8px;
-    border-radius: 4px;
+    border-radius: 999px;
     background: var(--surface-2);
     overflow: hidden;
   }
   .value {
     height: 100%;
-    background: var(--accent);
+    border-radius: inherit;
+    background: var(--accent-bar);
     transition: width 0.2s;
   }
 </style>

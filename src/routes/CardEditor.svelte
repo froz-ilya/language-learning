@@ -20,6 +20,7 @@
   import { lookupWordWithSource, mergeIntoCard, suggest, type Suggestion } from '../lib/lookup/lookup';
   import { PROVIDER_LABELS, type ProviderId } from '../lib/sources/chain';
   import { showToast, undoToast } from '../lib/ui/dialogs.svelte';
+  import { rememberQuickAddSet } from '../lib/share';
   import type { Card, Gender, LookupResult, Pos } from '../lib/types';
 
   /*
@@ -30,7 +31,10 @@
   const isNew = route.parts[1] === 'new';
   const cardId = isNew ? 0 : Number(route.parts[1]);
 
-  let card = $state<Card>(emptyCard(Number(route.query.get('set')) || 0));
+  /** A word passed in (#/card/new?set=…&term=…, e.g. shared from another app): filled in and looked up. */
+  const givenTerm = isNew ? (route.query.get('term') ?? '').trim() : '';
+
+  let card = $state<Card>({ ...emptyCard(Number(route.query.get('set')) || 0), term: givenTerm });
   let loaded = $state(isNew);
   let missing = $state(false);
   let setName = $state('');
@@ -422,6 +426,7 @@
     c.examples = c.examples.map((e) => ({ de: e.de.trim(), tr: (e.tr ?? '').trim() }));
     c.needsFill = !filled && detailsMissing(c) ? 1 : 0;
     await saveCard(c);
+    if (isNew) rememberQuickAddSet(c.setId); // shared words (Share.svelte) go to the same set
     return true;
   }
 
@@ -472,6 +477,8 @@
   const keepFocus = (e: PointerEvent) => {
     if (focused) e.preventDefault();
   };
+
+  if (givenTerm) void runLookup();
 </script>
 
 <svelte:window onpointerup={onWindowPointerEnd} onpointercancel={onWindowPointerEnd} />
@@ -742,6 +749,7 @@
                 bind:value={card.plural}
                 placeholder="Häuser"
                 autocapitalize="off"
+                autocomplete="off"
                 autocorrect="off"
                 spellcheck="false"
                 lang="de"
@@ -750,11 +758,11 @@
           {:else if card.pos === 'verb'}
             <div class="field">
               <label for="praet">Präteritum</label>
-              <input id="praet" class="input" bind:value={card.praeteritum} placeholder="ging" autocapitalize="off" autocorrect="off" spellcheck="false" lang="de" />
+              <input id="praet" class="input" bind:value={card.praeteritum} placeholder="ging" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" lang="de" />
             </div>
             <div class="field">
               <label for="p2">Partizip II</label>
-              <input id="p2" class="input" bind:value={card.partizip2} placeholder="gegangen" autocapitalize="off" autocorrect="off" spellcheck="false" lang="de" />
+              <input id="p2" class="input" bind:value={card.partizip2} placeholder="gegangen" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" lang="de" />
             </div>
             <div class="field">
               <span class="label">Perfekt with</span>
@@ -784,6 +792,7 @@
                         bind:value={ex.de}
                         placeholder="German sentence"
                         autocapitalize="sentences"
+                        autocomplete="off"
                         {...{ autocorrect: 'off' }}
                         spellcheck="false"
                         lang="de"
@@ -844,8 +853,10 @@
     font-size: 17px;
   }
   .german.big {
-    min-height: 54px;
-    font-size: 20px;
+    min-height: 56px;
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 700;
     padding-right: 44px;
   }
   .clear {
@@ -880,6 +891,7 @@
     flex: 1;
     min-width: 0;
     text-align: right;
+    color: var(--text-2);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -890,7 +902,9 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 16px 12px 16px 18px;
+    padding: 18px 12px 18px 18px;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
   }
   .p-top {
     display: flex;
@@ -900,8 +914,9 @@
   .p-term {
     flex: 1;
     min-width: 0;
-    font-size: 28px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 800;
     overflow-wrap: anywhere;
     line-height: 1.2;
   }
@@ -910,13 +925,18 @@
   }
   .p-tr {
     font-size: 19px;
+    color: var(--text-2);
+    overflow-wrap: break-word;
   }
   .p-ex {
-    margin-top: 4px;
+    margin-top: 6px;
     padding: 10px 12px;
     border-radius: var(--radius-sm);
-    background: var(--surface-2);
-    font-size: 15px;
+    background: var(--inset-bg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    font-family: var(--font-read);
+    font-style: italic;
+    font-size: 16px;
   }
   .note {
     display: flex;
@@ -938,11 +958,13 @@
 
   /* ---------- Status ---------- */
   .hard-banner {
-    border: 1.5px solid color-mix(in srgb, var(--warn) 60%, transparent);
+    background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--warn) 45%, transparent);
   }
   .hard-head {
     color: var(--warn);
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: 800;
   }
   .hard-banner p {
     margin: 6px 0 10px;
@@ -961,18 +983,19 @@
   .pill {
     padding: 4px 12px;
     border-radius: 999px;
+    font-family: var(--font-display);
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 800;
     background: var(--surface-2);
   }
   .pill.st-learning {
     color: var(--accent);
+    background: var(--accent-soft);
   }
-  .pill.st-learned {
-    color: var(--good);
-  }
+  .pill.st-learned,
   .pill.st-known {
     color: var(--good);
+    background: color-mix(in srgb, var(--good) 14%, transparent);
   }
   .small-btn {
     min-height: 38px;
@@ -990,14 +1013,19 @@
   }
   .gender {
     flex: 1;
-    min-height: 46px;
-    border-radius: var(--radius-sm);
-    border: 2px solid currentColor;
-    background: var(--surface);
-    font-size: 18px;
-    font-weight: 700;
+    min-height: 48px;
+    border-radius: 14px;
+    border: 0;
+    background: color-mix(in srgb, currentColor 10%, var(--surface));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, currentColor 30%, transparent);
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 900;
     cursor: pointer;
-    opacity: 0.55;
+    opacity: 0.6;
+    transition:
+      opacity var(--dur-fast) var(--ease),
+      background-color var(--dur-fast) var(--ease);
   }
   .gender.active {
     opacity: 1;
@@ -1005,19 +1033,17 @@
   .gender.g-m.active,
   .gender.g-f.active,
   .gender.g-n.active {
-    color: var(--surface);
+    color: var(--on-tone);
+    box-shadow: none;
   }
   .gender.g-m.active {
     background: var(--der);
-    border-color: var(--der);
   }
   .gender.g-f.active {
     background: var(--die);
-    border-color: var(--die);
   }
   .gender.g-n.active {
     background: var(--das);
-    border-color: var(--das);
   }
   .examples {
     padding: 0;
@@ -1028,7 +1054,7 @@
     padding: 10px 4px 10px 10px;
   }
   .example + .example {
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--hairline);
   }
   .stack-sm {
     display: flex;
@@ -1055,7 +1081,7 @@
     color: var(--muted);
   }
   .star.on {
-    color: var(--warn);
+    color: var(--accent);
   }
   .via {
     font-size: 12px;
@@ -1074,18 +1100,23 @@
     gap: 6px;
   }
   .meaning {
-    min-height: 34px;
-    border: 1.5px solid var(--border);
+    min-height: 36px;
+    border: 0;
+    box-shadow: inset 0 0 0 1.5px var(--border);
     background: transparent;
     color: var(--muted);
     font: inherit;
     font-size: 14px;
     text-align: left;
     cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
   }
   .meaning.active {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    box-shadow: inset 0 0 0 1.5px var(--accent);
+    background: var(--accent-soft);
     color: var(--text);
   }
 </style>

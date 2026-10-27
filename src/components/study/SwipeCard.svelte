@@ -181,15 +181,15 @@
   .swipe:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
   }
   .hint {
     position: absolute;
     inset: 0;
     z-index: 2;
     pointer-events: none;
-    border-radius: var(--radius);
-    border: 3px solid;
+    border-radius: var(--radius-lg);
+    border: 2.5px solid;
     display: flex;
     align-items: flex-start;
     padding: 18px;
@@ -207,14 +207,15 @@
     justify-content: flex-end;
   }
   .stamp {
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-weight: 900;
     font-size: 20px;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border: 3px solid currentColor;
-    border-radius: 8px;
-    padding: 2px 10px;
-    background: var(--surface);
+    letter-spacing: 0.06em;
+    border: 2.5px solid currentColor;
+    border-radius: 12px;
+    padding: 3px 12px;
+    background: var(--bg);
   }
   .right .stamp {
     transform: rotate(-10deg);

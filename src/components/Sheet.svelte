@@ -4,9 +4,11 @@
   import { cubicOut } from 'svelte/easing';
   import { dur } from '../lib/motion';
   import { ui } from '../lib/ui/dialogs.svelte';
+  import { openOverlay } from '../lib/ui/overlay';
 
   /**
-   * Generic bottom sheet. Drag the handle/header down (or tap the backdrop, or Esc) to close.
+   * Generic bottom sheet. Drag the handle/header down (or tap the backdrop, Esc, or system back)
+   * to close.
    *
    *   <Sheet bind:open title="Filter">…</Sheet>
    */
@@ -33,6 +35,13 @@
 
   $effect.pre(() => {
     if (open) dragY = 0;
+  });
+
+  // System back (Android) closes the sheet instead of leaving the page.
+  $effect(() => {
+    if (!open) return;
+    const overlay = openOverlay(close);
+    return () => overlay.release();
   });
 
   function down(e: PointerEvent) {
@@ -132,8 +141,9 @@
     display: flex;
     flex-direction: column;
     background: var(--surface-raised);
-    border-radius: 18px 18px 0 0;
-    box-shadow: 0 -8px 32px rgb(0 0 0 / 0.18);
+    max-height: calc(100dvh - var(--safe-top) - 24px);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-lg);
     outline: none;
     transition: transform var(--dur) var(--ease);
   }
@@ -154,11 +164,12 @@
     height: 5px;
     margin: 0 auto 8px;
     border-radius: 3px;
-    background: var(--border);
+    background: var(--surface-3);
   }
   .sheet-heading {
-    font-size: 17px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
     text-align: center;
     padding-bottom: 8px;
   }

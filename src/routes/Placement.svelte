@@ -180,17 +180,22 @@
     min-width: 0;
   }
   .big-msg {
-    font-size: 22px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 900;
     color: var(--text);
   }
   .score {
     text-align: center;
-    padding: 24px 16px;
+    padding: 28px 16px;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
   }
   .score-num {
-    font-size: 48px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 60px;
+    font-weight: 900;
+    color: var(--accent);
     font-variant-numeric: tabular-nums;
   }
   .result p {

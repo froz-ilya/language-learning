@@ -50,7 +50,8 @@
     min-width: 0;
   }
   .title {
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-weight: 800;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -63,8 +64,8 @@
     flex-shrink: 0;
   }
   .progress {
-    height: 4px;
-    border-radius: 2px;
+    height: 6px;
+    border-radius: 999px;
     background: var(--surface-2);
     overflow: hidden;
     margin-top: 4px;
@@ -72,8 +73,9 @@
   .bar {
     height: 100%;
     width: 100%;
-    border-radius: 2px;
-    background: var(--accent);
+    border-radius: 999px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent-bar) 70%, var(--warn)), var(--accent-bar));
+    box-shadow: 0 0 12px var(--accent-glow);
     transform-origin: left center;
     transition: transform 0.45s var(--ease, cubic-bezier(0.2, 0.8, 0.2, 1));
   }

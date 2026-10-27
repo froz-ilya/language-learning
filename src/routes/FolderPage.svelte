@@ -154,7 +154,9 @@
     padding: 12px 14px;
   }
   .pct {
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: 900;
+    color: var(--accent);
   }
   .item {
     padding-bottom: 10px;

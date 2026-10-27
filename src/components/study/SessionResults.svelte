@@ -106,10 +106,17 @@
     gap: 12px;
     color: inherit;
     text-decoration: none;
-    border: 1.5px solid color-mix(in srgb, var(--warn) 60%, transparent);
+    background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--warn) 45%, transparent);
   }
   .hard-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
     color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 16%, transparent);
     flex-shrink: 0;
   }
   .hard-text {
@@ -123,23 +130,44 @@
     margin-top: 4px;
   }
   .score {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
     text-align: center;
-    padding: 24px 16px;
+    padding: 30px 16px 26px;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
+  }
+  .score::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -120px;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent-fill) 22%, transparent), color-mix(in srgb, var(--accent-fill) 0%, transparent) 68%);
   }
   .headline {
-    font-size: 20px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 900;
   }
   .score-num {
-    font-size: 48px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 64px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
     line-height: 1.15;
     margin-top: 6px;
   }
   .of {
     color: var(--muted);
-    font-size: 30px;
+    font-size: 32px;
+    font-weight: 800;
   }
   .missed-text {
     flex: 1;

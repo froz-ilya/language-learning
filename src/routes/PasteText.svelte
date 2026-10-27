@@ -60,6 +60,7 @@
         bind:value={text}
         placeholder="Paste or type German text here. Blank lines start a new paragraph."
         lang="de"
+        autocomplete="off"
         spellcheck="false"
       ></textarea>
       <div class="count small" class:bad={tooLong}>

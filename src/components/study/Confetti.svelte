@@ -20,7 +20,7 @@
     const colors = ['--accent', '--good', '--der', '--die', '--warn']
       .map((v) => css.getPropertyValue(v).trim())
       .filter(Boolean);
-    if (!colors.length) colors.push('#3b5bdb', '#1f9d55', '#d9364a', '#c98a00');
+    if (!colors.length) colors.push('#f6c35b', '#5ad48a', '#6fb0ff', '#ff7fa5', '#ff9d5c');
 
     const parts = Array.from({ length: pieces }, (_, i) => {
       const fromLeft = i % 2 === 0;

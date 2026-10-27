@@ -262,8 +262,9 @@
     font-size: 15px;
   }
   .lemma {
-    font-size: 28px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 800;
     line-height: 1.2;
     overflow-wrap: anywhere;
   }
@@ -272,7 +273,11 @@
   }
   .translation {
     font-size: 19px;
-    line-height: 1.35;
+    line-height: 1.4;
+    overflow-wrap: break-word;
+  }
+  .translation :global(.meanings) {
+    gap: 4px;
   }
   .missing {
     line-height: 1.4;
@@ -290,7 +295,7 @@
     background: var(--muted);
   }
   .dot.s-learning {
-    background: var(--accent);
+    background: var(--accent-bar);
   }
   .dot.s-learned,
   .dot.s-known {
@@ -316,7 +321,8 @@
     align-items: center;
     gap: 6px;
     color: var(--good);
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-weight: 800;
     padding-left: 4px;
   }
   .add {

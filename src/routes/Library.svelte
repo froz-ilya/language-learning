@@ -134,14 +134,16 @@
     text-decoration: none;
   }
   .plus {
-    background: var(--accent);
+    background: var(--accent-fill);
     color: var(--accent-text);
-    width: 36px;
-    height: 36px;
-    margin-left: 4px;
+    width: 38px;
+    height: 38px;
+    margin-left: 6px;
+    border-radius: 13px;
+    box-shadow: var(--shadow-accent);
   }
   .plus:active {
-    background: var(--accent);
+    background: var(--accent-fill);
     opacity: 0.8;
   }
 </style>

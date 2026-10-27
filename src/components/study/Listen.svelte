@@ -38,7 +38,9 @@
 <style>
   .prompt {
     text-align: center;
-    padding: 24px 16px;
+    padding: 30px 18px;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
   }
   .buttons {
     justify-content: center;
@@ -50,8 +52,11 @@
     height: 88px;
     border-radius: 50%;
     border: 0;
-    background: var(--accent);
+    background: var(--accent-fill);
     color: var(--accent-text);
+    box-shadow:
+      0 0 0 10px var(--accent-soft),
+      var(--shadow-accent);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -62,6 +67,7 @@
     height: 64px;
     background: var(--surface-2);
     color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--hairline);
   }
   .play:active {
     opacity: 0.75;

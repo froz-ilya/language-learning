@@ -31,7 +31,7 @@
       {@const p = installed.value?.get(code)}
       {@const words = p?.total ?? wordCount(code)}
       <a
-        class="level"
+        class="level tier-{code[0].toLowerCase()}"
         class:started={!!p}
         href="#/level/{code}"
         in:fly|global={{ y: 12, duration: dur(240), delay: stagger(i, 40) }}
@@ -64,35 +64,53 @@
 
 <style>
   .intro {
-    margin: -4px 4px 16px;
+    margin: -4px 4px 18px;
   }
   .grid {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
+  /* CEFR tiers get their own quiet hue (A aqua, B periwinkle, C lilac); progress stays saffron. */
+  .tier-a {
+    --tier: var(--tier-a);
+  }
+  .tier-b {
+    --tier: var(--tier-b);
+  }
+  .tier-c {
+    --tier: var(--tier-c);
+  }
   .level {
+    --ring-track: color-mix(in srgb, var(--tier) 16%, transparent);
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
-    gap: 14px;
-    min-height: 84px;
-    padding: 12px 12px 12px 14px;
+    gap: 16px;
+    min-height: 88px;
+    padding: 14px 12px 14px 14px;
     border-radius: var(--radius);
-    background: var(--surface);
+    background:
+      radial-gradient(120px 90px at 44px 50%, color-mix(in srgb, var(--tier) 12%, transparent), transparent 100%),
+      var(--surface);
     box-shadow: var(--shadow);
     color: inherit;
     text-decoration: none;
+    transition:
+      transform var(--dur-fast) var(--ease),
+      background-color var(--dur-fast) var(--ease);
   }
   .level:active {
-    background: var(--surface-2);
+    transform: scale(0.98);
+    background-color: var(--surface-2);
   }
   .code {
-    font-size: 17px;
-    font-weight: 800;
-    color: var(--muted);
-  }
-  .started .code {
-    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    color: var(--tier);
   }
   .text {
     flex: 1;
@@ -101,8 +119,9 @@
     flex-direction: column;
   }
   .title {
+    font-family: var(--font-display);
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 800;
   }
   .sub {
     font-size: 14px;
@@ -110,22 +129,27 @@
   }
   .status {
     display: inline-flex;
+    align-self: flex-start;
     align-items: center;
     gap: 4px;
-    margin-top: 2px;
-    font-size: 13px;
-    font-weight: 600;
+    margin-top: 6px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    font-size: 12.5px;
+    font-weight: 700;
     color: var(--muted);
   }
   .status.active {
-    color: var(--good);
+    color: var(--accent);
+    background: var(--accent-soft);
   }
   .chev {
     display: inline-flex;
-    color: var(--muted);
+    color: var(--faint);
   }
   .note {
-    margin: 16px 8px 0;
+    margin: 18px 8px 0;
     text-align: center;
   }
 </style>

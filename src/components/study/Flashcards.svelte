@@ -154,7 +154,10 @@
     }
     .face {
       grid-area: 1 / 1;
-      min-height: 300px;
+      min-height: 320px;
+      border-radius: var(--radius-lg);
+      background: var(--grad-feature);
+      box-shadow: var(--shadow-feature);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -175,22 +178,45 @@
       justify-content: center;
     }
     .big {
-      font-size: 30px;
-      font-weight: 600;
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.15;
       overflow-wrap: anywhere;
     }
     .big.secondary {
+      font-size: 28px;
+    }
+    /* Several meanings: a left-aligned numbered block, centered on the card */
+    .big :global(.meanings),
+    .translation :global(.meanings) {
+      display: inline-flex;
+      text-align: left;
+    }
+    .big :global(.meanings) {
       font-size: 26px;
+      gap: 4px;
     }
     .translation {
       font-size: 19px;
+      color: var(--text-2);
+      overflow-wrap: break-word;
+      max-width: 100%;
     }
     .translation.emph {
+      font-family: var(--font-display);
       font-size: 24px;
-      font-weight: 600;
+      font-weight: 700;
+      color: var(--text);
+    }
+    /* Several meanings: a calmer size so the list doesn't shout */
+    .translation.emph :global(.meanings) {
+      font-size: 20px;
+      gap: 6px;
     }
     .forms {
       color: var(--muted);
+      font-size: 15px;
       display: flex;
       flex-direction: column;
       gap: 2px;
@@ -199,16 +225,18 @@
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 14px;
       margin-top: 6px;
       text-align: left;
-      border-top: 1px solid var(--border);
-      padding-top: 10px;
+      border-top: 1px solid var(--hairline);
+      padding-top: 12px;
     }
     .example .row {
       justify-content: space-between;
     }
     .ex-de {
+      font-family: var(--font-read);
+      font-size: 17px;
       font-style: italic;
     }
     .grades {
@@ -219,18 +247,21 @@
     .grade {
       padding: 10px 4px;
       font-size: 16px;
+      color: var(--tone);
+      background: color-mix(in srgb, var(--tone) 14%, var(--surface));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 22%, transparent);
     }
     .again {
-      color: var(--bad);
+      --tone: var(--bad);
     }
     .hard {
-      color: var(--warn);
+      --tone: var(--warn);
     }
     .good-btn {
-      color: var(--good);
+      --tone: var(--good);
     }
     .easy {
-      color: var(--accent);
+      --tone: var(--der);
     }
     @media (prefers-reduced-motion: reduce) {
       .flipper {

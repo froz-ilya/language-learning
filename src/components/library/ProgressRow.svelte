@@ -65,34 +65,41 @@
   .prow {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 68px;
-    padding: 12px 12px 12px 14px;
+    gap: 14px;
+    min-height: 72px;
+    padding: 14px 12px 14px 14px;
     background: var(--surface);
     color: inherit;
     text-decoration: none;
+    transition: background-color var(--dur-fast) var(--ease);
   }
   .prow:active {
     background: var(--surface-2);
+    transition-duration: 0s;
   }
+  /* Tinted icon badge. Sets are periwinkle, folders saffron. */
   .ico {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: var(--surface-2);
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 15%, transparent);
     flex-shrink: 0;
   }
   .tone-accent {
-    color: var(--accent);
+    --tone: var(--tier-b);
   }
   .tone-warn {
-    color: var(--warn);
+    --tone: var(--accent);
   }
   .tone-good {
-    color: var(--good);
+    --tone: var(--good);
+  }
+  .tone-bad {
+    --tone: var(--bad);
   }
   .text {
     flex: 1;
@@ -102,7 +109,9 @@
     gap: 2px;
   }
   .name {
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 17.5px;
+    font-weight: 800;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -116,7 +125,7 @@
     margin-top: 6px;
   }
   .chev {
-    color: var(--muted);
+    color: var(--faint);
     display: inline-flex;
     flex-shrink: 0;
   }

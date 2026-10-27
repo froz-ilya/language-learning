@@ -50,7 +50,7 @@
     background: var(--good);
   }
   .learning {
-    background: var(--accent);
+    background: var(--accent-bar);
   }
   @media (prefers-reduced-motion: reduce) {
     .seg {

@@ -36,7 +36,8 @@
     border-radius: 999px;
     background: var(--surface);
     box-shadow: var(--shadow);
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: 900;
     font-size: 15px;
     color: var(--text);
     cursor: pointer;
@@ -49,8 +50,9 @@
     transform: scale(0.94);
   }
   button.active {
-    background: var(--accent);
+    background: var(--accent-fill);
     color: var(--accent-text);
+    box-shadow: var(--shadow-accent);
   }
   button:focus-visible {
     outline: none;

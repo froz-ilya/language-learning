@@ -2,7 +2,9 @@
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import { loadSettings, saveSettings, settings } from '../lib/settings.svelte';
-  import { germanVoices, isSpeechSupported, speak } from '../lib/speech/tts';
+  import { germanVoices, isSpeechSupported, speak, voiceTip } from '../lib/speech/tts';
+  import { isAndroid, canVibrate } from '../lib/platform';
+  import { install, promptInstall, showIOSInstallHint } from '../lib/install.svelte';
   import { importBackup } from '../lib/db/backup';
   import { lastBackupLabel, runBackup } from '../lib/backupReminder';
   import { providerStatus, resetProviders, type ProviderState } from '../lib/sources/chain';
@@ -10,7 +12,7 @@
   import { dur } from '../lib/motion';
   import { confirmAction, showToast } from '../lib/ui/dialogs.svelte';
   import { levelIndex } from '../components/library/actions';
-  import type { Direction, Lang, Strictness } from '../lib/types';
+  import type { Direction, Lang, Strictness, ThemeSetting } from '../lib/types';
 
   function set<K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) {
     settings[key] = value;
@@ -20,20 +22,39 @@
   // ---------- Voices ----------
 
   let voices = $state<{ uri: string; label: string }[]>([]);
+  /** The voice list has had time to load (event fired or a second passed). */
+  let voicesLoaded = $state(false);
   function refreshVoices() {
     voices = germanVoices().map((v) => ({ uri: v.voiceURI, label: `${v.name} (${v.lang})` }));
   }
+  function onVoicesChanged() {
+    refreshVoices();
+    voicesLoaded = true;
+  }
   $effect(() => {
     refreshVoices();
+    if (germanVoices().length) voicesLoaded = true;
     const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
-    synth?.addEventListener?.('voiceschanged', refreshVoices);
+    synth?.addEventListener?.('voiceschanged', onVoicesChanged);
     // iOS sometimes fills the list late without firing the event.
-    const t = setTimeout(refreshVoices, 1000);
+    const t = setTimeout(onVoicesChanged, 1000);
     return () => {
-      synth?.removeEventListener?.('voiceschanged', refreshVoices);
+      synth?.removeEventListener?.('voiceschanged', onVoicesChanged);
       clearTimeout(t);
     };
   });
+  const noGermanVoice = $derived(voicesLoaded && !voices.length);
+  const android = isAndroid();
+
+  // ---------- App ----------
+
+  const iosInstallHint = showIOSInstallHint();
+  const vibrationSupported = canVibrate();
+
+  async function installApp() {
+    const outcome = await promptInstall();
+    if (outcome === 'accepted') showToast('Installing Deutsch…');
+  }
 
   // ---------- Backup ----------
 
@@ -180,6 +201,11 @@
     { name: 'MyMemory', what: 'Translations (fallback)', license: 'Translated.net' },
   ];
 
+  const THEMES: { id: ThemeSetting; label: string }[] = [
+    { id: 'auto', label: 'Auto' },
+    { id: 'light', label: 'Light' },
+    { id: 'dark', label: 'Dark' },
+  ];
   const NEW_PER_SESSION = [5, 10, 15, 20];
 
   const LANGS: { id: Lang; label: string }[] = [
@@ -199,6 +225,16 @@
 
 <div class="page">
   <Header title="Settings" />
+
+  <section class="section">
+    <h2 class="section-title">Appearance</h2>
+    <div class="segmented" role="radiogroup" aria-label="Theme">
+      {#each THEMES as t}
+        <button role="radio" aria-checked={settings.theme === t.id} class:active={settings.theme === t.id} onclick={() => set('theme', t.id)}>{t.label}</button>
+      {/each}
+    </div>
+    <p class="hint small muted">Auto follows your phone’s light or dark mode.</p>
+  </section>
 
   <section class="section">
     <h2 class="section-title">Learning</h2>
@@ -268,7 +304,11 @@
           <Icon name="speaker" /> Test voice
         </button>
       </div>
-      <p class="hint small muted">Better voices: iOS Settings → Accessibility → Spoken Content → Voices → German.</p>
+      {#if noGermanVoice}
+        <div class="card small voice-tip">{voiceTip()}</div>
+      {:else if !android}
+        <p class="hint small muted">{voiceTip()}</p>
+      {/if}
     {/if}
   </section>
 
@@ -287,8 +327,34 @@
         <span class="grow">Require article for nouns</span>
         <input type="checkbox" class="switch" checked={settings.requireArticle} onchange={(e) => set('requireArticle', e.currentTarget.checked)} />
       </label>
+      {#if vibrationSupported}
+        <label class="list-item">
+          <span class="grow">Vibration on answers</span>
+          <input type="checkbox" class="switch" checked={settings.vibration} onchange={(e) => set('vibration', e.currentTarget.checked)} />
+        </label>
+      {/if}
     </div>
   </section>
+
+  {#if install.canInstall || iosInstallHint}
+    <section class="section">
+      <h2 class="section-title">App</h2>
+      <div class="list">
+        {#if install.canInstall}
+          <button class="list-item" onclick={installApp}>
+            <span class="accent"><Icon name="import" /></span>
+            <span class="grow">Install app</span>
+            <span class="muted small">Works offline</span>
+          </button>
+        {:else}
+          <div class="list-item static">
+            <span class="accent"><Icon name="import" /></span>
+            <span class="grow">Install: Share → Add to Home Screen</span>
+          </div>
+        {/if}
+      </div>
+    </section>
+  {/if}
 
   <section class="section">
     <h2 class="section-title">Default study direction</h2>
@@ -435,7 +501,7 @@
   .switch {
     width: 26px;
     height: 26px;
-    accent-color: var(--good);
+    accent-color: var(--accent);
     flex-shrink: 0;
   }
   .test {
@@ -507,5 +573,15 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+  .voice-tip {
+    margin-top: 12px;
+    color: var(--muted);
+  }
+  .static {
+    cursor: default;
+  }
+  .static:active {
+    background: none;
   }
 </style>

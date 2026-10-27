@@ -18,9 +18,10 @@
     gap: 8px;
     align-items: flex-start;
     margin-top: 10px;
-    padding: 8px 10px;
+    padding: 10px 12px;
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--warn) 12%, transparent);
+    background: color-mix(in srgb, var(--warn) 11%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 22%, transparent);
     font-size: 15px;
     text-align: left;
     white-space: pre-line;

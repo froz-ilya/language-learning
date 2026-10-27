@@ -4,6 +4,7 @@
   import Icon from './Icon.svelte';
   import { ui, type ActionItem, type Dialog } from '../lib/ui/dialogs.svelte';
   import { dur } from '../lib/motion';
+  import { openOverlay } from '../lib/ui/overlay';
 
   /**
    * Renders ui.dialog (promptText / confirmAction / chooseAction). Mounted once in App.
@@ -17,6 +18,14 @@
     const d = ui.dialog;
     if (d && d !== lastDialog && d.kind === 'prompt') text = d.options.value ?? '';
     lastDialog = d;
+  });
+
+  // System back (Android) dismisses the dialog like Cancel instead of leaving the page.
+  $effect(() => {
+    const d = ui.dialog;
+    if (!d) return;
+    const overlay = openOverlay(() => cancel(d));
+    return () => overlay.release();
   });
 
   function cancel(d: Dialog) {
@@ -169,21 +178,20 @@
     width: 100%;
     max-width: 300px;
     background: var(--surface-raised);
-    border-radius: 16px;
-    box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+    border-radius: 22px;
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
     outline: none;
   }
   .alert-body {
-    padding: 20px 16px 16px;
+    padding: 22px 18px 18px;
     text-align: center;
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
   h2 {
-    font-size: 17px;
-    font-weight: 600;
+    font-size: 19px;
   }
   .message {
     margin: 0;
@@ -198,28 +206,35 @@
   }
   .alert-buttons {
     display: flex;
-    border-top: 0.5px solid var(--border);
+    gap: 8px;
+    padding: 0 12px 12px;
   }
   .alert-btn {
     flex: 1;
     min-height: 46px;
     border: 0;
-    background: transparent;
-    color: var(--accent);
+    border-radius: 14px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-weight: 700;
     font-size: 17px;
     cursor: pointer;
     transition: background-color var(--dur-fast) var(--ease);
   }
-  .alert-btn + .alert-btn {
-    border-left: 0.5px solid var(--border);
-  }
   .alert-btn:active {
-    background: var(--surface-2);
+    background: var(--surface-3);
   }
   .alert-btn.strong {
-    font-weight: 600;
+    font-weight: 800;
+    background: var(--accent-fill);
+    color: var(--accent-text);
+  }
+  .alert-btn.strong:active {
+    opacity: 0.85;
   }
   .alert-btn.destructive {
+    background: color-mix(in srgb, var(--bad) 18%, var(--surface-2));
     color: var(--bad);
   }
   .alert-btn:disabled {
@@ -238,7 +253,8 @@
   }
   .group {
     background: var(--surface-raised);
-    border-radius: 14px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
     overflow-y: auto;
     overscroll-behavior: contain;
   }
@@ -260,8 +276,9 @@
     padding: 10px 16px;
     border: 0;
     background: transparent;
-    color: var(--accent);
-    font-size: 19px;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 500;
     cursor: pointer;
     transition: background-color var(--dur-fast) var(--ease);
   }
@@ -273,14 +290,21 @@
   }
   .sheet-icon {
     display: inline-flex;
+    color: var(--accent);
+  }
+  .sheet-item.destructive .sheet-icon {
+    color: inherit;
   }
   .sheet-item.destructive {
     color: var(--bad);
   }
   .sheet-item.cancel {
     background: var(--surface-raised);
-    border-radius: 14px;
-    font-weight: 600;
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--accent);
   }
   .sheet-item.cancel:active {
     background: var(--surface-2);

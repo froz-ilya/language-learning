@@ -58,9 +58,9 @@
         select(tab.path);
       }}
     >
-      <svg
-        width="26"
-        height="26"
+      <span class="pill"><svg
+        width="24"
+        height="24"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -70,7 +70,7 @@
         aria-hidden="true"
       >
         <path d={tab.icon} />
-      </svg>
+      </svg></span>
       <span>{tab.label}</span>
     </a>
   {/each}
@@ -85,13 +85,13 @@
     z-index: 30;
     display: flex;
     justify-content: center;
-    padding: 6px max(8px, env(safe-area-inset-left, 0px)) calc(var(--safe-bottom) + 4px)
+    padding: 6px max(8px, env(safe-area-inset-left, 0px)) calc(var(--safe-bottom) + 2px)
       max(8px, env(safe-area-inset-right, 0px));
     min-height: var(--tabbar-h);
     background: var(--chrome-bg);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
     backdrop-filter: saturate(180%) blur(20px);
-    border-top: 0.5px solid var(--border);
+    box-shadow: inset 0 1px 0 var(--hairline);
   }
   .tab {
     flex: 1;
@@ -100,13 +100,14 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    min-height: 46px;
+    gap: 3px;
+    min-height: 48px;
     color: var(--muted);
     text-decoration: none;
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
@@ -117,8 +118,19 @@
   .tab:active {
     transform: scale(0.92);
   }
+  .pill {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 30px;
+    border-radius: 999px;
+    transition: background-color var(--dur) var(--ease);
+  }
   .tab.active {
     color: var(--accent);
+  }
+  .tab.active .pill {
+    background: var(--accent-soft);
   }
   .tab:focus-visible {
     outline: 2px solid var(--accent);

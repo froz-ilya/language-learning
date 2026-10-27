@@ -5,6 +5,8 @@
   import { ui } from './lib/ui/dialogs.svelte';
   import { reducedMotion } from './lib/motion';
   import { checkBackupReminder } from './lib/backupReminder';
+  import { isIOS } from './lib/platform';
+  import { hasOverlay } from './lib/ui/overlay';
   import { onMount } from 'svelte';
   import TabBar from './components/TabBar.svelte';
   import DialogHost from './components/DialogHost.svelte';
@@ -26,6 +28,7 @@
   import Reader from './routes/Reader.svelte';
   import PasteText from './routes/PasteText.svelte';
   import HardWords from './routes/HardWords.svelte';
+  import Share from './routes/Share.svelte';
 
   /*
    * Routes (hash based). Tab roots (show the bottom tab bar): /, /library, /levels, /settings.
@@ -47,6 +50,7 @@
    *   /article/:source/:id      Reader (tap words → add to the article's set)
    *   /paste                    Paste your own text into the reader
    *   /hard                     Hard words: missed 5+ times, practice + memory hooks
+   *   /share?term=:word         Android share target: picks a set, then → /card/new?set=…&term=…
    * Route components read route.parts / route.query themselves.
    */
   const ROUTES = {
@@ -66,6 +70,7 @@
     article: Reader,
     paste: PasteText,
     hard: HardWords,
+    share: Share,
   } as const;
 
   // Backup reminder pop-up (waits for the first screen and any study session; once per launch).
@@ -79,6 +84,7 @@
    * within EDGE px of the left edge on a non-tab-root page and travels right > TRIGGER px,
    * mostly horizontally, goes back. The page follows the finger at half speed and a back
    * arrow fades in. Elements can opt out with a `data-no-edge-swipe` ancestor.
+   * iOS only: Android has its own system back gesture, which ours would fight with.
    */
   const EDGE = 24;
   const TRIGGER = 80;
@@ -104,8 +110,9 @@
   });
 
   $effect(() => {
+    if (!isIOS()) return;
     const onStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1 || isTabRoot(route.path) || ui.dialog) return;
+      if (e.touches.length !== 1 || isTabRoot(route.path) || ui.dialog || hasOverlay()) return;
       const t = e.touches[0];
       if (t.clientX > EDGE) return;
       const target = e.target as Element | null;
@@ -192,10 +199,10 @@
   .offline {
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 26;
     padding: calc(var(--safe-top) + 4px) 16px 4px;
     background: var(--warn);
-    color: #000;
+    color: var(--on-tone);
     font-size: 13px;
     font-weight: 600;
     text-align: center;
@@ -207,7 +214,7 @@
   }
   .route-view.swiping {
     background: var(--bg);
-    box-shadow: -10px 0 24px rgb(0 0 0 / 0.12);
+    box-shadow: var(--shadow-edge);
     will-change: transform;
   }
   .edge-back {
@@ -219,16 +226,16 @@
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: var(--surface);
+    background: var(--surface-2);
     color: var(--muted);
-    box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+    box-shadow: var(--shadow-lg);
     pointer-events: none;
     transition:
       background-color var(--dur-fast) var(--ease),
       color var(--dur-fast) var(--ease);
   }
   .edge-back.armed {
-    background: var(--accent);
+    background: var(--accent-fill);
     color: var(--accent-text);
   }
 </style>

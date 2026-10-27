@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fly } from 'svelte/transition';
+  import { fly, slide } from 'svelte/transition';
   import Icon, { type IconName } from '../components/Icon.svelte';
   import ProgressRing from '../components/ProgressRing.svelte';
   import Skeleton from '../components/Skeleton.svelte';
@@ -11,6 +11,13 @@
   import { dur } from '../lib/motion';
   import { settings } from '../lib/settings.svelte';
   import { smartCounts, type SmartId } from '../lib/study/sources';
+  import {
+    dismissInstallBanner,
+    install,
+    installBannerDismissed,
+    promptInstall,
+    showIOSInstallHint,
+  } from '../lib/install.svelte';
 
   /** Seconds per word, for the "about N min" estimate. */
   const SECONDS_PER_WORD = 20;
@@ -73,6 +80,21 @@
     { id: 'mistakes', label: 'Mistakes', icon: 'x', tone: 'bad' },
   ];
 
+  // "Install Deutsch for offline use" (Android/desktop Chrome: Install button; iOS Safari: hint).
+  const iosInstallHint = showIOSInstallHint();
+  let bannerDismissed = $state(installBannerDismissed());
+  const showInstallBanner = $derived(!bannerDismissed && (install.canInstall || iosInstallHint));
+
+  function dismissBanner() {
+    bannerDismissed = true;
+    dismissInstallBanner();
+  }
+
+  async function installNow() {
+    const outcome = await promptInstall();
+    if (outcome !== 'unavailable') dismissBanner();
+  }
+
   function heroLine(): string {
     const parts: string[] = [];
     if (due) parts.push(`${due} to review`);
@@ -92,6 +114,20 @@
       <button class="add-btn" aria-label="Add a word" onclick={quickAddWord}><Icon name="plus" size={24} /></button>
     {/if}
   </header>
+
+  {#if showInstallBanner}
+    <div class="card install-banner" transition:slide={{ duration: dur(220) }}>
+      <span class="ib-icon"><Icon name="import" size={20} /></span>
+      <div class="ib-text">
+        <div class="ib-title">Install Deutsch for offline use</div>
+        {#if !install.canInstall}<div class="small muted">Share → Add to Home Screen</div>{/if}
+      </div>
+      {#if install.canInstall}
+        <button class="btn btn-primary ib-btn" onclick={installNow}>Install</button>
+      {/if}
+      <button class="icon-btn ib-close" aria-label="Dismiss" onclick={dismissBanner}><Icon name="x" size={18} /></button>
+    </div>
+  {/if}
 
   {#if !counts}
     <div class="card"><Skeleton lines={4} /></div>
@@ -122,9 +158,18 @@
     <div class="stack">
       {#if total}
         <section class="hero" in:fly|global={{ y: 12, duration: dur(260) }}>
-          <div class="hero-label">Today’s session</div>
-          <div class="hero-count">{heroLine()}</div>
-          <div class="hero-time">About {minutes} min</div>
+          <div class="hero-top">
+            <span class="hero-label">Today’s session</span>
+            <span class="hero-time">≈ {minutes} min</span>
+          </div>
+          <div class="hero-stats" role="group" aria-label={heroLine()}>
+            {#if due}
+              <span class="stat"><span class="num">{due}</span><span class="lbl">to review</span></span>
+            {/if}
+            {#if newToday}
+              <span class="stat fresh"><span class="num">{newToday}</span><span class="lbl">new</span></span>
+            {/if}
+          </div>
           <button class="btn btn-lg btn-block start" onclick={() => go('/learn/smart/today')}>
             <Icon name="play" filled size={18} /> Start
           </button>
@@ -229,105 +274,222 @@
 </div>
 
 <style>
+  .install-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px 8px 12px 14px;
+  }
+  .ib-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .ib-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .ib-title {
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .ib-btn {
+    min-height: 38px;
+    padding: 6px 14px;
+    font-size: 15px;
+  }
+  .ib-close {
+    color: var(--muted);
+  }
   .top {
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    padding: 12px 0 18px;
+    padding: 14px 0 20px;
   }
   .titles {
     flex: 1;
     min-width: 0;
   }
   .date {
-    font-size: 13px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 12.5px;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.09em;
     color: var(--muted);
   }
   h1 {
-    font-size: 30px;
-    font-weight: 700;
-    margin-top: 2px;
+    font-size: 32px;
+    font-weight: 900;
+    margin-top: 4px;
   }
   .gruss {
-    color: var(--muted);
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
     margin-top: 2px;
   }
   .add-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    margin-top: 8px;
+    width: 46px;
+    height: 46px;
+    margin-top: 10px;
     border: 0;
-    border-radius: 50%;
+    border-radius: 16px;
     background: var(--surface);
     box-shadow: var(--shadow);
     color: var(--accent);
     cursor: pointer;
     flex-shrink: 0;
+    transition: transform var(--dur-fast) var(--ease);
   }
   .add-btn:active {
     background: var(--surface-2);
+    transform: scale(0.94);
   }
 
   /* ---------- Hero ---------- */
   .hero {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 20px;
-    border-radius: 20px;
-    background: var(--accent);
-    color: var(--accent-text);
-    box-shadow: var(--shadow);
+    gap: 6px;
+    padding: 20px 20px 18px;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
+    box-shadow: var(--shadow-feature);
+  }
+  /* A warm saffron sun rising behind the numbers */
+  .hero::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -90px;
+    right: -70px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent-fill) 28%, transparent), color-mix(in srgb, var(--accent-fill) 0%, transparent) 68%);
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -38px;
+    right: -38px;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, var(--accent-fill) 22%, transparent);
+    box-shadow:
+      0 0 0 22px color-mix(in srgb, var(--accent-fill) 3.5%, transparent),
+      0 0 0 46px color-mix(in srgb, var(--accent-fill) 2.5%, transparent);
+  }
+  .hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
   }
   .hero-label {
-    font-size: 14px;
-    font-weight: 600;
-    opacity: 0.85;
-  }
-  .hero-count {
-    font-size: 26px;
-    font-weight: 700;
-    line-height: 1.2;
+    font-family: var(--font-display);
+    font-size: 12.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--accent);
   }
   .hero-time {
-    opacity: 0.85;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--hairline);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .hero-stats {
+    display: flex;
+    gap: 28px;
+    margin: 6px 0 2px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+  .num {
+    font-family: var(--font-display);
+    font-size: 48px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat.fresh .num {
+    color: var(--accent);
+  }
+  .lbl {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
   }
   .start {
     margin-top: 14px;
-    background: var(--accent-text);
-    color: var(--accent);
+    background: var(--accent-fill);
+    color: var(--accent-text);
+    box-shadow: var(--shadow-accent);
   }
   .hero.done {
     align-items: center;
     text-align: center;
-    background: var(--surface);
-    color: var(--text);
+    gap: 4px;
+    padding-top: 24px;
+  }
+  .hero.done::after {
+    display: none;
+  }
+  .hero.done::before {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -120px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--good) 22%, transparent), color-mix(in srgb, var(--good) 0%, transparent) 68%);
+  }
+  .hero-count {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1.2;
   }
   .hero.done .hero-time {
-    color: var(--muted);
-    opacity: 1;
-  }
-  .hero.done .start {
-    background: var(--accent);
-    color: var(--accent-text);
+    padding: 0;
+    background: none;
+    font-size: 15px;
+    font-weight: 400;
   }
   .done-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--good);
-    color: var(--surface);
-    margin-bottom: 6px;
+    width: 60px;
+    height: 60px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--good) 18%, transparent);
+    color: var(--good);
+    margin-bottom: 8px;
   }
 
   /* ---------- Continue ---------- */
@@ -343,9 +505,13 @@
     box-shadow: var(--shadow);
     text-align: left;
     cursor: pointer;
+    transition:
+      transform var(--dur-fast) var(--ease),
+      background-color var(--dur-fast) var(--ease);
   }
   .continue:active {
     background: var(--surface-2);
+    transform: scale(0.98);
   }
   .hard-icon {
     display: grid;
@@ -353,33 +519,37 @@
     width: 56px;
     height: 56px;
     flex-shrink: 0;
-    border-radius: 50%;
+    border-radius: 18px;
     color: var(--warn);
-    background: color-mix(in srgb, var(--warn) 16%, transparent);
+    background: color-mix(in srgb, var(--warn) 15%, transparent);
   }
   .hard .eyebrow {
     color: var(--warn);
   }
   .pct {
-    font-size: 13px;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 900;
   }
   .continue-text {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
+    gap: 1px;
   }
   .eyebrow {
+    font-family: var(--font-display);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.08em;
     color: var(--accent);
   }
   .continue-title {
+    font-family: var(--font-display);
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 800;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -390,7 +560,7 @@
   }
   .chev {
     display: inline-flex;
-    color: var(--muted);
+    color: var(--faint);
     flex-shrink: 0;
   }
 
@@ -408,42 +578,51 @@
       'icon count'
       'label label';
     align-items: center;
-    gap: 6px 8px;
+    gap: 10px 8px;
     min-height: 56px;
-    padding: 10px 12px;
+    padding: 12px;
     border: 0;
     border-radius: var(--radius);
     background: var(--surface);
     box-shadow: var(--shadow);
     cursor: pointer;
     text-align: left;
+    transition:
+      transform var(--dur-fast) var(--ease),
+      background-color var(--dur-fast) var(--ease);
   }
   .shortcut:active {
     background: var(--surface-2);
+    transform: scale(0.96);
   }
   .shortcut:disabled {
     cursor: default;
-    opacity: 0.55;
+    opacity: 0.5;
+    transform: none;
   }
   .sc-icon {
     grid-area: icon;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--surface-2);
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 15%, transparent);
     flex-shrink: 0;
   }
-  .tone-warn .sc-icon {
-    color: var(--warn);
+  .tone-warn {
+    --tone: var(--accent);
   }
-  .tone-bad .sc-icon {
-    color: var(--bad);
+  .tone-bad {
+    --tone: var(--bad);
   }
-  .tone-accent .sc-icon {
-    color: var(--accent);
+  .tone-accent {
+    --tone: var(--der);
+  }
+  .tone-good {
+    --tone: var(--good);
   }
 
   /* ---------- Continue reading ---------- */
@@ -463,13 +642,14 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--accent);
+    background: var(--accent-bar);
     transition: width 0.6s var(--ease);
   }
   .sc-label {
     grid-area: label;
     min-width: 0;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-weight: 800;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -477,14 +657,26 @@
   .sc-count {
     grid-area: count;
     justify-self: end;
+    align-self: start;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--text);
+  }
+  .shortcut:disabled .sc-count {
     color: var(--muted);
-    font-weight: 600;
+  }
+  .tone-accent .sc-count {
+    color: var(--faint);
+    align-self: center;
   }
   .add-word {
-    background: var(--surface);
+    background: transparent;
     color: var(--accent);
-    box-shadow: var(--shadow);
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 35%, transparent);
     min-height: 52px;
+    border-radius: var(--radius);
   }
 
   /* ---------- First launch ---------- */
@@ -496,13 +688,14 @@
   .lead {
     margin: 0 4px 4px;
     font-size: 18px;
+    color: var(--muted);
   }
   .choice {
     display: flex;
     align-items: center;
     gap: 14px;
     width: 100%;
-    min-height: 88px;
+    min-height: 92px;
     padding: 16px 12px 16px 16px;
     border: 0;
     border-radius: var(--radius);
@@ -510,25 +703,27 @@
     box-shadow: var(--shadow);
     text-align: left;
     cursor: pointer;
+    transition:
+      transform var(--dur-fast) var(--ease),
+      background-color var(--dur-fast) var(--ease);
   }
   .choice:active {
     background: var(--surface-2);
+    transform: scale(0.98);
   }
   .choice-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
-    background: var(--surface-2);
+    width: 54px;
+    height: 54px;
+    border-radius: 18px;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 15%, transparent);
     flex-shrink: 0;
   }
-  .tone-accent {
-    color: var(--accent);
-  }
-  .tone-good {
-    color: var(--good);
+  .choice-icon.tone-accent {
+    --tone: var(--accent);
   }
   .choice-text {
     flex: 1;
@@ -538,8 +733,9 @@
     gap: 2px;
   }
   .choice-title {
+    font-family: var(--font-display);
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 800;
   }
   .choice-sub {
     font-size: 14px;

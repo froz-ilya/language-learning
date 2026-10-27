@@ -126,8 +126,11 @@ export async function cardsInFolder(folderId: number) {
   return db.cards.where('setId').anyOf(setIds).toArray();
 }
 
-export function setsInFolder(folderId: number): Promise<WordSet[]> {
-  return db.sets.where('folderId').equals(folderId).sortBy('name');
+/** Sets of a folder: newest first (user folders) or by name (level topic lists). */
+export async function setsInFolder(folderId: number, order: 'newest' | 'name' = 'newest'): Promise<WordSet[]> {
+  const sets = db.sets.where('folderId').equals(folderId);
+  if (order === 'name') return sets.sortBy('name');
+  return (await sets.sortBy('createdAt')).reverse();
 }
 
 /** User folders only (level preset folders are shown on the Levels tab). */

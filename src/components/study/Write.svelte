@@ -24,7 +24,7 @@
     <div class="card prompt" in:slideIn>
       <div class="muted small">{answerGerman ? 'Translate into German' : 'Translate'}</div>
       {#if answerGerman}
-        <div class="big">{item.card.translation}</div>
+        <div class="big tr">{item.card.translation}</div>
       {:else}
         <div class="row center-row">
           <div class="big"><Term card={item.card} /></div>
@@ -40,13 +40,22 @@
 <style>
   .prompt {
     text-align: center;
-    padding: 28px 16px;
+    padding: 30px 18px;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
   }
   .big {
-    font-size: 28px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: break-word;
     margin-top: 6px;
     overflow-wrap: anywhere;
+  }
+  .big.tr {
+    font-size: 25px;
+    font-weight: 700;
   }
   .center-row {
     justify-content: center;

@@ -77,19 +77,24 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
-    padding: 24px 16px;
+    padding: 26px 18px;
     text-align: center;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
   }
   .center-row {
     justify-content: center;
   }
   .big {
-    font-size: 32px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 34px;
+    font-weight: 800;
     overflow-wrap: anywhere;
   }
   .translation {
-    font-size: 21px;
+    font-size: 20px;
+    color: var(--text-2);
+    overflow-wrap: break-word;
   }
   .answers {
     display: grid;
@@ -104,8 +109,10 @@
   }
   .dont {
     color: var(--bad);
+    background: color-mix(in srgb, var(--bad) 14%, var(--surface));
   }
   .know {
     color: var(--good);
+    background: color-mix(in srgb, var(--good) 14%, var(--surface));
   }
 </style>

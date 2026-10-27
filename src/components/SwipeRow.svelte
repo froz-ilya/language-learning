@@ -210,8 +210,16 @@
     overflow: hidden;
     background: var(--surface);
   }
-  :global(.swipe-row + .swipe-row) {
+  :global(.swipe-row + .swipe-row)::before {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 16px;
+    right: 0;
     border-top: 1px solid var(--border);
+    opacity: 0.7;
+    pointer-events: none;
   }
   .swipe-content {
     position: relative;
@@ -229,7 +237,7 @@
     bottom: 0;
     display: flex;
     overflow: hidden;
-    color: #fff;
+    color: var(--on-tone);
     transition: width var(--dur) var(--ease);
   }
   .swipe-row:has(.swipe-content.dragging) .swipe-action {
@@ -254,8 +262,9 @@
     border: 0;
     background: transparent;
     color: inherit;
+    font-family: var(--font-display);
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 800;
     cursor: pointer;
     transition: transform var(--dur-fast) var(--ease);
   }

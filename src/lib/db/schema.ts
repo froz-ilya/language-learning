@@ -52,6 +52,11 @@ export class AppDB extends Dexie {
     this.version(3).stores({
       articles: 'id, source, savedAt, readAt',
     });
+    // v4: lookup results now group translations by meaning (cache keys "v2:…"); drop the old
+    // single-meaning results instead of keeping them as dead rows. It's only a cache.
+    this.version(4)
+      .stores({})
+      .upgrade((tx) => tx.table('lookupCache').clear());
   }
 }
 

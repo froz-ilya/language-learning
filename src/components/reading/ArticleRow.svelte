@@ -60,9 +60,11 @@
     gap: 4px;
   }
   .title {
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 17.5px;
     line-height: 1.25;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
   .meta {
     display: flex;
@@ -73,11 +75,11 @@
     color: var(--muted);
   }
   .badge {
-    padding: 1px 7px;
+    padding: 1px 8px;
     border-radius: 999px;
     background: var(--surface-2);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--muted);
   }
   .badge.level {
@@ -103,8 +105,8 @@
   }
   .bar {
     display: block;
-    height: 4px;
-    border-radius: 2px;
+    height: 5px;
+    border-radius: 999px;
     background: var(--surface-2);
     overflow: hidden;
     margin-top: 2px;
@@ -112,11 +114,11 @@
   .bar span {
     display: block;
     height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
+    background: var(--accent-bar);
+    border-radius: 999px;
   }
   .chev {
-    color: var(--muted);
+    color: var(--faint);
     align-self: center;
     flex-shrink: 0;
   }

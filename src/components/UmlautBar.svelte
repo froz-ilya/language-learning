@@ -39,14 +39,21 @@
     flex: 1;
     min-height: 40px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 700;
+    transition: transform var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+  }
+  button:active {
+    transform: scale(0.94);
     background: var(--surface-2);
-    font-size: 18px;
-    font-weight: 600;
     cursor: pointer;
   }
   button.active {
-    background: var(--accent);
+    background: var(--accent-fill);
     color: var(--accent-text);
   }
 </style>

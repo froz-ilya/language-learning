@@ -50,7 +50,7 @@
   <div class="card prompt">
     <div class="muted small">{answerGerman ? 'Choose the German word' : 'Choose the translation'}</div>
     {#if answerGerman}
-      <div class="big">{card.translation}</div>
+      <div class="big tr">{card.translation}</div>
     {:else}
       <div class="row center-row">
         <div class="big"><Term {card} /></div>
@@ -71,6 +71,7 @@
         onclick={() => pick(i)}
         {@attach feedbackFx(picked === i ? (isRight(o) ? 'good' : 'bad') : null)}
       >
+        <span class="key" aria-hidden="true">{i + 1}</span>
         <span class="label">{#if answerGerman}<Term card={o} />{:else}{o.translation}{/if}</span>
         {#if picked !== null && isRight(o)}<ResultIcon ok />{:else if picked === i}<ResultIcon ok={false} />{/if}
       </button>
@@ -85,16 +86,25 @@
 <style>
   .prompt {
     text-align: center;
-    padding: 28px 16px;
+    padding: 30px 18px;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
   }
   .center-row {
     justify-content: center;
   }
   .big {
-    font-size: 28px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.2;
     margin-top: 6px;
     overflow-wrap: anywhere;
+  }
+  .big.tr {
+    font-size: 24px;
+    font-weight: 700;
+    overflow-wrap: break-word;
   }
   .options {
     display: flex;
@@ -102,27 +112,55 @@
     gap: 10px;
   }
   .option {
-    min-height: 58px;
-    padding: 12px 16px;
+    --tone: var(--hairline);
+    min-height: 60px;
+    padding: 12px 14px 12px 12px;
     border-radius: var(--radius);
-    border: 2px solid var(--border);
+    border: 0;
     background: var(--surface);
+    box-shadow: inset 0 0 0 1.5px var(--tone);
     font-size: 18px;
+    line-height: 1.3;
     text-align: left;
     cursor: pointer;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     transition:
       background-color 0.22s ease,
-      border-color 0.22s ease,
+      box-shadow 0.22s ease,
       opacity 0.22s ease,
       transform 0.12s ease;
   }
+  .key {
+    display: inline-grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 800;
+    transition:
+      background-color 0.22s ease,
+      color 0.22s ease;
+  }
+  /* (overrides the global form .label style) */
   .label {
     flex: 1;
     min-width: 0;
+    margin: 0;
+    font-size: inherit;
+    font-weight: 500;
+    color: inherit;
+  }
+  .label :global(.term) {
+    font-family: var(--font-display);
+    font-weight: 800;
   }
   .option:not(:disabled):active {
     transform: scale(0.98);
@@ -143,12 +181,17 @@
     background: var(--surface-2);
   }
   .option.right {
-    border-color: var(--good);
-    background: color-mix(in srgb, var(--good) 14%, var(--surface));
+    --tone: var(--good);
+    background: color-mix(in srgb, var(--good) 13%, var(--surface));
   }
   .option.wrong {
-    border-color: var(--bad);
-    background: color-mix(in srgb, var(--bad) 14%, var(--surface));
+    --tone: var(--bad);
+    background: color-mix(in srgb, var(--bad) 13%, var(--surface));
+  }
+  .option.right .key,
+  .option.wrong .key {
+    background: var(--tone);
+    color: var(--on-tone);
   }
   .option.dim {
     opacity: 0.5;

@@ -66,38 +66,38 @@
 
 <style>
   .feedback {
+    --tone: var(--border);
     border-radius: var(--radius);
-    padding: 12px 16px;
-    border: 2px solid var(--border);
-    background: var(--surface);
+    padding: 14px 16px;
+    background: color-mix(in srgb, var(--tone) 10%, var(--surface));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tone) 55%, transparent);
+    overflow-wrap: break-word;
   }
   .feedback.correct {
-    border-color: var(--good);
+    --tone: var(--good);
   }
   .feedback.typo {
-    border-color: var(--warn);
+    --tone: var(--warn);
   }
   .feedback.wrong {
-    border-color: var(--bad);
+    --tone: var(--bad);
   }
   .head {
-    font-weight: 700;
-  }
-  .correct .head {
-    color: var(--good);
-  }
-  .typo .head {
-    color: var(--warn);
-  }
-  .wrong .head {
-    color: var(--bad);
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--tone);
+    align-items: flex-start;
   }
   .answer-row {
     margin-top: 4px;
     justify-content: space-between;
   }
   .big {
-    font-size: 22px;
-    font-weight: 600;
+    min-width: 0;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.2;
   }
 </style>

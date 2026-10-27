@@ -181,14 +181,19 @@
 <style>
   .prompt {
     text-align: center;
-    padding: 24px 16px;
+    padding: 30px 18px;
+    border-radius: var(--radius-lg);
+    background: var(--grad-feature);
   }
   .center-row {
     justify-content: center;
   }
   .big {
-    font-size: 30px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: break-word;
   }
   .input.ok {
     border-color: var(--good);
@@ -214,22 +219,27 @@
     color: inherit;
   }
   .summary {
-    border: 2px solid var(--border);
+    --tone: var(--border);
+    background: color-mix(in srgb, var(--tone) 10%, var(--surface));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tone) 55%, transparent);
   }
   .ok-border {
-    border-color: var(--good);
+    --tone: var(--good);
   }
   .no-border {
-    border-color: var(--bad);
+    --tone: var(--bad);
   }
   .head {
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--tone);
   }
   .summary .row {
     justify-content: space-between;
   }
   .forms {
-    font-size: 18px;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 800;
   }
 </style>

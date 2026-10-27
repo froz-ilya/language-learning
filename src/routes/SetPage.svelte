@@ -366,7 +366,9 @@
     padding: 12px 14px;
   }
   .pct {
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: 900;
+    color: var(--accent);
   }
   .banner {
     display: flex;
@@ -374,6 +376,9 @@
     gap: 12px;
     padding: 12px 14px;
     color: var(--text);
+  }
+  .banner {
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
   }
   .banner > :global(svg) {
     color: var(--accent);
@@ -397,20 +402,25 @@
     align-items: center;
     gap: 6px;
     min-height: 38px;
-    padding: 6px 12px;
+    padding: 6px 14px;
     border: 0;
     border-radius: 999px;
     background: var(--surface);
     box-shadow: var(--shadow);
+    font-family: var(--font-display);
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 800;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
     white-space: nowrap;
     cursor: pointer;
     flex-shrink: 0;
   }
   .fchip.active {
-    background: var(--text);
-    color: var(--bg);
+    background: var(--accent-fill);
+    color: var(--accent-text);
+    box-shadow: var(--shadow-accent);
   }
   .fchip:disabled {
     opacity: 0.45;
@@ -443,14 +453,25 @@
     box-shadow: var(--shadow);
     overflow: hidden;
   }
-  .w + .w {
+  .w {
+    position: relative;
+  }
+  .w + .w::before {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 33px;
+    right: 0;
     border-top: 1px solid var(--border);
+    opacity: 0.7;
+    pointer-events: none;
   }
   .word {
     display: flex;
     align-items: center;
-    min-height: 60px;
-    padding: 6px 4px 6px 14px;
+    min-height: 62px;
+    padding: 8px 4px 8px 14px;
     background: var(--surface);
   }
   .main {
@@ -470,27 +491,36 @@
     flex-direction: column;
     justify-content: center;
   }
+  /* German on the first line, the translation (often several meanings) wraps below it. */
   .line1 {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 8px;
+    column-gap: 6px;
     min-width: 0;
   }
   .de {
-    font-weight: 600;
-    flex-shrink: 0;
-    max-width: 60%;
+    font-family: var(--font-display);
+    font-size: 17.5px;
+    font-weight: 800;
+    min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .tr {
-    flex: 1;
+    flex: 1 0 100%;
     min-width: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--muted);
+    overflow-wrap: break-word;
+    font-size: 15px;
+    line-height: 1.3;
+    color: var(--text-2);
   }
   .sub {
     font-size: 14px;
@@ -514,10 +544,10 @@
     flex-shrink: 0;
   }
   .st-new {
-    background: var(--border);
+    background: var(--surface-3);
   }
   .st-learning {
-    background: var(--accent);
+    background: var(--accent-bar);
   }
   .st-learned {
     background: var(--good);
@@ -526,11 +556,12 @@
     background: var(--good);
     opacity: 0.45;
   }
-  .star {
+  .star,
+  .word :global(.icon-btn) {
     color: var(--muted);
   }
   .star.on {
-    color: var(--warn);
+    color: var(--accent);
   }
   .hint {
     margin: 10px 8px 0;

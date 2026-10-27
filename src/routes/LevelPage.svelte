@@ -36,7 +36,7 @@
     if (!code) return null;
     const folder = await levelFolder(code);
     if (!folder) return { installed: false as const };
-    const [sets, cards] = await Promise.all([setsInFolder(folder.id!), cardsInFolder(folder.id!)]);
+    const [sets, cards] = await Promise.all([setsInFolder(folder.id!, 'name'), cardsInFolder(folder.id!)]);
     sets.sort((a, b) => a.id! - b.id!); // install order = topic order
     const reviews = await reviewsFor(cards);
     const bySetCards = new Map<number, Card[]>();
@@ -283,20 +283,43 @@
     gap: 8px;
     padding: 24px 18px;
   }
+  .intro {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: var(--grad-feature);
+    border-radius: var(--radius-lg);
+  }
+  .intro::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -110px;
+    left: 50%;
+    width: 280px;
+    height: 280px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent-fill) 22%, transparent), color-mix(in srgb, var(--accent-fill) 0%, transparent) 68%);
+  }
   .badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: var(--accent);
+    width: 76px;
+    height: 76px;
+    margin-bottom: 4px;
+    border-radius: 24px;
+    background: var(--accent-fill);
     color: var(--accent-text);
-    font-size: 26px;
-    font-weight: 800;
+    box-shadow: var(--shadow-accent);
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 900;
+    transform: rotate(-4deg);
   }
   .intro h2 {
-    font-size: 22px;
+    font-size: 24px;
   }
   .intro p {
     margin: 0;
@@ -315,16 +338,17 @@
     margin-top: 6px;
   }
   .topic {
-    padding: 3px 10px;
+    padding: 4px 11px;
     border-radius: 999px;
-    border: 1px solid var(--border);
+    background: var(--hairline);
+    box-shadow: inset 0 0 0 1px var(--hairline);
     font-size: 13px;
     color: var(--muted);
   }
   .error {
     padding: 10px 14px;
     border-radius: var(--radius-sm);
-    background: var(--surface);
+    background: color-mix(in srgb, var(--bad) 12%, var(--surface));
     color: var(--bad);
     text-align: center;
   }
@@ -342,8 +366,8 @@
     line-height: 1.1;
   }
   .pct {
-    font-size: 26px;
-    font-weight: 800;
+    font-size: 28px;
+    font-weight: 900;
   }
   .ring-sub {
     font-size: 12px;
@@ -370,10 +394,10 @@
     flex-shrink: 0;
   }
   .st-new {
-    background: var(--border);
+    background: var(--surface-3);
   }
   .st-learning {
-    background: var(--accent);
+    background: var(--accent-bar);
   }
   .st-learned {
     background: var(--good);
@@ -387,7 +411,8 @@
     color: var(--muted);
   }
   .c-num {
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: 800;
     font-variant-numeric: tabular-nums;
   }
   .actions {

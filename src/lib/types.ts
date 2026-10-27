@@ -86,7 +86,13 @@ export interface Settings {
   lastBackupAt: number;
   /** Epoch ms until which the reminder is snoozed ("Later"). */
   backupSnoozeUntil: number;
+  /** Color theme; 'auto' follows the phone's light/dark setting. */
+  theme: ThemeSetting;
+  /** Short vibration on correct / wrong answers (where the device supports it). */
+  vibration: boolean;
 }
+
+export type ThemeSetting = 'auto' | 'light' | 'dark';
 
 /** What a dictionary lookup can fill into a card. */
 export interface LookupResult {

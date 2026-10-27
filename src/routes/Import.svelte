@@ -196,6 +196,7 @@
           oninput={onText}
           placeholder={'der Tisch\ttable\ngehen, ging, ist gegangen\tto go\nHaus - house'}
           autocapitalize="off"
+          autocomplete="off"
           {...{ autocorrect: 'off' }}
           spellcheck="false"
         ></textarea>
@@ -295,10 +296,11 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--accent-fill);
     color: var(--accent-text);
+    font-family: var(--font-display);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 900;
     flex-shrink: 0;
   }
   .spinner {
@@ -329,7 +331,7 @@
   .switch {
     width: 26px;
     height: 26px;
-    accent-color: var(--good);
+    accent-color: var(--accent);
     flex-shrink: 0;
   }
   .prow {
@@ -350,7 +352,8 @@
     flex: 1;
     min-width: 0;
     text-align: right;
-    overflow-wrap: anywhere;
+    color: var(--text-2);
+    overflow-wrap: break-word;
   }
   .more {
     justify-content: center;

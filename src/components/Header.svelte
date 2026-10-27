@@ -40,9 +40,9 @@
     padding: 0 8px;
   }
   h1 {
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: -0.015em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

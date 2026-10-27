@@ -2,10 +2,13 @@ import type { Attachment } from 'svelte/attachments';
 import { cubicOut } from 'svelte/easing';
 import { fly, type FlyParams, type TransitionConfig } from 'svelte/transition';
 import { dur, reducedMotion } from '../motion';
+import { vibrateFor } from '../haptics';
+import { settings } from '../settings.svelte';
 
 /**
  * Answer feedback motion for the study modes (Web Animations API, so nothing extra is needed
- * in CSS). Every helper is a no-op when the user prefers reduced motion.
+ * in CSS). Every animation is a no-op when the user prefers reduced motion; the haptic tick
+ * (Android, "Vibration on answers" setting) isn't motion and plays either way.
  *
  *   <div {@attach feedbackFx(correct === null ? null : correct ? 'good' : 'bad')}>
  */
@@ -50,11 +53,17 @@ export function shake(el: Element): void {
   );
 }
 
-/** Pulse on 'good', shake on 'bad'; runs whenever `kind` changes to one of them. */
+/** Haptic answer feedback: a light tick on 'good', a double buzz on 'bad'. */
+export function answerHaptic(kind: FxKind): void {
+  if (kind === 'good' || kind === 'bad') vibrateFor(kind, settings.vibration);
+}
+
+/** Pulse on 'good', shake on 'bad' (plus haptics); runs whenever `kind` changes to one of them. */
 export function feedbackFx(kind: FxKind): Attachment {
   return (el) => {
     if (kind === 'good') pulseGood(el);
     else if (kind === 'bad') shake(el);
+    answerHaptic(kind);
   };
 }
 

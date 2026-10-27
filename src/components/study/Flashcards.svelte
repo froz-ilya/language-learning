@@ -4,6 +4,7 @@
   import { speak } from '../../lib/speech/tts';
   import { Rating, type Grade } from '../../lib/srs/fsrs';
   import type { ModeProps } from '../../lib/study/modes';
+  import Meanings from '../Meanings.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import Term from '../Term.svelte';
   import NoteHint from './NoteHint.svelte';
@@ -91,7 +92,7 @@
               <SpeakButton text={speakableTerm(card)} />
             </div>
           {:else}
-            <div class="big">{card.translation}</div>
+            <div class="big"><Meanings translation={card.translation} /></div>
           {/if}
           <div class="hint muted small">Tap to flip · swipe to rate</div>
         </div>
@@ -101,7 +102,7 @@
             <div class="big" class:secondary={germanFront}><Term {card} /></div>
             <SpeakButton text={speakableTerm(card)} />
           </div>
-          <div class="translation" class:emph={germanFront}>{card.translation}</div>
+          <div class="translation" class:emph={germanFront}><Meanings translation={card.translation} /></div>
           {#if plural || verbForms}
             <div class="forms">
               {#if plural}<div>Plural: <span class="g-f">{plural}</span></div>{/if}

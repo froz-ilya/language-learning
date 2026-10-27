@@ -225,4 +225,22 @@ describe('generated dictionary (public/dict)', () => {
     expect((await local.lookupLocal('Tisch'))[0].entry).toMatchObject({ pos: 'noun', genders: ['m'], plural: 'Tische' });
     expect((await local.prefixLocal('Sch')).length).toBe(8);
   });
+
+  it.skipIf(!existsSync(new URL('index.json', DICT)))('keeps distinct meanings apart ("; ")', async () => {
+    const tr = async (w: string) => (await local.lookupLocal(w))[0].entry.tr;
+    // Folge: consequence / sequence / episode of a series.
+    const folge = await tr('Folge');
+    expect(folge.ru.split('; ').length).toBeGreaterThanOrEqual(3);
+    expect(folge.ru).toContain('эпизод');
+    expect(folge.en).toContain('episode');
+    expect((await tr('Bank')).en).toBe('bench; bank');
+    // Single-meaning words stay as they are.
+    expect((await tr('Tisch')).ru).toBe('стол');
+    // At most 3 meanings everywhere.
+    for (const w of ['Zug', 'Schloss', 'Strom', 'gehen', 'Haus']) {
+      const t = await tr(w);
+      expect(t.ru.split('; ').length).toBeLessThanOrEqual(3);
+      expect(t.en.split('; ').length).toBeLessThanOrEqual(3);
+    }
+  });
 });

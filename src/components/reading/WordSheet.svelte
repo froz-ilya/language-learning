@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '../Icon.svelte';
   import Term from '../Term.svelte';
+  import Meanings from '../Meanings.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import Skeleton from '../Skeleton.svelte';
   import { go } from '../../lib/router.svelte';
@@ -198,7 +199,7 @@
   {:else}
     {#if forms}<div class="forms muted">{forms}</div>{/if}
     {#if translation}
-      <div class="translation" lang={lang}>{translation}</div>
+      <div class="translation" lang={lang}><Meanings {translation} /></div>
     {:else if remoteState === 'loading'}
       <Skeleton lines={1} />
     {:else}

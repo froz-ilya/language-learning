@@ -1,5 +1,6 @@
 // @ts-nocheck
 // Stage 3: turn ranked lemma groups into level words (before translation and topics).
+import { parseMeanings } from './extract.mjs';
 import { groupTranslations } from './rank.mjs';
 
 export const BANDS = [
@@ -35,8 +36,9 @@ export function baseWords(ranked, lemmas, trOverrides = {}) {
       partizip2: rec.pos === 'verb' ? pick('partizip2') : '',
       auxiliary: rec.pos === 'verb' ? pick('auxiliary') : '',
       tr: {
-        ru: trOverrides[g.key]?.ru?.split(', ') ?? groupTranslations(g.members, lemmas, 'ru'),
-        en: trOverrides[g.key]?.en?.split(', ') ?? groupTranslations(g.members, lemmas, 'en'),
+        // Meanings (string[][]); hand-fixed ones are written "a, b; c" like the output.
+        ru: trOverrides[g.key]?.ru ? parseMeanings(trOverrides[g.key].ru) : groupTranslations(g.members, lemmas, 'ru'),
+        en: trOverrides[g.key]?.en ? parseMeanings(trOverrides[g.key].en) : groupTranslations(g.members, lemmas, 'en'),
       },
       example,
       rank: i + 1,

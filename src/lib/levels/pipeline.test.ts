@@ -5,8 +5,12 @@ import { describe, expect, it } from 'vitest';
 import {
   cleanExample,
   cleanTranslation,
+  formatMeanings,
+  limitMeanings,
   mergeLemma,
   parseKaikkiEntry,
+  parseMeanings,
+  similarWord,
 } from '../../../scripts/levels/lib/extract.mjs';
 import { candidates, exclusionReason, groupTranslations, lemmaCounts, rankLemmas } from '../../../scripts/levels/lib/rank.mjs';
 import { buildLevels, groupTopics, topicOf } from '../../../scripts/levels/lib/levels.mjs';
@@ -29,8 +33,9 @@ describe('parseKaikkiEntry', () => {
   it('reads noun gender, plural, translations and an own example', () => {
     const t = lemma('Tisch');
     expect(t).toMatchObject({ pos: 'noun', genders: ['m'], plural: 'Tische' });
-    expect(t.tr.en[0]).toBe('table');
-    expect(t.tr.ru[0]).toBe('стол');
+    // Single-meaning words stay one meaning.
+    expect(t.tr.en).toEqual([['table']]);
+    expect(t.tr.ru).toEqual([['стол']]);
     expect(t.examples[0]).toBe('Der Tisch ist für die vielen Personen heute zu klein.');
     expect(t.forms).toContain('tische');
   });
@@ -38,7 +43,7 @@ describe('parseKaikkiEntry', () => {
   it('reads verb Präteritum, Partizip II and auxiliary', () => {
     expect(lemma('gehen')).toMatchObject({ pos: 'verb', praeteritum: 'ging', partizip2: 'gegangen', auxiliary: 'sein' });
     expect(lemma('anrufen')).toMatchObject({ praeteritum: 'rief an', partizip2: 'angerufen', auxiliary: 'haben' });
-    expect(lemma('gehen').tr.en.slice(0, 2)).toEqual(['go', 'walk']);
+    expect(lemma('gehen').tr.en[0]).toEqual(['go', 'walk']);
     expect(lemma('gehen').forms).toContain('geht');
     // Imperatives are not used to map tokens ("geh!" is rare, "schon!" would steal "schon").
     expect(lemma('gehen').forms).not.toContain('geh');
@@ -59,10 +64,11 @@ describe('parseKaikkiEntry', () => {
     expect(lemma('Mutter', 'name')).toBeTruthy();
   });
 
-  it('takes translations from the first plain senses only', () => {
-    // Mutter: sense 1 gives мать, мама; "матка" (sense 2) is not needed.
+  it('groups translations by meaning, from the senses that matter', () => {
+    // Mutter: мать, мама (sense 1), then the uterus sense — one meaning each.
     const mother = parsed.find((r) => r?.kind === 'lemma' && r.word === 'Mutter' && r.rawPos === 'noun');
-    expect(mother.tr.ru).toEqual(['мать', 'мама']);
+    expect(mother.tr.ru[0]).toEqual(['мать', 'мама']);
+    expect(mother.tr.ru.length).toBeLessThanOrEqual(3);
     const kommen: Any = parseKaikkiEntry({
       word: 'kommen',
       pos: 'verb',
@@ -70,6 +76,7 @@ describe('parseKaikkiEntry', () => {
       senses: [
         { glosses: ['einen Ort erreichen'], tags: ['intransitive', 'regional'], sense_index: '1' },
         { glosses: ['beginnen'], sense_index: '2' },
+        { glosses: ['Springer'], tags: ['colloquial'], sense_index: '3' },
         { glosses: ['einen Orgasmus haben'], tags: ['colloquial', 'vulgar'], sense_index: '4' },
       ],
       translations: [
@@ -81,15 +88,91 @@ describe('parseKaikkiEntry', () => {
         { lang_code: 'en', word: 'knight', sense_index: '3' },
       ],
     });
-    expect(kommen.tr.ru).toEqual(['прибывать', 'приходить']);
-    expect(kommen.tr.en).toEqual(['horse']);
+    // Sense 1 is never marginal; labelled senses (3, 4) and labelled-only senses (2) add nothing.
+    expect(kommen.tr.ru).toEqual([['прибывать', 'приходить']]);
+    expect(kommen.tr.en).toEqual([['horse']]);
   });
 
-  it('merges homonyms without mixing their translations', () => {
+  // Folge: consequence / sequence / episode of a series, as Wiktionary orders them. The weight of
+  // a sense is how many languages translate it; light senses ("Zug": groove) are left out.
+  const tr = (n: string, lang: string, word: string) => ({ lang_code: lang, word, sense_index: n });
+  const others = (n: string, count: number) => ['fr', 'es', 'it', 'pl', 'nl', 'sv', 'cs', 'fi'].slice(0, count).map((l) => tr(n, l, 'x'));
+  const folge: Any = {
+    word: 'Folge',
+    pos: 'noun',
+    lang_code: 'de',
+    tags: ['feminine'],
+    senses: ['1', '2', '3', '4', '5'].map((n) => ({ glosses: [`sense ${n}`], sense_index: n })),
+    translations: [
+      tr('1', 'en', 'consequence'), tr('1', 'ru', 'последствие'), tr('1', 'ru', 'результат'), ...others('1', 6),
+      tr('2', 'en', 'order'), tr('2', 'en', 'sequence'), tr('2', 'ru', 'череда'), tr('2', 'ru', 'ряд'), tr('2', 'ru', 'серия'), ...others('2', 6),
+      tr('3', 'en', 'episode'), tr('3', 'ru', 'эпизод'), tr('3', 'ru', 'серия'), ...others('3', 7),
+      tr('4', 'en', 'sequence'), tr('4', 'ru', 'последовательность'), ...others('4', 5),
+      tr('5', 'en', 'result'), tr('5', 'ru', 'исход'),
+    ],
+  };
+
+  it('keeps up to three meanings of two synonyms in sense order (Folge)', () => {
+    const f: Any = parseKaikkiEntry(folge);
+    expect(f.tr.ru).toEqual([['последствие', 'результат'], ['череда', 'ряд'], ['эпизод', 'серия']]);
+    expect(f.tr.en).toEqual([['consequence'], ['order', 'sequence'], ['episode']]);
+    expect(formatMeanings(f.tr.ru)).toBe('последствие, результат; череда, ряд; эпизод, серия');
+  });
+
+  it('skips a meaning whose words are used already and light senses', () => {
+    const house: Any = parseKaikkiEntry({
+      word: 'Haus',
+      pos: 'noun',
+      lang_code: 'de',
+      senses: ['1', '2', '3'].map((n) => ({ glosses: [`sense ${n}`], sense_index: n })),
+      translations: [
+        tr('1', 'ru', 'дом'), tr('1', 'en', 'house'), ...others('1', 8),
+        tr('2', 'ru', 'дом'), tr('2', 'en', 'house'), ...others('2', 6),
+        // Translated into 2 languages only, against 10 for sense 1: not a meaning of its own.
+        tr('3', 'ru', 'раковина'), tr('3', 'en', 'shell'),
+      ],
+    });
+    expect(house.tr.ru).toEqual([['дом']]);
+    expect(house.tr.en).toEqual([['house']]);
+  });
+
+  it('merges same-gender homonyms meaning by meaning, not other genders', () => {
     const [mother, nut] = parsed.filter((r) => r?.kind === 'lemma' && r.word === 'Mutter' && r.rawPos === 'noun');
     const m = mergeLemma(mother, nut);
     expect(m.plural).toBe('Mütter');
-    expect(m.tr.en).toEqual(['mother']);
+    // "Bank" (bench) + "Bank" (bank) works the same way.
+    expect(m.tr.en).toEqual([['mother'], ['nut']]);
+    expect(m.tr.ru[0]).toEqual(['мать', 'мама']);
+    expect(m.tr.ru[1]).toEqual(['гайка']);
+    // der Leiter (leader) and die Leiter (ladder) are different words: the first one keeps its own.
+    const leader = { ...mother, word: 'Leiter', genders: ['m'], tr: { en: [['leader']], ru: [['руководитель']] } };
+    const ladder = { ...nut, word: 'Leiter', genders: ['f'], tr: { en: [['ladder']], ru: [] } };
+    expect(mergeLemma(leader, ladder).tr).toEqual({ en: [['leader']], ru: [['руководитель']] });
+    expect(mergeLemma({ ...leader, tr: { en: [], ru: [] } }, ladder).tr.en).toEqual([['ladder']]);
+  });
+});
+
+describe('meanings', () => {
+  it('drops near-duplicates and caps meanings and synonyms', () => {
+    expect(similarWord('current', 'electric current')).toBe(true);
+    expect(similarWord('ток', 'электрический ток')).toBe(true);
+    expect(similarWord('current', 'currency')).toBe(false);
+    expect(limitMeanings([['current', 'stream', 'flow'], ['river'], ['electric current'], ['power']])).toEqual([
+      ['current', 'stream'],
+      ['river'],
+      ['power'],
+    ]);
+    // A single meaning keeps three synonyms.
+    expect(limitMeanings([['мать', 'мама', 'матерь', 'мамочка']])).toEqual([['мать', 'мама', 'матерь']]);
+    expect(limitMeanings([['дом'], ['дом']])).toEqual([['дом']]);
+  });
+
+  it('formats and parses "a, b; c"', () => {
+    expect(formatMeanings([['последствие', 'результат'], ['серия', 'эпизод'], ['ряд']])).toBe('последствие, результат; серия, эпизод; ряд');
+    expect(formatMeanings([['стол']])).toBe('стол');
+    expect(formatMeanings([])).toBe('');
+    expect(parseMeanings('bench; bank')).toEqual([['bench'], ['bank']]);
+    expect(parseMeanings('stay, remain')).toEqual([['stay', 'remain']]);
   });
 });
 
@@ -99,6 +182,8 @@ describe('cleaning', () => {
     expect(cleanTranslation('to go', 'en')).toBe('go');
     expect(cleanTranslation('come on !', 'en')).toBe('come on');
     expect(cleanTranslation('or ; or else', 'en')).toBe('or');
+    expect(cleanTranslation('make do (with) ,', 'en')).toBe('make do');
+    expect(cleanTranslation('мочь „dürfen“', 'ru')).toBe('мочь');
     expect(cleanTranslation('идти (Uhr)', 'ru')).toBe('идти');
     expect(cleanTranslation('заве́дующий', 'ru')).toBe('заведующий');
     expect(cleanTranslation('café', 'en')).toBe('café');
@@ -114,7 +199,7 @@ describe('ranking', () => {
     word,
     rawPos,
     pos: ['noun', 'verb', 'adj'].includes(rawPos) ? rawPos : 'other',
-    tr: { en: [word], ru: [word] },
+    tr: { en: [[word]], ru: [[word]] },
     tags: [],
     senses: 2,
     trCount: 4,
@@ -173,10 +258,12 @@ describe('ranking', () => {
 
   it('puts the adverb reading before the modal particle', () => {
     const l: Any = {
-      'schon|particle': rec('schon', 'particle', { tr: { en: ['indeed'], ru: ['же'] } }),
-      'schon|adv': rec('schon', 'adv', { tr: { en: ['already'], ru: ['уже'] } }),
+      'schon|particle': rec('schon', 'particle', { tr: { en: [['indeed']], ru: [['же']] } }),
+      'schon|adv': rec('schon', 'adv', { tr: { en: [['already'], ['yet']], ru: [['уже']] } }),
     };
-    expect(groupTranslations(['schon|particle', 'schon|adv'], l, 'en')).toEqual(['already', 'indeed']);
+    // Each reading is a meaning of the card.
+    expect(groupTranslations(['schon|particle', 'schon|adv'], l, 'en')).toEqual([['already'], ['indeed'], ['yet']]);
+    expect(groupTranslations(['schon|adv'], l, 'ru')).toEqual([['уже']]);
   });
 });
 
@@ -217,16 +304,18 @@ describe('levels', () => {
   it('builds files with unique ids and optional example translations', () => {
     const base = { genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', topic: 'Alltagsverben' };
     const words = [
-      { ...base, term: 'sein', rawPos: 'verb', pos: 'verb', tr: { ru: ['быть'], en: ['be'] }, rank: 1, example: 'Ich bin da.', example_en: 'I am here.', example_ru: '' },
-      { ...base, term: 'sein', rawPos: 'pron', pos: 'other', tr: { ru: ['его'], en: ['his', 'its', 'one’s', 'x'] }, rank: 2, topic: 'Funktionswörter' },
+      { ...base, term: 'sein', rawPos: 'verb', pos: 'verb', tr: { ru: [['быть']], en: [['be']] }, rank: 1, example: 'Ich bin da.', example_en: 'I am here.', example_ru: '' },
+      { ...base, term: 'sein', rawPos: 'pron', pos: 'other', tr: { ru: [['его']], en: [['his', 'its', 'one’s', 'x']] }, rank: 2, topic: 'Funktionswörter' },
+      { ...base, term: 'Folge', rawPos: 'noun', pos: 'noun', tr: { ru: [['последствие'], ['череда', 'ряд', 'серия'], ['эпизод'], ['x']], en: [] }, rank: 3 },
     ];
     const { files, index } = buildLevels(words, 'src');
     const a1 = files[0].words;
-    expect(a1.map((w: Any) => w.id)).toEqual(['A1:sein', 'A1:sein#pron']);
+    expect(a1.map((w: Any) => w.id)).toEqual(['A1:sein', 'A1:sein#pron', 'A1:Folge']);
     expect(a1[0].example).toEqual({ de: 'Ich bin da.', en: 'I am here.' });
     expect(a1[1].tr.en).toBe('his, its, one’s');
     expect(a1[1].example).toBeUndefined();
-    expect(index.levels[0]).toMatchObject({ code: 'A1', words: 2 });
+    expect(a1[2].tr).toEqual({ ru: 'последствие; череда, ряд; эпизод', en: '' });
+    expect(index.levels[0]).toMatchObject({ code: 'A1', words: 3 });
     expect(index.levels.map((l: Any) => l.code)).toEqual(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
   });
 });

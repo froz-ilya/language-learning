@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // @ts-nocheck
 // Builds the offline German dictionary (public/dict/*.json) from the level pipeline's caches.
-//   node scripts/dict/build.mjs [--lemmas=30000] [--max-kb=1536]
+//   node scripts/dict/build.mjs [--lemmas=30000] [--max-kb=1560]
 // Inputs (see scripts/levels/build.mjs, which downloads them): scripts/levels/.cache/de_50k.txt,
 // dict.json and raw-wiktextract-data.jsonl.gz; scripts/levels/overrides.json; public/levels/*.json
 // (levels and, for preset words, translations Wiktionary lacks; no translation requests are made).
@@ -13,7 +13,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { parseKaikkiEntry } from '../levels/lib/extract.mjs';
+import { formatMeanings, parseKaikkiEntry } from '../levels/lib/extract.mjs';
 import {
   candidates,
   exclusionReason,
@@ -50,7 +50,8 @@ const arg = (name, def) => {
   return a ? Number(a.slice(name.length + 3)) : def;
 };
 const MAX_LEMMAS = arg('lemmas', 30000);
-const MAX_BYTES = arg('max-kb', 1536) * 1024;
+// 1560 KB ≈ 1.6 MB: grouped meanings ("a, b; c") made entries a little longer than the old 1536.
+const MAX_BYTES = arg('max-kb', 1560) * 1024;
 const FILL_POS = new Set(['noun', 'verb', 'adj']);
 const MAX_SEPARABLE = 3;
 const MIN_PIECE = 3000;
@@ -177,7 +178,6 @@ function toEntries(groups, levels, presetTr) {
   let filled = 0;
   for (const g of groups) {
     const w = g.word;
-    const join = (xs) => (xs ?? []).filter(Boolean).slice(0, 3).join(', ');
     g.entry = {
       term: w.term,
       pos: w.pos,
@@ -186,7 +186,8 @@ function toEntries(groups, levels, presetTr) {
       praeteritum: w.praeteritum,
       partizip2: w.partizip2,
       auxiliary: w.auxiliary,
-      tr: { ru: join(w.tr.ru), en: join(w.tr.en) },
+      // Meanings by "; ", synonyms by ", " (as in public/levels).
+      tr: { ru: formatMeanings(w.tr.ru), en: formatMeanings(w.tr.en) },
       rank: g.rank,
     };
     const level = levels.get(g.id);

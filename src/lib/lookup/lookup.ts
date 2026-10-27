@@ -4,6 +4,7 @@ import { db } from '../db/schema';
 import { saveCard } from '../db/repo';
 import { parseGermanInput, type ParsedTerm } from '../german/parseTerm';
 import type { WikiEntry } from './wiktionary';
+import { formatMeanings, previewOf } from './meanings';
 import { googlePos, googleTranslate, isAbortError, type DictEntry, type GoogleResult } from './google';
 import { isCooling, runChainDetailed, type Provider, type ProviderId } from '../sources/chain';
 import { localPrefix, localWord } from '../sources/providers/local';
@@ -32,6 +33,8 @@ export class SourceUnavailableError extends Error {
   }
 }
 
+/** Bump when the shape of cached results changes (v2: translations grouped by meaning). */
+const CACHE_VERSION = 'v2';
 const DAY = 24 * 60 * 60 * 1000;
 const FOUND_TTL = 30 * DAY;
 const NOT_FOUND_TTL = DAY;
@@ -49,13 +52,16 @@ const unique = (xs: string[]) => [...new Set(xs.map((x) => x.trim()).filter(Bool
 
 const POS_LABEL: Record<Pos, string> = { noun: 'noun', verb: 'verb', adj: 'adjective', other: '' };
 
-/** Google dictionary alternatives (up to 3, preferring the matching part of speech), else the main translation. */
+/**
+ * Google dictionary alternatives (up to 3, preferring the matching part of speech), else the
+ * main translation. Google gives no meaning information, so its words are one meaning.
+ */
 function googleWordTranslation(g: GoogleResult, pos?: Pos): string {
   if (g.dict.length) {
     const label = pos ? POS_LABEL[pos] : '';
     const ordered: DictEntry[] = [...g.dict.filter((d) => d.pos === label), ...g.dict.filter((d) => d.pos !== label)];
-    const terms = unique(ordered.flatMap((d) => d.terms)).slice(0, 3);
-    if (terms.length) return terms.join(', ');
+    const terms = formatMeanings([unique(ordered.flatMap((d) => d.terms))]);
+    if (terms) return terms;
   }
   return lowerFirst(g.text.trim());
 }
@@ -66,9 +72,6 @@ function googleKnows(g: GoogleResult, term: string): boolean {
   const out = g.text.trim().toLowerCase();
   return out !== '' && out !== term.toLowerCase();
 }
-
-/** First two meanings of an offline-dictionary translation, for suggestion previews. */
-const previewOf = (tr: string | undefined) => (tr ?? '').split(/,\s*/).filter(Boolean).slice(0, 2).join(', ');
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
@@ -276,7 +279,7 @@ async function fromLocal(hit: LocalHit, parsed: ParsedTerm, lang: Lang, trace: T
   const same = wiki && (e.pos === 'other' || wiki.pos === e.pos) ? wiki : null;
   const pos: Pos = e.pos !== 'other' ? e.pos : (same?.pos ?? 'other');
 
-  let translation = localTr || (same ? unique(same.translations[lang]).slice(0, 4).join(', ') : '');
+  let translation = localTr || (same ? formatMeanings(same.translations[lang]) : '');
   if (!translation) {
     const t = await translateWord(e.term, lang, pos, trace, signal);
     translation = t.text;
@@ -331,7 +334,7 @@ async function fromWiki(details: WikiDetails, parsed: ParsedTerm, lang: Lang, tr
 
   const { entry, lemmaOf } = details;
   let complete = true;
-  let translation = unique(entry.translations[lang]).slice(0, 4).join(', ');
+  let translation = formatMeanings(entry.translations[lang]);
   if (!translation) {
     const t = await translateWord(entry.title, lang, entry.pos, trace, signal);
     translation = t.text;
@@ -393,7 +396,7 @@ async function lookupWithCache(input: string, lang: Lang, signal?: AbortSignal):
   const parsed = parseGermanInput(input.normalize('NFC'));
   const none = { result: null, via: null, complete: true, detailsMissing: false, refused: false };
   if (!parsed.term) return { ...none, fromCache: true };
-  const key = `${lang}:${parsed.term}`;
+  const key = `${CACHE_VERSION}:${lang}:${parsed.term}`;
   const cached = await readCache(key);
   if (cached.hit) return { ...none, result: cached.result, via: cached.via, fromCache: true };
 
@@ -449,6 +452,7 @@ export async function suggest(prefix: string, lang: Lang, signal?: AbortSignal):
         const words = keep(entries.map((e) => e.term));
         if (!words) return null;
         return words.map((word) => {
+          // "последствие; серия" for a word with several meanings, else two synonyms.
           const preview = previewOf(entries.find((e) => e.term === word)?.tr[lang]);
           return preview ? { word, preview } : { word };
         });

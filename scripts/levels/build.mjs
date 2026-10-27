@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDict } from './lib/dict.mjs';
+import { formatMeanings } from './lib/extract.mjs';
 import { candidates, exclusionReason, lemmaCounts, parseFrequency, rankLemmas } from './lib/rank.mjs';
 import { Translator } from './lib/google.mjs';
 import { buildLevels, topicOf } from './lib/levels.mjs';
@@ -82,7 +83,7 @@ async function main() {
   if (STAGE === 'rank') {
     const lines = ranked.map(({ key, count }, i) => {
       const w = dict.lemmas[key];
-      return `${i + 1}\t${key}\t${count}\t${w.genders.join('')}\t${w.plural}\t${w.tr.en.slice(0, 3).join(', ')}\t${w.tr.ru.slice(0, 3).join(', ')}`;
+      return `${i + 1}\t${key}\t${count}\t${w.genders.join('')}\t${w.plural}\t${formatMeanings(w.tr.en)}\t${formatMeanings(w.tr.ru)}`;
     });
     fs.writeFileSync(cachePath('ranked.tsv'), lines.join('\n'));
     console.log(`ranked.tsv: ${ranked.length}`);
@@ -105,7 +106,9 @@ async function main() {
         // An earlier run stored dictionary alternatives per word+pos; prefer those when present.
         const alt = gt.cache[`${lang}|w|${w.term}|${w.rawPos}`];
         const list = Array.isArray(alt) && alt.length ? alt : got[i] ? [got[i].toLowerCase()] : [];
-        w.tr[lang] = list.filter((t) => t && t.toLowerCase() !== w.term.toLowerCase()).slice(0, 3);
+        // Google has no meaning information: its words are one meaning.
+        const words = list.filter((t) => t && t.toLowerCase() !== w.term.toLowerCase()).slice(0, 3);
+        w.tr[lang] = words.length ? [words] : [];
       });
     }
   }

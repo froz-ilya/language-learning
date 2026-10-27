@@ -1,0 +1,168 @@
+{{Siehe auch|[[folge]]}}
+== Folge ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Substantiv|Deutsch}}, {{f}} ===
+
+{{Deutsch Substantiv Übersicht
+|Genus=f
+|Nominativ Singular=Folge
+|Nominativ Plural=Folgen
+|Genitiv Singular=Folge
+|Genitiv Plural=Folgen
+|Dativ Singular=Folge
+|Dativ Plural=Folgen
+|Akkusativ Singular=Folge
+|Akkusativ Plural=Folgen
+}}
+
+{{Worttrennung}}
+:Fol·ge, {{Pl.}} Fol·gen
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ˈfɔlɡə}}
+:{{Hörbeispiele}} {{Audio|De-Folge.ogg}}, {{Audio|De-at-Folge.ogg|spr=at}}
+
+{{Bedeutungen}}
+:[1] [[Ergebnis]] oder [[Wirkung]] einer [[Handlung]] oder eines [[Geschehen]]s
+:[2] [[Reihe]] von aufeinanderfolgenden Dingen oder Ereignissen
+:[3] Teil einer [[Serie]], insbesondere bei Büchern, Zeitschriften, Fernsehserien und Hörspielen
+:[4] {{K|Mathematik}} in ihrer [[Reihenfolge]] festgelegte Liste von Zahlen; genauer: eine Abbildung der natürlichen Zahlen auf eine andere Menge
+
+{{Herkunft}}
+:[[mittelhochdeutsch]] ''{{Ü|gmh|volge}}'', [[althochdeutsch]] als Teil des Wortes ''{{Ü|goh|selbfolga}}'' ‚[[Partei]]‘ belegt<ref>{{Literatur | Autor=Wolfgang Pfeifer [Leitung] | Titel=Etymologisches Wörterbuch des Deutschen | Auflage=2. durchgesehene und erweiterte | Verlag=Deutscher Taschenbuch Verlag | Ort=München | Jahr=1993 | ISBN=3-423-03358-4}}, Stichwort „folgen“.</ref> (11.&nbsp;Jahrhundert).<ref name="duden-etym">{{Lit-Duden: Herkunftswörterbuch | A=3}}, Stichwort: „folgen“.</ref>
+
+{{Synonyme}}
+:[1] [[Konsequenz]]
+:[2] [[Abfolge]]
+:[3] [[Band]], [[Ausgabe]], [[Episode]]
+:[4] [[Sequenz]]
+
+{{Unterbegriffe}}
+:[1] [[Brandfolge]], [[Erbfolge]], [[Klimafolge]], [[Kriegsfolge]], [[Rechtsfolge]], [[Spätfolge]], [[Umweltfolge]], [[Unfallfolge]], [[Vertragsfolge]]
+:[2] [[Buchstabenfolge]], [[Graphemfolge]], [[Lautfolge]], [[Satzfolge]], [[Schlagfolge]], [[Silbenfolge]], [[Tempusfolge]], [[Tonfolge]], [[Versfolge]], [[Wortfolge]], [[Zeichenfolge]], [[Zeitenfolge]]
+:[2] [[Essensfolge]], [[Menüfolge]], [[Speisefolge]]
+:[2] [[Aufeinanderfolge]], [[Bilderfolge]], [[Bildfolge]], [[Ereignisfolge]], [[Geschlechterfolge]], [[Herzschlagfolge]], [[Klangfolge]], [[Melodienfolge]], [[Programmfolge]], [[Reihenfolge]], [[Schrittfolge]], [[Schussfolge]], [[Sendefolge]], [[Szenenfolge]], [[Wagenfolge]], [[Zeitfolge]]
+:[4] [[Cauchy-Folge]], [[Fibonacci-Folge]], [[Funktionenfolge]], [[Nullfolge]], [[Rangfolge]], [[Zahlenfolge]]
+:[?] [[Anerbenfolge]], [[Arbeitsfolge]], [[Fruchtfolge]], [[Fußfolge]], [[Gedankenfolge]], [[Geschlechtsfolge]], [[Hörfolge]], [[Jagdfolge]], [[Langzeitfolge]], [[Lehnfolge]], [[Nebenfolge]], [[Schichtfolge]], [[Schlussfolge]], [[Spielfolge]], [[Stufenfolge]], [[Todesfolge]], [[Zugfolge]]
+
+{{Beispiele}}
+:[1] [Landwirtschaft:] „Die Branche ist von den ''Folgen'' des Klimawandels unmittelbar betroffen.“<ref>{{Per-Deutschlandradio | Online=https://www.deutschlandfunk.de/ernteausfaelle-landwirtschaft-duerre-klimawandel-klimakrise-hitze-bauern-100.html | Autor= | Titel=Ernteausfälle wegen der Dürre – Landwirtschaft im Klimastress | TitelErg= | Datum=2026-08-18 | Zugriff=2026-08-28 | Kommentar=Deutschlandfunk/Köln }}</ref>
+:[1] „Aber die Grenzsprengung auf der wirtschaftlichen Seite hat zwangsweise die Grenzsprengung auf der sozial-gesellschaftlichen Seite zur ''Folge''.“<ref>{{Literatur | Autor= Klaus Koziol | Titel= Gerade jetzt!: Nie war das Christentum wichtiger als heute| Verlag= Patmos| Ort= Ostfildern| Jahr= 2013}}, o.S.</ref>
+:[1] „Sie haben wohl davon gehört, wie er 1997 die ''Folgen'' der großen Oderflut linderte, wie er sich einen Namen als Krisenmanager machte und bald von vielen ‚Der Deichgraf’ genannt wurde.“<ref>{{Literatur | Autor= Damir Fras, Rouven Schellenberger, Andrea Beyerlein | Titel= Für den Westen was Neues | Verlag=Berliner Zeitung| Ort=Berlin | Jahr= 03.11.2005}}</ref>
+:[1] „Ihr Tod hatte ''Folgen'', die mich nötigten, eine andere Lebensweise zu beginnen.“<ref>{{Literatur | Autor= Giacomo Casanova |Titel= Geschichte meines Lebens, herausgegeben und eingeleitet von Erich Loos, Band 1 | Übersetzer= Heinz von Sauter | Verlag= Propyläen | Ort=Berlin | Jahr=1985 (Neuausgabe) | Seiten= 200.}}</ref>
+:[1] Schulden waren die ''Folge'' der zu hohen Ausgaben.
+:[2] Nach einer ''Folge'' von mysteriösen Zwischenfällen wurde ein Ermittler mit deren Aufklärung beauftragt.
+:[3] Nach der dritten ''Folge'' wurde die Fernsehserie mangels Zuschauerinteresses abgesetzt.
+:[4] Eine in ihrer Anordnung festgelegte Auflistung von endlich oder unendlich vielen Zahlen heißt in der Mathematik Zahlenfolge oder kurz ''Folge.'' Die einzelnen Zahlen, aus denen die ''Folge'' zusammengesetzt ist, heißen die Glieder der ''Folge.''
+
+{{Charakteristische Wortkombinationen}}
+:''Folge'' [[leisten]], zur ''Folge'' [[haben]], in der ''Folge''
+
+{{Wortbildungen}}
+:''[[Adjektiv]]e:'' [[folgenlos]], [[folgenreich]], [[folgenschwer]]
+:''[[Substantiv]]e:'' [[Folgebau]], [[Folgeeinrichtung]], [[Folgeerscheinung]], [[Folgejahr]], [[Folgekosten]], [[Folgelasten]], [[Folgesatz]], [[Folgeschaden]], [[Folgeschritt]], [[Folgetreffen]], [[Folgezeit]]
+:''[[Verb]]:'' [[folgen]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=Ergebnis oder Wirkung einer Handlung oder eines Geschehens|Ü-Liste=
+*{{en}}: {{Ü|en|consequence}}
+*{{eo}}: {{Ü|eo|sekvo}}
+*{{fr}}: {{Ü|fr|conséquence}} {{f}}, {{Ü|fr|résultat}} {{m}}
+*{{el}}: {{Üt|el|επακόλουθο|epakóloutho}} {{n}}, {{Üt|el|συνέπεια|synépia}} {{f}}
+*{{it}}: {{Ü|it|conseguenza}} {{f}}
+*{{ca}}: {{Ü|ca|seqüela}}, {{Ü|ca|conseqüència}} {{f}}
+*{{no}}: {{Ü|no|følge}}, {{Ü|no|konsekvens}}
+*{{pl}}: {{Ü|pl|skutek}} {{m}}, {{Ü|pl|konsekwencja}} {{f}}
+*{{pt}}: {{Ü|pt|consequência}} {{f}}, {{Ü|pt|sucessão}} {{f}}, {{Ü|pt|sequência}} {{f}}
+*{{ru}}: {{Üt|ru|последствие}} {{n}}
+*{{sv}}: {{Ü|sv|påföljd}} {{u}}, {{Ü|sv|följd}}
+*{{es}}: {{Ü|es|consecuencia}}
+*{{cs}}: {{Ü|cs|následek}} {{m}}, {{Ü|cs|důsledek}} {{m}}
+*{{tr}}: {{Ü|tr|akibet}}
+*{{hu}}: {{Ü|hu|következmény}}
+|Dialekttabelle=
+*Alemannisch:
+*Bairisch: Foige
+*Ostmitteldeutsch:
+}}
+
+{{Ü-Tabelle|2|G=Reihe von aufeinanderfolgenden Dingen oder Ereignissen|Ü-Liste=
+*{{en}}: {{Ü|en|order}}
+*{{eo}}: {{Ü|eo|vico}}
+*{{fr}}: {{Ü|fr|série}} {{f}}, {{Ü|fr|succession}} {{f}}
+*{{el}}: {{Üt|el|σειρά|sirá}} {{f}}, {{Üt|el|διαδοχή|diadochí}} {{f}}
+*{{it}}: {{Ü|it|sequenza}} {{f}}, {{Ü|it|catena}} {{f}}, {{Ü|it|successione}} {{f}}
+*{{ca}}: {{Ü|ca|successió}} {{f}}
+*{{ku}}:
+**{{kmr}}: {{Ü|kmr|rêz}} {{f}}
+*{{no}}: {{Ü|no|rekke}}
+*{{pl}}: {{Ü|pl|ciąg}} {{m}}, {{Ü|pl|seria}} {{f}}
+*{{ru}}: {{Üt|ru|череда}} {{f}}, {{Üt|ru|ряд}} {{m}}
+*{{sv}}: {{Ü|sv|följd}}
+*{{es}}: {{Ü|es|sucesión}} {{f}}
+*{{cs}}: {{Ü|cs|seriál}} {{m}}
+*{{tr}}: {{Ü|tr|devam}}
+*{{hu}}: {{Ü|hu|egymásután}}, {{Ü|hu|sorozat}}
+|Dialekttabelle=
+*Alemannisch:
+*Bairisch: Foige
+*Ostmitteldeutsch:
+}}
+
+{{Ü-Tabelle|3|G=Teil einer Serie, insbesondere bei Büchern, Zeitschriften, Fernsehserien und Hörspielen|Ü-Liste=
+*{{en}}: {{Ü|en|episode}}
+*{{fi}}: {{Ü|fi|osa}}, ''Fernsehserie:'' {{Ü|fi|jakso}}
+*{{fr}}: {{Ü|fr|épisode}} {{m}}
+*{{el}}: {{Üt|el|επεισόδιο|episódio}} {{n}}
+*{{it}}: {{Ü|it|episodio}} {{m}}, {{Ü|it|puntata}} {{f}}
+*{{ca}}: {{Ü|ca|episodi}} {{m}}
+*{{ku}}:
+**{{kmr}}: {{Ü|kmr|beş}} {{f}}
+*{{nl}}: {{Ü|nl|vervolg}}
+*{{no}}: {{Ü|no|bind}}, {{Ü|no|utgave}}, {{Ü|no|episode}}
+*{{pl}}: {{Ü|pl|odcinek}} {{m}}
+*{{pt}}: {{Ü|pt|episódio}} {{m}}
+*{{ru}}: {{Üt|ru|эпизод}} {{m}}
+*{{sv}}: {{Ü|sv|del}}, ''Fernsehserie:'' {{Ü|sv|avsnitt}}
+*{{es}}: {{Ü|es|episodio}} {{m}}
+*{{cs}}: {{Ü|cs|seriál}} {{m}}
+*{{tr}}: {{Ü|tr|bölüm}}
+*{{hu}}: {{Ü|hu|epizód}}, {{Ü|hu|rész}}
+|Dialekttabelle=
+*Alemannisch:
+*Bairisch: Foige
+*Ostmitteldeutsch:
+}}
+
+{{Ü-Tabelle|4|G=Mathematik: in ihrer Reihenfolge festgelegte Liste von Zahlen|Ü-Liste=
+*{{en}}: {{Ü|en|sequence}}
+*{{eo}}: {{Ü|eo|vico}}
+*{{fr}}: {{Ü|fr|suite}} {{f}}
+*{{it}}: {{Ü|it|successione}} {{f}}, {{Ü|it|sequenza infinita}} {{f}}, {{Ü|it|stringa infinita}} {{f}}
+*{{ca}}: {{Ü|ca|successió}} {{f}}
+*{{ku}}:
+**{{kmr}}: {{Ü|kmr|rêz}} {{f}}
+*{{no}}: {{Ü|no|tallfølge}}
+*{{pl}}: {{Ü|pl|ciąg}} {{m}}
+*{{ru}}: {{Üt|ru|последовательность}} {{f}}
+*{{sv}}: {{Ü|sv|talföljd}}
+*{{es}}: {{Ü|es|sucesión}} {{f}}
+*{{cs}}: {{Ü|cs|řada}} {{f}}
+*{{tr}}: {{Ü|tr|dizi}}
+*{{hu}}: {{Ü|hu|sorozat}}
+|Dialekttabelle=
+*Alemannisch:
+*Bairisch: Foige
+*Ostmitteldeutsch:
+}}
+{{Referenzen}}
+:[1–4] {{Wikipedia}}
+:[2] {{Wikipedia|Abfolge}}
+:[4] {{Wikipedia|Folge (Mathematik)}}
+:[1, 2] {{Ref-Grimm}}
+:[1, 2] {{Ref-DWDS}}
+:[1–4] {{Ref-UniLeipzig}}
+:[1, 2] {{Ref-Duden}}
+
+{{Quellen}}
+
+{{Ähnlichkeiten 1|[[Volk]]e}}

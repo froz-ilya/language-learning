@@ -15,6 +15,7 @@
   import { deleteCard, emptyCard, saveCard } from '../lib/db/repo';
   import { isHard, setKnown, statusOf, STATUS_LABELS, type WordStatus } from '../lib/progress';
   import { parseGermanInput } from '../lib/german/parseTerm';
+  import { joinMeanings, splitMeanings } from '../lib/german/meanings';
   import { ARTICLE, displayPlural, displayVerbForms, speakableTerm } from '../lib/german/articles';
   import { lookupWordWithSource, mergeIntoCard, suggest, type Suggestion } from '../lib/lookup/lookup';
   import { PROVIDER_LABELS, type ProviderId } from '../lib/sources/chain';
@@ -98,6 +99,12 @@
   let focused = $state(false);
   let suggestTimer: ReturnType<typeof setTimeout> | undefined;
   let suggestCtrl: AbortController | undefined;
+  let suggestEl = $state<HTMLElement>();
+  /** A finger / mouse is down on a suggestion: the field's blur must not act before the pick. */
+  let picking = false;
+  /** The field's blur is handled a moment later, so a tap on a suggestion can win (see afterBlur). */
+  let blurTimer: ReturnType<typeof setTimeout> | undefined;
+  const BLUR_GRACE_MS = 120;
 
   function stopSuggest() {
     clearTimeout(suggestTimer);
@@ -121,6 +128,7 @@
     if (card.translation === auto.translation) card.translation = '';
     if (JSON.stringify(card.examples) === auto.examples) card.examples = [];
     auto = { translation: '', examples: '' };
+    clearMeanings();
     filled = false;
   }
 
@@ -148,15 +156,61 @@
   }
 
   function pickSuggestion(s: Suggestion) {
+    // The tap may have blurred the field already (iOS): its deferred blur must not look up the typed text.
+    picking = false;
+    clearTimeout(blurTimer);
     applyParsed(); // keep a typed article ("der Ti" → m)
     card.term = s.word;
     stopSuggest();
-    lastLookedUp = s.word; // the blur below must not start a second lookup
-    if (!isNew) germanEl?.blur(); // quick add keeps the keyboard up for the next word
+    lastLookedUp = s.word; // a blur below must not start a second lookup
+    if (isNew) {
+      germanEl?.focus(); // quick add keeps the keyboard up for the next word (inside the tap, for iOS)
+    } else {
+      germanEl?.blur();
+      focused = false;
+    }
     void runLookup();
   }
 
+  /**
+   * Suggestion buttons keep the field focused. iOS may still blur it on a tap, so `picking` also
+   * holds back the deferred blur until the click arrives or the pointer is released elsewhere.
+   */
+  function onSuggestionPointerdown(e: PointerEvent) {
+    picking = true;
+    keepFocus(e);
+  }
+
+  /** Released without a pick (finger slid off, list scrolled): finish the held-back blur. */
+  function onWindowPointerEnd() {
+    if (!picking) return;
+    clearTimeout(blurTimer);
+    blurTimer = setTimeout(() => {
+      picking = false;
+      afterBlur();
+    }, BLUR_GRACE_MS);
+  }
+
+  function onGermanFocus() {
+    clearTimeout(blurTimer);
+    focused = true;
+  }
+
   function onGermanBlur() {
+    clearTimeout(blurTimer);
+    blurTimer = setTimeout(afterBlur, BLUR_GRACE_MS);
+  }
+
+  /** Keyboard focus left the suggestion list (Tab): handle it like leaving the field. */
+  function onSuggestionsFocusout(e: FocusEvent) {
+    if (e.relatedTarget instanceof Node && suggestEl?.contains(e.relatedTarget)) return;
+    clearTimeout(blurTimer);
+    blurTimer = setTimeout(afterBlur, BLUR_GRACE_MS);
+  }
+
+  function afterBlur() {
+    const active = document.activeElement;
+    if (picking || active === germanEl || (active && suggestEl?.contains(active))) return;
     focused = false;
     applyParsed();
     // Leaving the field with a fresh word on a new card: look it up automatically.
@@ -199,6 +253,7 @@
       return;
     }
     stopSuggest();
+    clearMeanings();
     lookupCtrl?.abort();
     const ctrl = new AbortController();
     lookupCtrl = ctrl;
@@ -232,6 +287,7 @@
       // Existing card: only fill what's empty.
       const merged = mergeIntoCard($state.snapshot(card) as Card, r);
       card = { ...merged, id: card.id, setId: card.setId };
+      if (r.translation && card.translation.trim() === r.translation.trim()) offerMeanings();
       return;
     }
     // New card: grammar comes from the dictionary; free text only replaces what the user didn't type.
@@ -245,6 +301,7 @@
     if (r.translation && (!card.translation.trim() || card.translation === auto.translation)) {
       card.translation = r.translation;
       auto.translation = r.translation;
+      offerMeanings();
     }
     const examplesNow = JSON.stringify(card.examples);
     if (r.examples.length && (!card.examples.length || examplesNow === auto.examples)) {
@@ -257,7 +314,42 @@
     lookupCtrl?.abort();
     suggestCtrl?.abort();
     clearTimeout(suggestTimer);
+    clearTimeout(blurTimer);
   });
+
+  // ---------- Meanings ----------
+
+  /** Meanings of the looked-up translation ("последствие, результат; серия, эпизод; ряд"). */
+  let meaningOptions = $state<string[][]>([]);
+  let meaningPicked = $state<boolean[]>([]);
+  const meaningValue = $derived(joinMeanings(meaningOptions.filter((_, i) => meaningPicked[i])));
+  /** Chips only while the field holds their selection: a hand edit hides them and is never overwritten. */
+  const showMeanings = $derived(meaningOptions.length > 1 && card.translation === meaningValue);
+
+  /** The lookup just put its translation into the field: offer its meanings as chips, all selected. */
+  function offerMeanings() {
+    const meanings = splitMeanings(card.translation);
+    if (meanings.length < 2) return clearMeanings();
+    meaningOptions = meanings;
+    meaningPicked = meanings.map(() => true);
+    const value = joinMeanings(meanings);
+    if (card.translation === auto.translation) auto.translation = value;
+    card.translation = value;
+  }
+
+  function clearMeanings() {
+    meaningOptions = [];
+    meaningPicked = [];
+  }
+
+  function toggleMeaning(i: number) {
+    if (meaningPicked[i] && meaningPicked.filter(Boolean).length === 1) return; // keep at least one
+    const wasAuto = card.translation === auto.translation;
+    meaningPicked[i] = !meaningPicked[i];
+    card.translation = meaningValue;
+    // Still the dictionary's text: a re-lookup or the next word may replace it.
+    if (wasAuto) auto.translation = card.translation;
+  }
 
   // ---------- Form helpers ----------
 
@@ -347,6 +439,7 @@
     card = emptyCard(card.setId);
     filled = false;
     auto = { translation: '', examples: '' };
+    clearMeanings();
     lookupState = 'idle';
     lemmaNote = '';
     via = null;
@@ -380,6 +473,26 @@
     if (focused) e.preventDefault();
   };
 </script>
+
+<svelte:window onpointerup={onWindowPointerEnd} onpointercancel={onWindowPointerEnd} />
+
+{#snippet meaningChips()}
+  <div class="meaning-pick" transition:slide={{ duration: dur(180) }}>
+    <div class="meaning-chips" role="group" aria-label="Meanings">
+      {#each meaningOptions as m, i}
+        <button
+          type="button"
+          class="chip meaning"
+          class:active={meaningPicked[i]}
+          aria-pressed={meaningPicked[i]}
+          onpointerdown={keepFocus}
+          onclick={() => toggleMeaning(i)}>{m.join(', ')}</button
+        >
+      {/each}
+    </div>
+    <div class="small muted">Tap to keep only the meanings you need</div>
+  </div>
+{/snippet}
 
 <div class="page">
   <Header title={isNew ? 'Add word' : 'Edit word'} subtitle={setName} {backTo}>
@@ -417,7 +530,7 @@
               bind:this={germanEl}
               bind:value={card.term}
               oninput={onGermanInput}
-              onfocus={() => (focused = true)}
+              onfocus={onGermanFocus}
               onblur={onGermanBlur}
               onkeydown={onGermanKeydown}
               placeholder={isNew ? 'Type a word: Haus, gehen, schön…' : 'der Tisch, gehen, schön…'}
@@ -449,14 +562,20 @@
         </div>
         <UmlautBar input={germanEl} />
         {#if suggestions.length && focused}
-          <div class="list suggestions" role="listbox" transition:slide={{ duration: dur(150) }}>
+          <div
+            class="list suggestions"
+            role="listbox"
+            bind:this={suggestEl}
+            onfocusout={onSuggestionsFocusout}
+            transition:slide={{ duration: dur(150) }}
+          >
             {#each suggestions as s}
               <button
                 type="button"
                 class="list-item"
                 role="option"
                 aria-selected="false"
-                onpointerdown={(e) => e.preventDefault()}
+                onpointerdown={onSuggestionPointerdown}
                 onclick={() => pickSuggestion(s)}
               >
                 <span class="title">{s.word}</span>
@@ -497,6 +616,7 @@
             {:else}
               <div class="p-tr muted">No translation yet</div>
             {/if}
+            {#if showMeanings && !showDetails}{@render meaningChips()}{/if}
             {#if firstExample}
               <div class="p-ex">
                 <div lang="de">{firstExample.de}</div>
@@ -648,6 +768,7 @@
           <div class="field">
             <label for="tr">Translation</label>
             <input id="tr" class="input" bind:this={translationEl} bind:value={card.translation} placeholder="Translation ({lang})" lang={settings.lang} />
+            {#if showMeanings}{@render meaningChips()}{/if}
           </div>
 
           <div class="field">
@@ -938,5 +1059,33 @@
   }
   .via {
     font-size: 12px;
+  }
+
+  /* ---------- Meanings ---------- */
+  .meaning-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .meaning-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .meaning {
+    min-height: 34px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .meaning.active {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--text);
   }
 </style>

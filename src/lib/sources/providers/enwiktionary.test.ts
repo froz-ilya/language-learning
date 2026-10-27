@@ -24,7 +24,8 @@ describe('parseEnDefinitions', () => {
     expect(parseEnDefinitions(sample('Haus'))).toEqual({
       pos: 'noun',
       glosses: ['house, building', 'home', 'theatre'],
-      translation: 'house, building, home',
+      // One meaning per definition.
+      translation: 'house, building; home; theatre',
     });
   });
 
@@ -33,7 +34,7 @@ describe('parseEnDefinitions', () => {
     expect(g.pos).toBe('verb');
     expect(g.glosses.slice(0, 2)).toEqual(['to go, to walk', 'to leave']);
     expect(g.glosses.length).toBeLessThanOrEqual(3);
-    expect(g.translation).toBe('go, walk, leave');
+    expect(g.translation).toBe('go, walk; leave; take off');
   });
 
   it('ignores form-of definitions (inflected forms)', () => {
@@ -60,7 +61,7 @@ describe('enWiktionaryGlosses', () => {
       url.endsWith('/Haus') ? json(sample('Haus')) : json({ status: 404, type: 'Internal error' }, 404),
     );
     vi.stubGlobal('fetch', fetch);
-    expect((await enWiktionaryGlosses.run('haus', signal()))!.translation).toBe('house, building, home');
+    expect((await enWiktionaryGlosses.run('haus', signal()))!.translation).toBe('house, building; home; theatre');
     expect(fetch.mock.calls.map(([u]) => u)).toEqual([
       'https://en.wiktionary.org/api/rest_v1/page/definition/haus',
       'https://en.wiktionary.org/api/rest_v1/page/definition/Haus',

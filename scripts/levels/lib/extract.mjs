@@ -119,9 +119,13 @@ export function cleanTranslation(word, lang) {
   let w = String(word ?? '')
     .split(/\s*[,;]\s+|\s+,\s*/)[0]
     .replace(/\([^)]*\)/g, ' ')
+    // German glosses quoted inside a translation: "мочь „dürfen“" → "мочь".
+    .replace(/„[^“”"]*[“”"]?/g, ' ')
     .replace(/\[[^\]]*\]/g, ' ')
-    .replace(/[!¡?¿]+$/g, '')
     .replace(/\s+/g, ' ')
+    // Separators left behind by removed notes: "make do (with) ," → "make do".
+    .replace(/^[\s,;:]+|[\s,;:]+$/g, '')
+    .replace(/[!¡?¿]+$/g, '')
     .trim();
   if (lang === 'en') w = w.replace(/^to\s+/i, '');
   // Russian stress marks ("заве́дующий").
@@ -145,14 +149,96 @@ export function marginalSenses(entry) {
   return out;
 }
 
+/** Caps of a translation string: meanings, synonyms per meaning, synonyms of a single meaning. */
+export const MAX_MEANINGS = 3;
+export const MAX_SYNONYMS = 2;
+export const MAX_SINGLE = 3;
+
+const tokens = (w) => w.toLowerCase().split(/[\s\-–/]+/).filter(Boolean);
+
 /**
- * Translations into `lang` for the card, best first. Only the first one or two senses count:
- * the best sense (lowest number, plain register) gives its translations, and sense 2 may add
- * one when it is a plain sense too and the first gave fewer than two. Within a sense, translations without usage labels come
- * first, then those that recur across senses ("go" for gehen), then Wiktionary's order.
- * "Pferd" → horse (not "knight", a colloquial chess sense); "kommen" never gets "кончить".
+ * Near-duplicate: the same word, or one is a whole-word part of the other ("current" /
+ * "electric current", "ток" / "электрический ток").
  */
-export function translationsOf(entry, lang, max = 3) {
+export function similarWord(a, b) {
+  const x = tokens(a).join(' ');
+  const y = tokens(b).join(' ');
+  return x === y || ` ${x} `.includes(` ${y} `) || ` ${y} `.includes(` ${x} `);
+}
+
+/**
+ * Merge meaning lists (each string[][], best first) into one: meanings in the given order,
+ * words already used by an earlier meaning dropped, a meaning left empty skipped. At most
+ * `maxMeanings` meanings of at most `maxSynonyms` words; a single meaning keeps `maxSingle`.
+ */
+export function limitMeanings(meanings, { maxMeanings = MAX_MEANINGS, maxSynonyms = MAX_SYNONYMS, maxSingle = MAX_SINGLE } = {}) {
+  const out = [];
+  const used = [];
+  for (const m of meanings) {
+    if (out.length >= maxMeanings) break;
+    const words = [];
+    for (const w of m ?? []) {
+      // A word never contains the separators.
+      const t = String(w ?? '')
+        .replace(/[;,]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!t || used.some((u) => similarWord(u, t)) || words.some((u) => similarWord(u, t))) continue;
+      words.push(t);
+    }
+    if (!words.length) continue;
+    out.push(words.slice(0, maxSingle));
+    // Only the words that stay count as used, so a dropped synonym can still start a meaning.
+    used.push(...words.slice(0, out.length === 1 ? maxSingle : maxSynonyms));
+  }
+  return out.length > 1 ? out.map((m) => m.slice(0, maxSynonyms)) : out;
+}
+
+/** [["последствие", "результат"], ["серия"]] → "последствие, результат; серия" (same as joinMeanings in src/lib/german/meanings.ts). */
+export function formatMeanings(meanings) {
+  return limitMeanings(meanings ?? [])
+    .map((m) => m.join(', '))
+    .join('; ');
+}
+
+/** "a, b; c" → [["a", "b"], ["c"]] (same as splitMeanings in src/lib/german/meanings.ts). */
+export function parseMeanings(text) {
+  return String(text ?? '')
+    .split(';')
+    .map((m) =>
+      m
+        .split(',')
+        .map((w) => w.trim())
+        .filter(Boolean),
+    )
+    .filter((m) => m.length);
+}
+
+/** Sense number → how many languages Wiktionary translates that sense into (its weight). */
+function senseWeights(entry) {
+  const langs = new Map();
+  for (const t of entry.translations ?? []) {
+    const n = senseNumber(t.sense_index);
+    if (!langs.has(n)) langs.set(n, new Set());
+    langs.get(n).add(t.lang_code);
+  }
+  return new Map([...langs].map(([n, s]) => [n, s.size]));
+}
+
+/**
+ * Translations into `lang` grouped by meaning, best first: string[][] (meanings → synonyms),
+ * e.g. Folge → [["последствие"], ["череда", "ряд"], ["эпизод"]].
+ *
+ * Meaning 1 comes from the best sense (lowest number with a plain register; a labelled one only
+ * when nothing else is translated). Other plain senses add a meaning when they matter: Wiktionary
+ * translates them into at least `minShare` as many languages as the first one ("Zug": train,
+ * draught, move — not "groove"); sense 2 always may when sense 1 gave a single word. The heaviest such senses are kept, in Wiktionary's sense order;
+ * a sense whose words were all used already adds nothing ("Haus" 2 is дом again). Register-
+ * labelled senses never add a meaning: "Pferd" → horse (not "knight"), "kommen" never gets
+ * "кончить". Within a sense, translations without usage labels come first, then those that
+ * recur across senses ("go" for gehen; first meaning only), then Wiktionary's order.
+ */
+export function translationsOf(entry, lang, { maxMeanings = MAX_MEANINGS, minShare = 0.3 } = {}) {
   const marginal = marginalSenses(entry);
   const bySense = new Map();
   const recur = new Map();
@@ -166,28 +252,41 @@ export function translationsOf(entry, lang, max = 3) {
     bySense.get(n).push({ word, i, bad });
     if (!marginal.has(n)) recur.set(word.toLowerCase(), (recur.get(word.toLowerCase()) ?? 0) + 1);
   });
+  if (!bySense.size) return [];
   const senses = [...bySense.keys()].sort((a, b) => Number(marginal.has(a)) - Number(marginal.has(b)) || a - b);
-  const out = [];
-  const seen = new Set();
-  let first = null;
-  for (const n of senses) {
-    // A second sense only adds to a thin first one ("Mutter" stays мать, мама, not матка).
-    if (first !== null && (n > 2 || marginal.has(n) || out.length >= 2)) break;
-    const items = bySense.get(n).sort(
-      (a, b) => a.bad - b.bad || (recur.get(b.word.toLowerCase()) ?? 0) - (recur.get(a.word.toLowerCase()) ?? 0) || a.i - b.i,
-    );
+  const first = senses[0];
+  // Recurring words lead only the first meaning ("go" for gehen); elsewhere they are the
+  // least specific ones, so Wiktionary's order decides.
+  const rec = (x, n) => (n === first ? (recur.get(x.word.toLowerCase()) ?? 0) : 0);
+  const self = String(entry.word ?? '').toLowerCase();
+  const words = (n) => {
+    const items = bySense.get(n).sort((a, b) => a.bad - b.bad || rec(b, n) - rec(a, n) || a.i - b.i);
     const good = items.filter((x) => !x.bad);
-    if (!good.length && first !== null) continue;
-    for (const { word } of good.length ? good : items) {
-      const k = word.toLowerCase();
-      if (seen.has(k) || out.length >= max) continue;
-      seen.add(k);
-      out.push(word);
+    // Another meaning that is the German word itself ("Reich" → "Reich") says nothing.
+    const list = (good.length ? good : items).map((x) => x.word).filter((x) => n === first || x.toLowerCase() !== self);
+    return [...new Set(list)];
+  };
+  const weight = senseWeights(entry);
+  const w = (n) => weight.get(n) ?? 0;
+  // Sense 2 also counts when sense 1 gave a single word ("Griff": ручка; хват, ухват).
+  const thin = first === 1 && words(first).length < 2;
+  const others = senses
+    .filter((n) => n !== first && !marginal.has(n) && bySense.get(n).some((x) => !x.bad))
+    .filter((n) => w(n) >= minShare * w(first) || (thin && n === 2))
+    .sort((a, b) => w(b) - w(a) || a - b);
+  // Heaviest senses that add new words, then back into sense order.
+  const picked = [first];
+  let meanings = limitMeanings([words(first)]);
+  for (const n of others) {
+    if (picked.length >= maxMeanings) break;
+    const next = [...picked, n].sort((a, b) => a - b);
+    const m = limitMeanings(next.map(words));
+    if (m.length > meanings.length) {
+      picked.push(n);
+      meanings = m;
     }
-    if (first === null) first = n;
-    if (out.length >= max) break;
   }
-  return out;
+  return meanings;
 }
 
 /** True when the main meaning is vulgar/offensive. */
@@ -235,7 +334,7 @@ export function examplesOf(entry, maxLen = 100) {
 /**
  * Compact record of a German lemma entry, or a form-of record, or null (other languages, junk).
  * @returns {{kind:'lemma', word, rawPos, pos, genders, plural, praeteritum, partizip2, auxiliary,
- *   tr:{en:string[],ru:string[]}, examples:string[], forms:string[], offensive:boolean, tags:string[]}
+ *   tr:{en:string[][],ru:string[][]}, examples:string[], forms:string[], offensive:boolean, tags:string[]}
  *   | {kind:'form', word, rawPos, lemmas:string[]} | null}
  */
 export function parseKaikkiEntry(entry) {
@@ -266,6 +365,21 @@ export function parseKaikkiEntry(entry) {
   };
 }
 
+/**
+ * Translations of two homonyms (same word + pos): the first meaning of each, then the rest.
+ * Nouns of another gender ("der Leiter" / "die Leiter") are another word: only a missing
+ * language is filled, as before.
+ */
+function mergeTranslations(a, b, lang) {
+  const x = a.tr[lang];
+  if (!x.length) return b.tr[lang];
+  if (a.pos === 'noun' && a.genders.join('') !== b.genders.join('')) return x;
+  // "Rad" (wheel) + "Rad" (the unit "rad"): a meaning that is the word itself says nothing.
+  const y = b.tr[lang].map((m) => m.filter((w) => w.toLowerCase() !== a.word.toLowerCase()));
+  if (!y.some((m) => m.length)) return x;
+  return limitMeanings([x[0], y[0], ...x.slice(1), ...y.slice(1)]);
+}
+
 /** Merge a later homonym entry (same word + pos) into the first one. */
 export function mergeLemma(a, b) {
   const uniq = (xs) => [...new Set(xs)];
@@ -276,8 +390,8 @@ export function mergeLemma(a, b) {
     praeteritum: a.praeteritum || b.praeteritum,
     partizip2: a.partizip2 || b.partizip2,
     auxiliary: a.auxiliary || b.auxiliary,
-    // A second homonym (Mutter "mother" / Mutter "nut") only fills a missing language.
-    tr: { en: a.tr.en.length ? a.tr.en : b.tr.en, ru: a.tr.ru.length ? a.tr.ru : b.tr.ru },
+    // "Bank" (bench) + "Bank" (bank): скамейка, скамья; банк.
+    tr: { en: mergeTranslations(a, b, 'en'), ru: mergeTranslations(a, b, 'ru') },
     examples: uniq([...a.examples, ...b.examples]),
     forms: uniq([...a.forms, ...b.forms]),
     offensive: a.offensive && b.offensive,

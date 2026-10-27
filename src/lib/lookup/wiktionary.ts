@@ -1,5 +1,6 @@
 import type { Auxiliary, Gender, Lang, Pos } from '../types';
 import { checkResponse, SourceError } from '../sources/chain';
+import { mergeMeanings, pickMeanings, type SenseTranslations } from './meanings';
 
 const API = 'https://de.wiktionary.org/w/api.php';
 
@@ -11,7 +12,11 @@ export interface WikiEntry {
   praeteritum: string;
   partizip2: string;
   auxiliary: Auxiliary;
-  translations: Record<Lang, string[]>;
+  /**
+   * Translations grouped by meaning, best first: meanings → synonyms, e.g. Folge (ru) →
+   * [["последствие"], ["череда", "ряд"], ["эпизод"]]. Format with formatMeanings (./meanings).
+   */
+  translations: Record<Lang, string[][]>;
   examples: string[];
   /** For inflected forms ("ging", "Häuser"): the dictionary form. */
   lemma?: string;
@@ -166,17 +171,167 @@ function parseExamples(body: string): string[] {
   return [...new Set([...own, ...quotes])].slice(0, 3);
 }
 
-/** All {{Ü|en|x}} / {{Üt|ru|x}} targets of a language in the block, de-duplicated, in order. */
-function parseTranslations(body: string, lang: Lang): string[] {
-  const words: string[] = [];
-  const line = new RegExp(`^\\*\\{\\{${lang}\\}\\}:(.*)$`, 'gm');
-  for (const m of body.matchAll(line)) {
-    for (const t of m[1].matchAll(new RegExp(`\\{\\{Üt?\\??\\|${lang}\\|([^|}]*)`, 'g'))) {
-      const w = stripMarkup(t[1]);
-      if (w && !words.includes(w)) words.push(w);
+/** Usage labels that make a sense second-rate (colloquial, dated, regional, jargon, figurative, …). */
+const MARGINAL_LABEL =
+  /(?<!\p{L})(ugs|umgangssprachlich|salopp|derb|vulg|vulgär|abw|abwertend|pejorativ|veraltet|veraltend|landsch|landschaftlich|regional|dialektal|mundartlich|scherzh|scherzhaft|Jugendspr|Jugendsprache|Jägerspr|Jägersprache|Seemannsspr|Seemannssprache|übertr|übertragen|fachspr|fachsprachlich|poet|poetisch|gehoben|selten|historisch|österr|schweiz|süddt|norddt|Schach)(?!\p{L})/iu;
+
+/** Sense numbers (never 1) whose definition carries a usage label: ":[3] {{K|ugs.}} …". */
+function marginalSenses(body: string): Set<number> {
+  const out = new Set<number>();
+  const m = body.match(/\{\{Bedeutungen\}\}\n([\s\S]*?)(?:\n\n|\n\{\{(?!K\|)|$)/);
+  for (const line of (m?.[1] ?? '').split('\n')) {
+    const d = line.match(/^:\[(\d+)\]\s*((?:\{\{[^{}]*\}\}\s*|''[^']*''\s*)*)/);
+    if (d && Number(d[1]) !== 1 && MARGINAL_LABEL.test(d[2])) out.add(Number(d[1]));
+  }
+  return out;
+}
+
+/** Inner text of every {{Ü-Tabelle …}} in the block (nested templates included). */
+function translationTables(body: string): string[] {
+  const out: string[] = [];
+  let from = 0;
+  for (;;) {
+    const start = body.indexOf('{{Ü-Tabelle', from);
+    if (start < 0) return out;
+    let depth = 0;
+    let end = body.length;
+    for (let i = start; i < body.length - 1; i++) {
+      if (body[i] === '{' && body[i + 1] === '{') {
+        depth++;
+        i++;
+      } else if (body[i] === '}' && body[i + 1] === '}') {
+        depth--;
+        i++;
+        if (depth === 0) {
+          end = i - 1;
+          break;
+        }
+      }
+    }
+    out.push(body.slice(start + '{{Ü-Tabelle'.length, end));
+    from = end;
+  }
+}
+
+/** Sense number of translations that name no sense. */
+const UNNUMBERED = 99;
+
+/** First number of a sense marker: "[2]" → 2, "[1, 2]" → 1, "[1–3]" → 1. */
+const markerNumber = (m: string) => Number(m.match(/\d+/)?.[0] ?? 0);
+
+/**
+ * A translation line split at top-level "," and ";" (not inside templates, links or
+ * parentheses); sense markers ("[2]", "[1, 2]") become segments of their own.
+ */
+export function lineSegments(text: string): string[] {
+  const out: string[] = [];
+  let cur = '';
+  let braces = 0;
+  let links = 0;
+  let parens = 0;
+  const flush = () => {
+    if (cur.trim()) out.push(cur.trim());
+    cur = '';
+  };
+  for (let i = 0; i < text.length; i++) {
+    const two = text.slice(i, i + 2);
+    if (two === '{{' || two === '}}' || two === '[[' || two === ']]') {
+      if (two === '{{') braces++;
+      else if (two === '}}') braces = Math.max(0, braces - 1);
+      else if (two === '[[') links++;
+      else links = Math.max(0, links - 1);
+      cur += two;
+      i++;
+      continue;
+    }
+    const c = text[i];
+    const top = !braces && !links;
+    if (top && c === '(') parens++;
+    if (top && c === ')') parens = Math.max(0, parens - 1);
+    if (top && !parens && (c === ',' || c === ';')) {
+      flush();
+      continue;
+    }
+    if (top && !parens && c === '[') {
+      const close = text.indexOf(']', i);
+      const inner = close < 0 ? '' : text.slice(i + 1, close);
+      if (/^[\d\s,–\-a-z]+$/.test(inner) && /\d/.test(inner)) {
+        flush();
+        out.push(`[${inner}]`);
+        i = close;
+        continue;
+      }
+    }
+    cur += c;
+  }
+  flush();
+  return out;
+}
+
+/** Italic notes that only say aspect or grammar ("''imperfektiv:''"), unlike "''besonders Schottland:''". */
+const NEUTRAL_NOTE = /^(?:(?:im)?perfektiv|(?:in)?transitiv|reflexiv|Plural|Singular|Pl\.|Sg\.|auch|meist|oft)\s*:?$/i;
+
+/** One translation of a segment ("to {{Ü|en|call}} ({{Ü|en|on}})" → "call"), and whether a usage note labels it. */
+function segmentWord(seg: string, lang: Lang): { word: string; labelled: boolean } | null {
+  const tpl = new RegExp(`\\{\\{Üt?\\??\\|${lang}\\|([^|}]*)(?:\\|[^{}]*)?\\}\\}`, 'g');
+  if (!tpl.test(seg)) return null;
+  const notes = [...seg.matchAll(/''([^'\n]*)''/g)].map((m) => stripMarkup(m[1].replace(tpl, '$1')));
+  const labelled = notes.some((n) => n && !NEUTRAL_NOTE.test(n) && !/^\(.*\)$/.test(n));
+  let text = seg.replace(tpl, '$1').replace(/''[^'\n]*''/g, ' ');
+  for (let i = 0; i < 3; i++) text = text.replace(/\([^()]*\)/g, ' ');
+  let word = stripMarkup(text).replace(/[:.]+$/, '').trim();
+  if (lang === 'en') word = word.replace(/^to\s+/i, '');
+  // Russian stress marks ("заве́дующий").
+  if (lang === 'ru') word = word.normalize('NFD').replace(/\u0301/g, '').normalize('NFC');
+  return word ? { word, labelled } : null;
+}
+
+/**
+ * Translations into `lang` per sense. Current pages have one table per sense
+ * ("{{Ü-Tabelle|2|G=…|Ü-Liste=…}}"); older ones a single table whose lines switch senses with
+ * markers ("*{{en}}: [1] {{Ü|en|x}}; [2] {{Ü|en|y}}"). A word after a usage note
+ * ("''besonders [[Schottland]]:'' {{Ü|en|house}}") counts as labelled. A sense's weight is the
+ * number of languages translating it.
+ */
+export function parseSenseTranslations(body: string, lang: Lang): SenseTranslations[] {
+  const senses = new Map<number, { words: SenseTranslations['words']; langs: Set<string> }>();
+  const sense = (n: number) => {
+    let s = senses.get(n);
+    if (!s) senses.set(n, (s = { words: [], langs: new Set() }));
+    return s;
+  };
+  for (const table of translationTables(body)) {
+    // "{{Ü-Tabelle|6a|…}}" is part of sense 6; a table without a number comes last.
+    const own = table.match(/^\|\s*(\d+)[a-z]?\s*\|/);
+    const tableN = own ? Number(own[1]) : UNNUMBERED;
+    const list = table.split(/\|Dialekttabelle=/)[0];
+    for (const line of list.split('\n')) {
+      const l = line.match(/^\*\s*\{\{([a-z]{2,3}(?:-[a-z]+)?)(?:\|[^}]*)?\}\}[^:]*:(.*)$/);
+      if (!l) continue;
+      const segments = lineSegments(l[2]);
+      const markers = own ? [] : segments.filter((x) => x.startsWith('[')).map(markerNumber);
+      for (const n of markers.length ? markers : [tableN]) sense(n).langs.add(l[1]);
+      if (l[1] !== lang) continue;
+      // A marker moves the following words to another sense, also inside a numbered table
+      // ("{{Üt|ru|приходить}}; [4] {{Üt|ru|кончить}}" in the table of sense 2).
+      let n = tableN;
+      for (const seg of segments) {
+        if (seg.startsWith('[')) {
+          n = markerNumber(seg) || tableN;
+          continue;
+        }
+        const w = segmentWord(seg, lang);
+        const s = sense(n);
+        if (w && !s.words.some((x) => x.word === w.word)) s.words.push(w);
+      }
     }
   }
-  return words;
+  return [...senses].map(([n, s]) => ({ n, words: s.words, weight: s.langs.size }));
+}
+
+/** Meanings of a part-of-speech block in `lang` (see pickMeanings). */
+function parseTranslations(body: string, lang: Lang): string[][] {
+  return pickMeanings(parseSenseTranslations(body, lang), marginalSenses(body));
 }
 
 function lemmaOf(body: string): string | undefined {
@@ -256,10 +411,9 @@ export function parseEntry(title: string, wikitext: string): WikiEntry | null {
       const aux = (p['Hilfsverb'] ?? '').trim();
       if (!entry.auxiliary && (aux === 'haben' || aux === 'sein')) entry.auxiliary = aux;
     }
+    // "der See" (lake) + "die See" (sea): the first meaning of each, then the rest.
     for (const lang of ['en', 'ru'] as const) {
-      for (const w of parseTranslations(b.body, lang)) {
-        if (!entry.translations[lang].includes(w)) entry.translations[lang].push(w);
-      }
+      entry.translations[lang] = mergeMeanings(entry.translations[lang], parseTranslations(b.body, lang));
     }
     for (const ex of parseExamples(b.body)) {
       if (entry.examples.length < 3 && !entry.examples.includes(ex)) entry.examples.push(ex);

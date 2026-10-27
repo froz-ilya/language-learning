@@ -1,5 +1,6 @@
 import type { Pos } from '../../types';
 import { checkResponse, SourceError, type Provider } from '../chain';
+import { formatMeanings } from '../../lookup/meanings';
 
 /**
  * English Wiktionary: German entries' English definitions (REST, CORS-open) and opensearch.
@@ -10,8 +11,6 @@ const API = 'https://en.wiktionary.org/w/api.php';
 
 /** Definitions taken from the German section. */
 const MAX_DEFINITIONS = 3;
-/** Terms in the joined translation string. */
-const MAX_TERMS = 3;
 /** Single glosses longer than this are descriptions, not translations. */
 const MAX_TERM_LENGTH = 60;
 
@@ -19,7 +18,7 @@ export interface EnGloss {
   pos: Pos;
   /** Cleaned definitions, e.g. ["house, building", "home", "theatre"]. */
   glosses: string[];
-  /** Up to 3 short terms for a card's translation, e.g. "house, building, home". */
+  /** A card's translation, one meaning per definition, e.g. "house, building; home; theatre". */
   translation: string;
 }
 
@@ -78,18 +77,21 @@ function posOf(label: string): Pos {
   }
 }
 
-/** Short translation terms from glosses: "to go, to walk" → ["go", "walk"]. */
-function termsOf(glosses: string[], pos: Pos): string[] {
-  const out: string[] = [];
-  for (const g of glosses) {
+/**
+ * Short translation terms from glosses, one meaning per definition: ["to go, to walk", "to leave"]
+ * → [["go", "walk"], ["leave"]]. Capped and de-duplicated by formatMeanings.
+ */
+function termsOf(glosses: string[], pos: Pos): string[][] {
+  return glosses.map((g) => {
+    const out: string[] = [];
     for (let t of g.split(/[;,]/)) {
       t = t.trim().replace(/\.$/, '');
       if (pos === 'verb') t = t.replace(/^to\s+/i, '');
       if (!t || t.length > MAX_TERM_LENGTH || out.includes(t)) continue;
       out.push(t);
     }
-  }
-  return out.slice(0, MAX_TERMS);
+    return out;
+  });
 }
 
 /** German part-of-speech section of a REST definition response, as English glosses. */
@@ -114,7 +116,7 @@ export function parseEnDefinitions(data: unknown): EnGloss | null {
     }
     if (!glosses.length) continue;
     const pos = posOf(typeof e.partOfSpeech === 'string' ? e.partOfSpeech : '');
-    const translation = termsOf(glosses, pos).join(', ');
+    const translation = formatMeanings(termsOf(glosses, pos));
     if (!translation) continue;
     return { pos, glosses, translation };
   }

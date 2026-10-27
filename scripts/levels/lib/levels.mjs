@@ -1,5 +1,6 @@
 // @ts-nocheck
 // Stage 5: topics, per-level grouping and the LevelFile / LevelIndex output (pure functions).
+import { formatMeanings } from './extract.mjs';
 import { levelOf, BANDS } from './words.mjs';
 
 export const TOPICS = [
@@ -93,9 +94,7 @@ export function groupTopics(words, { min = 5, max = 40 } = {}) {
   return out;
 }
 
-const join = (xs) => (xs ?? []).filter(Boolean).slice(0, 3).join(', ');
-
-/** Build LevelFiles + LevelIndex from enriched words ({term,rawPos,pos,…,tr,example,example_ru,example_en,topic,rank}). */
+/** Build LevelFiles + LevelIndex from enriched words ({term,rawPos,pos,…,tr (meanings),example,example_ru,example_en,topic,rank}). */
 export function buildLevels(words, sources) {
   const seen = new Map();
   const files = [];
@@ -115,7 +114,8 @@ export function buildLevels(words, sources) {
         praeteritum: w.praeteritum,
         partizip2: w.partizip2,
         auxiliary: w.auxiliary,
-        tr: { ru: join(w.tr.ru), en: join(w.tr.en) },
+        // "последствие, результат; серия, эпизод": meanings by "; ", synonyms by ", ".
+        tr: { ru: formatMeanings(w.tr.ru), en: formatMeanings(w.tr.en) },
         topic: sets.get(w),
         rank: w.rank,
       };

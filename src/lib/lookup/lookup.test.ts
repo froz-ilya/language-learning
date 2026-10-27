@@ -42,7 +42,7 @@ import { isCooling, resetProviders } from '../sources/chain';
 
 // ---------- Fetch mock ----------
 
-const FIXTURES = ['Haus', 'Tisch', 'gehen', 'ging', 'Häuser', 'Hausschlüssel', 'Schlüssel', 'schön', 'See'];
+const FIXTURES = ['Haus', 'Tisch', 'gehen', 'ging', 'Häuser', 'Hausschlüssel', 'Schlüssel', 'schön', 'See', 'Folge'];
 const fixture = (name: string) => readFileSync(new URL(`./__fixtures__/${name}.wikitext`, import.meta.url), 'utf8');
 const ALL_PAGES: Record<string, string> = Object.fromEntries(FIXTURES.map((n) => [n.normalize('NFC'), fixture(n)]));
 
@@ -183,7 +183,9 @@ describe('lookupWord', () => {
     expect(r.genders).toEqual(['n']);
     expect(r.plural).toBe('Häuser');
     expect(r.translation).toContain('дом');
-    expect(r.translation.split(', ').length).toBeLessThanOrEqual(4);
+    // At most 3 meanings ("; ") of at most 3 synonyms (", ").
+    expect(r.translation.split('; ').length).toBeLessThanOrEqual(3);
+    expect(r.translation.split(/[;,] /).length).toBeLessThanOrEqual(6);
     expect(r.source).toBe('wiktionary');
     expect(r.lemmaOf).toBeUndefined();
     expect(r.examples.length).toBeGreaterThan(0);
@@ -194,7 +196,14 @@ describe('lookupWord', () => {
 
   it('uses English translations for lang=en', async () => {
     mockFetch();
-    expect((await lookupWord('Haus', 'en'))!.translation.split(', ')[0]).toBe('house');
+    // Meanings of Wiktionary's senses: house (1, 2), home (3).
+    expect((await lookupWord('Haus', 'en'))!.translation).toBe('house; home');
+  });
+
+  it('keeps the distinct meanings of a word (Folge)', async () => {
+    mockFetch();
+    expect((await lookupWord('Folge', 'ru'))!.translation).toBe('последствие; череда, ряд; эпизод');
+    expect((await lookupWord('die Folge', 'en'))!.translation).toBe('consequence; order; episode');
   });
 
   it('strips the article from the input', async () => {
@@ -316,7 +325,7 @@ describe('lookupWord', () => {
 
   it('ignores expired cache entries', async () => {
     const { fetch } = mockFetch();
-    mem.cache.set('ru:Tisch', { key: 'ru:Tisch', result: null, fetchedAt: Date.now() - 2 * 24 * 3600 * 1000 });
+    mem.cache.set('v2:ru:Tisch', { key: 'v2:ru:Tisch', result: null, fetchedAt: Date.now() - 2 * 24 * 3600 * 1000 });
     expect((await lookupWord('Tisch', 'ru'))!.term).toBe('Tisch');
     expect(fetch).toHaveBeenCalled();
   });
@@ -349,7 +358,7 @@ describe('lookupWord', () => {
     const { calls } = mockFetch({ pages: { Haus: noEn }, enDefinitions: { Haus: enHaus } });
     const r = await lookupWordWithSource('Haus', 'en');
     expect(r.via).toBe('de.wiktionary');
-    expect(r.result!.translation).toBe('house, building, home');
+    expect(r.result!.translation).toBe('house, building; home; theatre');
     // Google only translated the examples.
     expect(calls.google).toHaveLength(1);
   });
@@ -417,6 +426,13 @@ describe('suggest fallbacks', () => {
       { word: 'Hausaufgabe', preview: 'домашнее задание' },
     ]);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('previews a word with several meanings by its first two meanings', async () => {
+    dict.prefix = [lex({ term: 'Folge', pos: 'noun', tr: { ru: 'последствие, результат; серия, эпизод; ряд', en: 'consequence; episode' } })];
+    mockFetch();
+    expect(await suggest('Folg', 'ru')).toEqual([{ word: 'Folge', preview: 'последствие; серия' }]);
+    expect(await suggest('Folg', 'en')).toEqual([{ word: 'Folge', preview: 'consequence; episode' }]);
   });
 
   it('falls back to en.wiktionary when de.wiktionary is down', async () => {
@@ -489,7 +505,7 @@ describe('offline dictionary', () => {
     expect(r.result!.examples.length).toBeGreaterThan(0);
     expect(r.result!.examples[0].tr).toBe(`TR(${r.result!.examples[0].de})`);
     expect(calls.wiki.map((p) => p.get('page'))).toEqual(['Haus']);
-    expect(mem.cache.get('ru:Haus')).toMatchObject({ via: 'local' });
+    expect(mem.cache.get('v2:ru:Haus')).toMatchObject({ via: 'local' });
   });
 
   it('returns the local entry alone when Wiktionary is down', async () => {

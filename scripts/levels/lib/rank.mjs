@@ -1,5 +1,6 @@
 // @ts-nocheck
 // Stage 2: lemmatise the frequency list against the dictionary index and rank lemmas.
+import { limitMeanings } from './extract.mjs';
 
 /** Parse FrequencyWords "word count" lines. */
 export function parseFrequency(text) {
@@ -196,22 +197,20 @@ export function rankLemmas(totals, lemmas, limit = Infinity) {
   });
 }
 
-/** Translations of a group: first meaning of each member (by frequency), then the rest. */
+/** Translations of a group: first meaning of each member (by part of speech), then the rest. */
 const MEMBER_ORDER = ['noun', 'verb', 'adj', 'conj', 'pron', 'prep', 'det', 'num', 'adv', 'intj', 'postp', 'particle'];
 
-export function groupTranslations(members, lemmas, lang, max = 3) {
+/**
+ * Meanings (string[][]) of a card made of several homographs ("schon" adverb + particle →
+ * [["already"], ["indeed"]]); one member's meanings unchanged.
+ */
+export function groupTranslations(members, lemmas, lang) {
   // Modal particles ("schon" = "indeed") come after the adverb reading ("already").
   const order = (k) => {
     const i = MEMBER_ORDER.indexOf(lemmas[k].rawPos);
     return i < 0 ? MEMBER_ORDER.length : i;
   };
   const sorted = members.map((k, i) => ({ k, i })).sort((a, b) => order(a.k) - order(b.k) || a.i - b.i);
-  const lists = sorted.map(({ k }) => lemmas[k].tr[lang]);
-  const out = [];
-  const push = (w) => {
-    if (w && !out.some((x) => x.toLowerCase() === w.toLowerCase())) out.push(w);
-  };
-  for (const l of lists) push(l[0]);
-  for (const l of lists) l.slice(1).forEach(push);
-  return out.slice(0, max);
+  const lists = sorted.map(({ k }) => lemmas[k].tr[lang]).filter((l) => l.length);
+  return limitMeanings([...lists.map((l) => l[0]), ...lists.flatMap((l) => l.slice(1))]);
 }

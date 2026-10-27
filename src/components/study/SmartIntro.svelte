@@ -1,5 +1,6 @@
 <script lang="ts">
   import NoteHint from './NoteHint.svelte';
+  import Meanings from '../Meanings.svelte';
   import { displayPlural, displayVerbForms, speakableTerm } from '../../lib/german/articles';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
@@ -44,7 +45,7 @@
       <div class="big"><Term {card} /></div>
       <SpeakButton text={speakableTerm(card)} />
     </div>
-    {#if card.translation}<div class="translation">{card.translation}</div>{/if}
+    {#if card.translation}<div class="translation"><Meanings translation={card.translation} /></div>{/if}
     {#if plural || verbForms}
       <div class="forms">
         {#if plural}<div>Plural: <span lang="de">{plural}</span></div>{/if}

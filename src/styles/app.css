@@ -431,6 +431,21 @@ li,
   background: color-mix(in srgb, var(--tone, var(--accent)) 15%, transparent);
 }
 
+/* "Beta" tag next to a title: <span class="beta-tag">Beta</span> */
+.beta-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: 0.1em;
+  color: var(--tier-b);
+  background: color-mix(in srgb, var(--tier-b) 16%, transparent);
+}
+
 /* ---------- Buttons ---------- */
 
 .btn {

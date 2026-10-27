@@ -16,7 +16,8 @@
   import { LEVELS, LEVEL_TITLES, type LevelCode } from '../lib/levels/types';
   import { feeds, interleave, loadFeed, readUi, resetFeed } from '../lib/reading/feed.svelte';
   import { sourceInfo, sourcesForLevel } from '../lib/reading/sources';
-  import { articlePath, pruneTracked } from '../lib/reading/store';
+  import { articlePath, pruneTracked, setProgress, stopReading } from '../lib/reading/store';
+  import { showToast } from '../lib/ui/dialogs.svelte';
   import { firstSentence, isHeading } from '../lib/reading/text';
   import type { ReadingSourceId, SavedArticle } from '../lib/reading/types';
 
@@ -73,6 +74,12 @@
   const ratio = (a: SavedArticle) => (a.paragraphs?.length ? Math.min(1, a.progress / a.paragraphs.length) : 0);
   const snippetOf = (a: SavedArticle) => firstSentence(a.paragraphs?.find((p) => !isHeading(p)) ?? '');
 
+  async function stopContinuing(a: SavedArticle) {
+    const progress = a.progress;
+    await stopReading(a.id);
+    showToast(`Stopped reading «${a.title}»`, { actionLabel: 'Undo', onAction: () => void setProgress(a.id, progress) });
+  }
+
   function retry() {
     void loadFeed(level, true);
   }
@@ -100,11 +107,16 @@
   <p class="level-hint muted small">{LEVEL_TITLES[level]} · {sourceNames}</p>
 
   {#if continuing}
-    <button class="card pressable continue" onclick={() => continuing && go(articlePath(continuing.id))} in:fly={{ y: 8, duration: dur(220) }}>
-      <span class="eyebrow">Continue reading</span>
-      <span class="c-title" lang="de">{continuing.title}</span>
-      <span class="c-bar" aria-hidden="true"><span style:width="{ratio(continuing) * 100}%"></span></span>
-    </button>
+    <div class="continue-wrap" in:fly={{ y: 8, duration: dur(220) }}>
+      <button class="card pressable continue" onclick={() => continuing && go(articlePath(continuing.id))}>
+        <span class="eyebrow">Continue reading</span>
+        <span class="c-title" lang="de">{continuing.title}</span>
+        <span class="c-bar" aria-hidden="true"><span style:width="{ratio(continuing) * 100}%"></span></span>
+      </button>
+      <button class="icon-btn c-stop" aria-label="Stop reading" title="Stop reading" onclick={() => continuing && void stopContinuing(continuing)}>
+        <Icon name="x" size={18} />
+      </button>
+    </div>
   {/if}
 
   <button class="card pressable paste" onclick={() => go('/paste')}>
@@ -194,12 +206,21 @@
   .level-hint {
     margin: 8px 4px 0;
   }
+  .continue-wrap {
+    position: relative;
+    margin-top: 16px;
+  }
+  .c-stop {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    color: var(--muted);
+  }
   .continue {
     display: flex;
     flex-direction: column;
     gap: 4px;
     width: 100%;
-    margin-top: 16px;
     border: 0;
     text-align: left;
     color: inherit;
@@ -213,6 +234,7 @@
     color: var(--accent);
   }
   .c-title {
+    padding-right: 36px;
     font-family: var(--font-display);
     font-weight: 800;
     font-size: 18px;

@@ -451,6 +451,10 @@
 
   <section class="section">
     <h2 class="section-title">About</h2>
+    <div class="card small stack-sm beta-note">
+      <div><span class="beta-tag">Beta</span> Deutsch is still in beta, so some things may not work yet.</div>
+      <div class="muted">Your words live only on this device: export a backup now and then.</div>
+    </div>
     <div class="card small muted stack-sm">
       <div>{sources}</div>
       <div>Levels are approximate, based on word frequency.</div>
@@ -467,6 +471,9 @@
 </div>
 
 <style>
+  .beta-note {
+    margin-bottom: 10px;
+  }
   .hint {
     margin: 8px 4px 12px;
   }

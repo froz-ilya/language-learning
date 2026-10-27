@@ -106,7 +106,7 @@
 <div class="page">
   <header class="top">
     <div class="titles">
-      <div class="date">{today}</div>
+      <div class="date">{today} <span class="beta-tag" title="Some things may not work yet">Beta</span></div>
       <h1>{greeting}</h1>
       <div class="gruss" lang="de">{gruss}!</div>
     </div>

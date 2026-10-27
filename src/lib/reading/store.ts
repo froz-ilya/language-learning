@@ -70,6 +70,11 @@ export async function setProgress(id: string, progress: number): Promise<void> {
   await db.articles.update(id, { progress });
 }
 
+/** "Stop reading": forget the position so the article leaves "Continue reading". */
+export async function stopReading(id: string): Promise<void> {
+  await db.articles.update(id, { progress: 0 });
+}
+
 export async function markRead(id: string, read: boolean): Promise<void> {
   await db.articles.update(id, { readAt: read ? Date.now() : 0 });
 }

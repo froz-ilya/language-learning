@@ -34,6 +34,7 @@
     saveForOffline,
     setLevel,
     setProgress,
+    stopReading,
     trackOpen,
   } from '../lib/reading/store';
   import type { Article } from '../lib/reading/types';
@@ -183,8 +184,11 @@
   let scrollTimer: ReturnType<typeof setTimeout> | undefined;
   let lastSaved = -1;
 
+  /** Set by "Stop reading" so a pending scroll measurement doesn't save a position again. */
+  let stopped = false;
+
   function measure() {
-    if (!textEl || !row.value) return;
+    if (stopped || !textEl || !row.value) return;
     const els = textEl.querySelectorAll<HTMLElement>('[data-p]');
     const bottom = window.innerHeight - 60;
     let idx = 0;
@@ -274,6 +278,17 @@
     if (!row.value) await trackOpen($state.snapshot(article) as Article);
     await markRead(id, !isRead);
     if (!isRead) showToast('Marked as read');
+  }
+
+  const hasProgress = $derived(!!row.value?.progress && !row.value.readAt);
+
+  async function stopReadingArticle() {
+    const progress = row.value?.progress ?? 0;
+    stopped = true;
+    clearTimeout(scrollTimer);
+    await stopReading(id);
+    showToast('Stopped reading', { actionLabel: 'Undo', onAction: () => void setProgress(id, progress) });
+    back('/read');
   }
 
   async function toggleSaved() {
@@ -387,6 +402,11 @@
           {/if}
         </button>
       </div>
+      {#if hasProgress}
+        <button class="btn btn-block btn-ghost" onclick={stopReadingArticle}>
+          <Icon name="x" size={18} /> Stop reading
+        </button>
+      {/if}
 
       {#if article.source !== 'paste'}
         <p class="attribution small muted">

@@ -21,19 +21,56 @@ export function isSpeechSupported(): boolean {
   return !!synth;
 }
 
+export type VoiceQuality = 'premium' | 'enhanced' | '';
+
+/**
+ * Quality tier of a voice. iOS/macOS often give an enhanced voice the same name as the compact
+ * one ("Anna"), so the tier is only visible in the voiceURI (com.apple.voice.enhanced.de-DE.Anna).
+ */
+export function voiceQuality(v: SpeechSynthesisVoice): VoiceQuality {
+  const id = `${v.name} ${v.voiceURI}`;
+  if (/premium/i.test(id)) return 'premium';
+  if (/enhanced|erweitert|verbessert|neural|natural/i.test(id)) return 'enhanced';
+  return '';
+}
+
+/** Name shown in the voice picker, with the quality tier so same-named voices can be told apart. */
+export function voiceLabel(v: SpeechSynthesisVoice): string {
+  const q = voiceQuality(v);
+  const tier = q === 'premium' ? 'Premium' : q === 'enhanced' ? 'Enhanced' : '';
+  const name = tier && !new RegExp(tier, 'i').test(v.name) ? `${v.name} · ${tier}` : v.name;
+  return `${name} (${v.lang})`;
+}
+
 /** German voices, best first (enhanced/premium voices are much more natural). */
 export function germanVoices(): SpeechSynthesisVoice[] {
   if (!voices.length) loadVoices();
-  const score = (v: SpeechSynthesisVoice) =>
-    (v.lang.replace('_', '-') === 'de-DE' ? 4 : 0) +
-    (/premium/i.test(v.name) ? 3 : /enhanced|erweitert|verbessert/i.test(v.name) ? 2 : 0) +
-    (v.localService ? 1 : 0);
-  return voices.filter((v) => v.lang.toLowerCase().startsWith('de')).sort((a, b) => score(b) - score(a));
+  const score = (v: SpeechSynthesisVoice) => {
+    const q = voiceQuality(v);
+    return (
+      (v.lang.replace('_', '-') === 'de-DE' ? 4 : 0) +
+      (q === 'premium' ? 3 : q === 'enhanced' ? 2 : 0) +
+      (v.localService ? 1 : 0) -
+      // Apple's novelty voices (Grandma, Rocko, …) sound robotic.
+      (/eloquence|speech\.synthesis\.voice/i.test(v.voiceURI) ? 2 : 0)
+    );
+  };
+  // Some browsers list a voice twice; the picker needs unique ids.
+  const seen = new Set<string>();
+  return voices
+    .filter((v) => v.lang.toLowerCase().startsWith('de') && !seen.has(v.voiceURI) && seen.add(v.voiceURI))
+    .sort((a, b) => score(b) - score(a));
 }
 
 export const ANDROID_VOICE_TIP =
   'Install a German voice: Android Settings → Text-to-speech → Google → Install voice data → Deutsch';
 export const IOS_VOICE_TIP = 'Better voices: iOS Settings → Accessibility → Spoken Content → Voices → German.';
+/**
+ * iOS gives web apps only some of the installed voices: many downloaded Enhanced/Premium voices
+ * and all Siri voices never reach getVoices() (WebKit bug 290497).
+ */
+export const IOS_VOICE_NOTE =
+  'iOS shares only some voices with web apps. After downloading a German voice (Settings → Accessibility → Spoken Content → Voices), close this app fully and reopen it. If the voice still isn\'t listed here, iOS doesn\'t let web apps use it; Siri voices never work.';
 
 /** Where to get a (better) German voice on this device. */
 export function voiceTip(): string {

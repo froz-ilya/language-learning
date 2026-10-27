@@ -2,7 +2,7 @@
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import { loadSettings, saveSettings, settings } from '../lib/settings.svelte';
-  import { germanVoices, isSpeechSupported, speak, voiceTip } from '../lib/speech/tts';
+  import { IOS_VOICE_NOTE, germanVoices, isSpeechSupported, speak, voiceLabel, voiceTip } from '../lib/speech/tts';
   import { isAndroid, canVibrate } from '../lib/platform';
   import { install, promptInstall, showIOSInstallHint } from '../lib/install.svelte';
   import { importBackup } from '../lib/db/backup';
@@ -25,7 +25,7 @@
   /** The voice list has had time to load (event fired or a second passed). */
   let voicesLoaded = $state(false);
   function refreshVoices() {
-    voices = germanVoices().map((v) => ({ uri: v.voiceURI, label: `${v.name} (${v.lang})` }));
+    voices = germanVoices().map((v) => ({ uri: v.voiceURI, label: voiceLabel(v) }));
   }
   function onVoicesChanged() {
     refreshVoices();
@@ -307,7 +307,7 @@
       {#if noGermanVoice}
         <div class="card small voice-tip">{voiceTip()}</div>
       {:else if !android}
-        <p class="hint small muted">{voiceTip()}</p>
+        <p class="hint small muted">{IOS_VOICE_NOTE}</p>
       {/if}
     {/if}
   </section>

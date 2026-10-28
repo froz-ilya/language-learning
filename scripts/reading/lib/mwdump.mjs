@@ -81,7 +81,7 @@ export async function downloadAll(api, cacheDir, { offline = false, stats = { re
 let lastRequest = 0;
 
 /** One GET, sequential, ≥PAUSE_MS after the previous one; backs off on 429/5xx/maxlag. */
-async function politeGet(api, params, stats, log) {
+export async function politeGet(api, params, stats = { requests: 0 }, log = console.log) {
   const url = `${api}?${new URLSearchParams(params)}`;
   let backoff = 5000;
   for (let attempt = 1; ; attempt++) {

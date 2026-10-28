@@ -4,6 +4,8 @@ export class SourceError extends Error {
   constructor(
     message: string,
     readonly status?: number,
+    /** MediaWiki error code ("missingtitle"), or "removed" for an article that no longer exists. */
+    readonly code?: string,
   ) {
     super(message);
     this.name = 'SourceError';
@@ -20,7 +22,7 @@ export async function mwGet<T = unknown>(api: string, params: Params, signal?: A
   if (!res.ok) throw new SourceError(`HTTP ${res.status}`, res.status);
   const data = (await res.json()) as T & { error?: { code: string; info: string } };
   if (data && typeof data === 'object' && 'error' in data && data.error) {
-    throw new SourceError(`${data.error.code}: ${data.error.info}`);
+    throw new SourceError(`${data.error.code}: ${data.error.info}`, undefined, data.error.code);
   }
   return data;
 }

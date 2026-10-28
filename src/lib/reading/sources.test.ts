@@ -114,7 +114,9 @@ describe('Klexikon / MiniKlexikon', () => {
     mockFetch(() => new Response('nope', { status: 503 }));
     await expect(listArticles('klexikon')).rejects.toThrow('HTTP 503');
     mockFetch(() => ({ error: { code: 'missingtitle', info: "The page you specified doesn't exist." } }));
-    await expect(getArticle('miniklexikon:Gibtsnicht')).rejects.toThrow('missingtitle');
+    await expect(getArticle('miniklexikon:Gibtsnicht')).rejects.toThrow('This article was removed from MiniKlexikon.');
+    mockFetch(() => ({ error: { code: 'badvalue', info: 'Unrecognized value.' } }));
+    await expect(getArticle('miniklexikon:Hund')).rejects.toThrow('badvalue');
   });
 });
 

@@ -19,6 +19,8 @@ export interface CatalogFile {
   version: number;
   generated: string;
   license: string;
+  /** Per site: changes up to this time (ISO) are in the catalog (the monthly update resumes here). */
+  sync?: Partial<Record<CatalogSourceId, string>>;
   sources: Partial<Record<CatalogSourceId, Partial<Record<LevelCode, [string, number][]>>>>;
 }
 
@@ -95,6 +97,46 @@ export function resetCatalogCache(rand: () => number = Math.random) {
   random = rand;
 }
 
+// ---------- Articles removed from the sites (hidden on this device) ----------
+
+const REMOVED_KEY = 'reading:removed';
+const MAX_REMOVED = 300;
+
+function storage(): Storage | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
+/** Ids of catalog articles that turned out to be deleted on the site ("klexikon:Hund"). */
+export function removedIds(): Set<string> {
+  try {
+    const raw = storage()?.getItem(REMOVED_KEY);
+    const list: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(list)) return new Set();
+    return new Set(list.filter((x): x is string => typeof x === 'string' && /^(mini)?klexikon:./.test(x)));
+  } catch {
+    return new Set();
+  }
+}
+
+/** Hide an article from the catalog lists on this device (the newest are kept when the list is full). */
+export function markRemoved(id: string) {
+  const ids = removedIds();
+  ids.delete(id);
+  ids.add(id);
+  try {
+    storage()?.setItem(REMOVED_KEY, JSON.stringify([...ids].slice(-MAX_REMOVED)));
+  } catch {
+    // Storage full or blocked: the article just stays listed.
+  }
+}
+
+/** Was this error "the article no longer exists on its site"? */
+export const isRemovedError = (e: unknown) => e instanceof SourceError && e.code === 'removed';
+
 /** The catalog's entry for an article ("Hund" or the title after a redirect), or null. */
 export async function catalogEntry(source: CatalogSourceId, ...titles: string[]): Promise<CatalogEntry | null> {
   try {
@@ -155,7 +197,9 @@ export function klexikonSource(info: ReadingSourceInfo, host: string): Source {
 
   /** A page of the catalog for a level (offset cursor). */
   function fromCatalog(catalog: Catalog, level: LevelCode, offset: number): ListResult {
-    const list = catalog.lists.get(`${source}/${level}`) ?? [];
+    const hidden = removedIds();
+    const all = catalog.lists.get(`${source}/${level}`) ?? [];
+    const list = hidden.size ? all.filter((e) => !hidden.has(prefix + e.title)) : all;
     const items: ArticleSummary[] = list.slice(offset, offset + PAGE).map((e) => ({
       id: prefix + e.title,
       source: info.id,
@@ -199,7 +243,18 @@ export function klexikonSource(info: ReadingSourceInfo, host: string): Source {
   }
 
   async function get(key: string, signal?: AbortSignal): Promise<Article> {
-    const { title, html } = await parsePage(api, key, signal);
+    // A renamed page still opens: parsePage follows the redirect the move left behind.
+    let page: { title: string; html: string };
+    try {
+      page = await parsePage(api, key, signal);
+    } catch (e) {
+      if (e instanceof SourceError && e.code === 'missingtitle') {
+        markRemoved(prefix + key);
+        throw new SourceError(`This article was removed from ${info.name}.`, 404, 'removed');
+      }
+      throw e;
+    }
+    const { title, html } = page;
     const paragraphs = htmlToParagraphs(html);
     return {
       id: prefix + key,

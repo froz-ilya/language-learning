@@ -1,0 +1,379 @@
+{
+ "_note": "Recorded from klexikon.zum.de (list=recentchanges / logevents / prop=revisions, window 2026-07-30…2026-10-28), trimmed. Synthetic: the rc continue split and the \"Dämon\" delete entry.",
+ "recentchanges": [
+  {
+   "continue": {
+    "rccontinue": "20261001000000|1",
+    "continue": "-||"
+   },
+   "query": {
+    "recentchanges": [
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Sushi",
+      "pageid": 19486,
+      "revid": 165455,
+      "old_revid": 165251,
+      "rcid": 156477,
+      "timestamp": "2026-08-16T09:25:05Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Sushi",
+      "pageid": 19486,
+      "revid": 165456,
+      "old_revid": 165455,
+      "rcid": 156478,
+      "timestamp": "2026-08-16T09:25:55Z"
+     },
+     {
+      "type": "new",
+      "ns": 0,
+      "title": "Hawaiianer",
+      "pageid": 19541,
+      "revid": 165482,
+      "old_revid": 0,
+      "rcid": 156504,
+      "timestamp": "2026-08-27T07:18:56Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Volt",
+      "pageid": 10548,
+      "revid": 165495,
+      "old_revid": 70609,
+      "rcid": 156518,
+      "timestamp": "2026-09-07T14:07:26Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Volt",
+      "pageid": 10548,
+      "revid": 165497,
+      "old_revid": 165495,
+      "rcid": 156520,
+      "timestamp": "2026-09-07T14:16:35Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Celsius",
+      "pageid": 1937,
+      "revid": 165509,
+      "old_revid": 154218,
+      "rcid": 156535,
+      "timestamp": "2026-09-08T12:54:29Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Katzen",
+      "pageid": 2943,
+      "revid": 165541,
+      "old_revid": 163110,
+      "rcid": 156567,
+      "timestamp": "2026-09-14T15:09:15Z"
+     }
+    ]
+   }
+  },
+  {
+   "batchcomplete": true,
+   "query": {
+    "recentchanges": [
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Katzen",
+      "pageid": 2943,
+      "revid": 165561,
+      "old_revid": 165541,
+      "rcid": 156587,
+      "timestamp": "2026-09-15T13:39:29Z"
+     },
+     {
+      "type": "new",
+      "ns": 0,
+      "title": "Harry Kane",
+      "pageid": 19625,
+      "revid": 167222,
+      "old_revid": 0,
+      "rcid": 158231,
+      "timestamp": "2026-10-27T11:05:38Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Harry Kane",
+      "pageid": 19625,
+      "revid": 167225,
+      "old_revid": 167222,
+      "rcid": 158234,
+      "timestamp": "2026-10-27T11:07:08Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Harry Kane",
+      "pageid": 19625,
+      "revid": 167378,
+      "old_revid": 167363,
+      "rcid": 158381,
+      "timestamp": "2026-10-27T16:37:07Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Harry Kane",
+      "pageid": 19625,
+      "revid": 167384,
+      "old_revid": 167378,
+      "rcid": 158387,
+      "timestamp": "2026-10-27T16:37:35Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Harry Kane",
+      "pageid": 19625,
+      "revid": 167429,
+      "old_revid": 167384,
+      "rcid": 158432,
+      "timestamp": "2026-10-27T18:20:33Z"
+     },
+     {
+      "type": "edit",
+      "ns": 0,
+      "title": "Harry Kane",
+      "pageid": 19625,
+      "revid": 167432,
+      "old_revid": 167429,
+      "rcid": 158435,
+      "timestamp": "2026-10-27T18:22:32Z"
+     }
+    ]
+   }
+  }
+ ],
+ "delete": {
+  "batchcomplete": true,
+  "query": {
+   "logevents": [
+    {
+     "logid": 98274,
+     "ns": 0,
+     "title": "Vatikanstadt",
+     "pageid": 1424,
+     "logpage": 8761,
+     "type": "delete",
+     "action": "delete_redir",
+     "timestamp": "2026-10-14T17:22:47Z"
+    },
+    {
+     "logid": 98369,
+     "ns": 0,
+     "title": "Harry Kane",
+     "pageid": 19625,
+     "logpage": 19628,
+     "type": "delete",
+     "action": "delete_redir",
+     "timestamp": "2026-10-27T16:33:49Z"
+    },
+    {
+     "logid": 1,
+     "ns": 0,
+     "title": "Dämon",
+     "pageid": 1,
+     "logpage": 1,
+     "type": "delete",
+     "action": "delete",
+     "timestamp": "2026-10-20T10:00:00Z"
+    }
+   ]
+  }
+ },
+ "move": {
+  "batchcomplete": true,
+  "query": {
+   "logevents": [
+    {
+     "logid": 98275,
+     "ns": 0,
+     "title": "Vatikan",
+     "pageid": 19574,
+     "logpage": 1424,
+     "revid": 166026,
+     "params": {
+      "target_ns": 0,
+      "target_title": "Vatikanstadt",
+      "suppressredirect": false
+     },
+     "type": "move",
+     "action": "move_redir",
+     "timestamp": "2026-10-14T17:22:47Z"
+    },
+    {
+     "logid": 98327,
+     "ns": 0,
+     "title": "Bündnis Sahra Wagenknecht",
+     "pageid": 19601,
+     "logpage": 19208,
+     "revid": 166988,
+     "params": {
+      "target_ns": 0,
+      "target_title": "Bündnis Soziale Gerechtigkeit und Wirtschaftliche Vernunft",
+      "suppressredirect": false
+     },
+     "type": "move",
+     "action": "move",
+     "timestamp": "2026-10-21T08:10:00Z"
+    },
+    {
+     "logid": 98354,
+     "ns": 0,
+     "title": "Harry Kane",
+     "pageid": 19625,
+     "logpage": 19625,
+     "revid": 167228,
+     "params": {
+      "target_ns": 320,
+      "target_title": "Entwurf:Harry Kane",
+      "suppressredirect": false
+     },
+     "type": "move",
+     "action": "move",
+     "timestamp": "2026-10-27T11:08:16Z"
+    }
+   ]
+  }
+ },
+ "pages": [
+  {
+   "pageid": 1937,
+   "ns": 0,
+   "title": "Celsius",
+   "contentmodel": "wikitext",
+   "pagelanguage": "de",
+   "pagelanguagehtmlcode": "de",
+   "pagelanguagedir": "ltr",
+   "touched": "2026-10-03T17:42:52Z",
+   "lastrevid": 165509,
+   "length": 2060,
+   "revisions": [
+    {
+     "timestamp": "2026-09-08T12:54:29Z",
+     "slots": {
+      "main": {
+       "contentmodel": "wikitext",
+       "contentformat": "text/x-wiki",
+       "content": "[[Datei:Anders-Celsius.jpeg|mini|Der Wissenschaftler Anders Celsius aus Schweden hat sich die Art ausgedacht, wie wir heute warm und kalt einteilen.]]\n\nGrad Celsius kennen wir als eine [[Maßeinheit]] dafür, wie warm oder kalt es ist. Eigentlich ist Celsius der [[Nachname]] eines [[Schweden|schwedischen]] [[Forscher]]s. Anders Celsius lebte vor 300 [[Jahr]]en und interessierte sich für [[Temperatur]]en, also ob etwas warm oder kalt ist.\n\nAnders Celsius benutzte ein [[Thermometer]]. Das [[Wort]] stammt aus dem [[Griechisch]]en und heißt „Wärme-Messgerät“. Das war bei ihm eine lange Röhre aus [[Glas]], mit [[Quecksilber]] darin. Quecksilber ist ein [[Flüssigkeit|flüssig]]es [[Metall]]. Wenn es kalt ist, zieht es sich zu sammen und ist im Thermometer nur ganz unten zu sehen. Bei Wärme dehnt Quecksilber sich aus und steigt in der Röhre des Thermometers nach oben. Man kann auch sagen: Je wärmer es ist, desto länger ist das Quecksilber im Thermometer.\n\nWoher wusste Celsius, wie kalt oder warm es eigentlich war? Er ging davon aus, wann [[Wasser]] gefriert und wann es siedet, also kocht. Als es so kalt war, dass Wasser gefror, machte er einen Strich auf dem Thermometer, dort, wo das Quecksilber war. Das nannte er [[Null]] Grad. Dann hat er Wasser zum Kochen gebracht und das Thermometer hineingehalten. Er machte wieder einen Strich, dort, wo jetzt das Quecksilber stand. Die Strecke dazwischen hat er in 100 Schritte eingeteilt, die man Grad nennt. Darum sagt man: Bei 100 Grad fängt Wasser an zu kochen.\n\nAnders Celsius starb 1744. Kurz danach hat ein [[Freund]] von ihm diese Temperaturmessung nach Celsius benannt. Heute ist Grad Celsius in allen Ländern der [[Welt]] verbreitet. Wir messen damit [[Fieber]], die Kälte im Kühlschrank und allerlei anderes. In einigen Ländern verwenden die meisten Leute jedoch eine andere Einteilung: In den [[USA]] oder in [[Großbritannien]] zum Beispiel misst man die Temperatur in Grad Fahrenheit.\n\n{{Artikel|mini=ja}}\n[[Kategorie:Wissenschaft und Technik]]\n[[Kategorie:Bekannte Leute]]"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "pageid": 2943,
+   "ns": 0,
+   "title": "Katzen",
+   "contentmodel": "wikitext",
+   "pagelanguage": "de",
+   "pagelanguagehtmlcode": "de",
+   "pagelanguagedir": "ltr",
+   "touched": "2026-10-03T17:44:39Z",
+   "lastrevid": 165561,
+   "length": 6335,
+   "revisions": [
+    {
+     "timestamp": "2026-09-15T13:39:29Z",
+     "slots": {
+      "main": {
+       "contentmodel": "wikitext",
+       "contentformat": "text/x-wiki",
+       "content": "[[Datei:Auswahl Katzen 8er.jpg|mini|Das alles sind Katzen. \n<br />\n1. Zeile von links: [[Gepard]] und [[Leopard]]\n<br />\n2. Zeile von links: [[Löwe]] und [[Luchs]]\n<br />\n3. Zeile von links: [[Puma]] und [[Schneeleopard]]\n<br />\n4. Zeile von links: [[Sibirischer Tiger]] und [[Hauskatze]] ]]\nKatzen sind eine [[Tierart|Familie]] der [[Raubtiere]] und gehören somit zu den [[Säugetiere]]n. Es gibt sie auf allen [[Kontinent]]en außer in [[Ozeanien]] und in der [[Antarktis]]. Sie fressen fast nur [[Fleisch]]. Es gibt von ihnen viele verschiedene [[Tierart|Arten]], die sehr unterschiedlich aussehen. In der [[Natur]] leben [[bei uns]] nur [[Wildkatze]]n und [[Luchs]]e.\n\nWenn man bei uns von einer Katze spricht, meint man oft die [[Hauskatze]]. Tatsächlich sind alle Katzen unserer Hauskatze ähnlich. Die Hauskatze wurde jedoch besonders [[Zucht|gezüchtet]] und ist mehr oder weniger zahm.\n\n==Was ist typisch für Katzen?==\n[[Datei:Lioness vs Cape Buffalo.jpg|mini|Katzen fressen fast nur [[Fleisch]]. Diese [[Löwe|Löwin]] hat sich gerade einen Büffel geschnappt.]]\nAlle Katzen sehen ähnlich aus und verhalten sich auch ähnlich. Ihr [[Körper]] ist geschmeidig, das [[Fell]] ist weich mit meist kurzen [[Haar]]en. Der [[Kopf]] ist eher klein im Verhältnis zum Körper. Die [[Auge]]n sind aber im Vergleich zum Kopf eher groß. Die Pupillen bilden einen schmalen Schlitz, der sich in der Dunkelheit weit öffnet. Deshalb können Katzen auch bei wenig [[Licht]] noch gut sehen. Die Tasthaare an der Schnauze helfen ihnen dabei zusätzlich.\n\nKatzen hören sehr gut. Ihre [[Ohr]]en stehen aufrecht und laufen spitz zu. Sie können ihre Ohren drehen und so in eine bestimmte Richtung hören. Katzen haben einen guten Geschmackssinn, sie schmecken also sehr gut mit der Zunge, sie riechen aber nicht so gut mit der [[Nase]]. \n\nKatzen haben sehr kräftige [[Zahn|Zähne]]. Vor allem mit den Eckzähnen können sie ihre Beute gut packen und töten. Auch mit den Krallen halten sie ein Beutetier fest. Katzen haben an den Vorderpfoten je fünf [[Zeh]]en mit Krallen, an den Hinterpfoten je vier. \n\nKatzen haben eine Besonderheit am [[Skelett]]. Sie haben nämlich keine Schlüsselbeine. Das sind die beiden [[Knochen]], die von der Schulter zur Mitte führen und sich oben an der [[Brust]] fast treffen. [[Mensch]]en brechen sich das Schlüsselbein manchmal bei einem Sturz. Bei den Katzen kann das nicht geschehen. Ihre Schultern sind ohne Schlüsselbein viel beweglicher. Sie schaffen deshalb die Landung problemlos auch bei einem weiten Sprung.\n\nDie meisten Katzen können schnurren. Man hört es als tiefes Brummen. Katzen schnurren meist, wenn sie sich besonders wohl fühlen. Schon ganz kleine Katzenbabys tun das. Das Schnurren entsteht im [[Hals]]. Wie das genau geht, haben die [[Wissenschaft]]ler aber noch nicht herausgefunden.\n\nDie meisten Katzen sind Einzelgänger. Männchen treffen ein Weibchen nur, um sich zu [[Sexualität|paaren]] und sich [[Fortpflanzung|fortzupflanzen]]. Nur die [[Löwe]]n leben in Rudeln. Auch die Hauskatzen kann man gut in Gruppen von Weibchen halten.\n\n==Wie lassen sich Katzen einteilen?==\n[[Datei:AfricanWildCat.jpg|thumb|Eine [[Afrika]]nische [[Wildkatze]]. Solche Katzen sind die [[Verwandtschaft|Vorfahren]] der heutigen [[Hauskatze]]n.]]\nEs gibt drei Unterfamilien der Katzen: die ausgestorbenen [[Säbelzahnkatze]]n, die Großkatzen und die Kleinkatzen. Die Säbelzahnkatzen sind schon während der [[Steinzeit]] [[Aussterben|ausgestorben]].\n\nZu den Großkatzen gehören der [[Tiger]], der [[Jaguar]], der [[Löwe]], der [[Leopard]] und der [[Schneeleopard]]. Manchmal rechnet man auch den Nebelparder noch hinzu. Er gleicht dem Leoparden und lebt im [[Himmelsrichtung|Süd-Osten]] [[Asien]]s. Fachleute erkennen die Großkatzen nicht nur an der Körpergröße, denn das ist nicht immer das Wichtigste. Ein wesentlicher Unterschied ist der Knochen unter der [[Zunge]], den man „Zungenbein“ nennt. Auch in den [[Gen]]en sind die Großkatzen anders.\n\nZu den Kleinkatzen gehören der [[Gepard]], die [[Puma]]s, die [[Luchs]]e und einige andere. Auch die „Echten Katzen“ gehören dazu. Sie sind eine eigene [[Tierart|Gattung]]. Zu ihnen gehört auch die [[Wildkatze]], von der unsere Hauskatze abstammt.\n\n==Welche Katze hält welchen Rekord?== \n[[Datei:Gepardjagt1 (Acinonyx jubatus).jpg|mini|Der [[Gepard]] ist die schnellste Raubkatze.]]\nDie Rekorde halten immer die Männchen. Am größten werden die Tiger. Sie werden von der Schnauze bis zum Po etwa 200 [[Zentimeter]] lang und insgesamt bis zu 240 [[Kilogramm]] schwer. Sie werden dicht gefolgt von den Löwen. \n\nDer Vergleich ist allerdings schwierig. Es kommt drauf an, ob man vergleicht, wie die meisten [[Tier]]e etwa sind. Das wäre ein [[Mittelwert]]. Man kann auch das jeweils größte Tier jeder Art, das man je gefunden hat, mit den anderen vergleichen. Dann kann der Vergleich etwas anders ausfallen. Das ist etwa, wie wenn man die Schulkinder von zwei Klassen miteinander vergleicht.\n\nAm schnellsten ist der Gepard. Er schafft es auf etwa 100 [[Geschwindigkeit|km/h]]. Das ist schneller, als man in vielen Ländern auf einer Landstraße fahren darf. Allerdings hält der Gepard diese [[Geschwindigkeit]] nur während einer sehr kurzen [[Zeit]]dauer durch, nämlich kurz bevor er ein Beutetier erwischt.\n\nWelches die stärkste Katze ist, lässt sich nicht sagen. Tiger, Löwen und Pumas leben je auf einem anderen [[Kontinent]]. Sie begegnen sich also in der [[Natur]] gar nicht. Der Löwe und der Leopard zum Beispiel leben zwar zum Teil in denselben Ländern. Sie lassen es aber nie auf einen Kampf ankommen, sondern gehen sich aus dem Weg.\n\n<gallery>\nKatze Senckenberg.jpg|Diese [[Statue]] stammt aus dem [[Altes Ägypten|Alten Ägypten]]. Dort war Bastet eine [[Göttin]], die wie eine Katze aussah.\nFile:Cat playing with a lizard.webm|Eine Hauskatze, die mit einer [[Eidechse]] spielt\nTiger with Cub Kanha.jpg|Eine Tigermutter mit ihrem Jungtier\nPanthera onca at the Toronto Zoo 2.jpg|Dieser [[Jaguar]] zeigt seine starken [[Zahn|Zähne]].\nCourting Couple ! (3381728759).jpg|Ein [[Löwe]]n-Paar ruht am Mittag.\nFile:Cat Sphynx. Kittens. img 01.jpg|Menschen haben manche Katzen so gezüchtet, dass sie keine Haare haben. Das ist [[Tierquälerei]].\n</gallery>\n{{Artikel|mini=ja}}\n[[Kategorie:Tiere und Natur]]"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "pageid": 10548,
+   "ns": 0,
+   "title": "Volt",
+   "contentmodel": "wikitext",
+   "pagelanguage": "de",
+   "pagelanguagehtmlcode": "de",
+   "pagelanguagedir": "ltr",
+   "touched": "2026-09-07T14:16:35Z",
+   "lastrevid": 165497,
+   "length": 32,
+   "redirect": true,
+   "revisions": [
+    {
+     "timestamp": "2026-09-07T14:16:35Z",
+     "slots": {
+      "main": {
+       "contentmodel": "wikitext",
+       "contentformat": "text/x-wiki",
+       "content": "#WEITERLEITUNG [[Elektrizität]]"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "pageid": 19486,
+   "ns": 0,
+   "title": "Sushi",
+   "contentmodel": "wikitext",
+   "pagelanguage": "de",
+   "pagelanguagehtmlcode": "de",
+   "pagelanguagedir": "ltr",
+   "touched": "2026-10-03T17:46:07Z",
+   "lastrevid": 165456,
+   "length": 1798,
+   "revisions": [
+    {
+     "timestamp": "2026-08-16T09:25:55Z",
+     "slots": {
+      "main": {
+       "contentmodel": "wikitext",
+       "contentformat": "text/x-wiki",
+       "content": "[[Datei:Sushi lunch plate in Kobe.jpg|mini|Sushi in einem [[Restaurant]] in [[Japan]]]]\nSushi ist ein [[japan]]isches Gericht. Es wird kalt serviert und besteht aus [[Reis]], der meist durch die Beigabe von [[Essig]] säuerlich gemacht wird. Dazu kommen roher [[Fisch]] oder Meeresfrüchte. Es gibt auch Varianten mit [[Gemüse]], Tofu oder [[Ei]]. Sushi wird in mundgerechten Stücken schön angerichtet. Manchmal wird [[Soja]]soße dazu gereicht, in die man das Sushi eintunkt. Sushi ist durchaus gesund: Es enthält zum Beispiel wertvolle [[Eiweiß|Proteine]] und viele Omega-3-Fettsäuren, die gut für das [[Herz]] sind.\n\nDas Gericht wird in Japan zwar schon lange gegessen, seinen Ursprung hat es aber im Tal des [[Fluss]]es [[Mekong]] in Südostasien. Dort legte man Fisch in [[Salz|gesalzenem]] Reis ein, bis dieser [[Gärung|gärte]] und säuerlich wurde. Dadurch wurde der Fisch sehr lange haltbar. Diese Methode der Konservierung breitete sich bis nach Japan aus. Dort wurde es üblich, den Fisch zusammen mit dem Reis zu essen. Dieses Gericht nannte man Sushi, was wahrscheinlich so viel wie „säuerlich“ bedeutet. Im 19. Jahrhundert kam ein Koch in [[Tokio|Edo]] auf die Idee den säuerlichen Geschmack nicht durch Gärung herbeizuführen, sondern durch die Beigabe von Essig. So entstand das Sushi, wie wir es heute kennen. \n\nIn Japan wird Sushi selten zuhause gegessen. Es ist ein typisches Außerhaus-Essen. Man bekommt es dort etwa an Marktständen oder in [[Restaurant]]s. Bekannt sind die Sushi-Restaurants, in denen man vom Fließband isst. Etwa seit den 1990er Jahren ist Sushi auch [[bei uns]] ein beliebtes Gericht. Es gilt bei uns eher als teures, hochstehendes Essen, wird aber auch in asiatischen Schnellimbissen verkauft.  \n{{Artikel}}\n[[Kategorie:Essen und Trinken]]"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "pageid": 19541,
+   "ns": 0,
+   "title": "Hawaiianer",
+   "contentmodel": "wikitext",
+   "pagelanguage": "de",
+   "pagelanguagehtmlcode": "de",
+   "pagelanguagedir": "ltr",
+   "touched": "2026-08-27T07:18:56Z",
+   "lastrevid": 165482,
+   "length": 29,
+   "redirect": true,
+   "new": true,
+   "revisions": [
+    {
+     "timestamp": "2026-08-27T07:18:56Z",
+     "slots": {
+      "main": {
+       "contentmodel": "wikitext",
+       "contentformat": "text/x-wiki",
+       "content": "#WEITERLEITUNG [[Polynesier]]"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

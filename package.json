@@ -12,7 +12,8 @@
     "data:levels": "node scripts/levels/build.mjs --offline",
     "data:dict": "node scripts/dict/build.mjs",
     "data:reading": "node scripts/reading/gutenberg.mjs --offline && node scripts/reading/klexikon.mjs --offline",
-    "data:klexikon": "node scripts/reading/klexikon.mjs"
+    "data:klexikon": "node scripts/reading/klexikon.mjs --update",
+    "data:klexikon:full": "node scripts/reading/klexikon.mjs --full"
   },
   "dependencies": {
     "dexie": "^4.4.7",

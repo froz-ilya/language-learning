@@ -8,7 +8,7 @@ import { loadShared } from '../../../scripts/reading/lib/shared.mjs';
 import { estimateLevel } from './level';
 import { lemmaMap, paragraphTokens, rankLookup, rateParagraphs } from './rate';
 import { getArticle, knownLevel, listArticles, READING_SOURCES, resetListedLevels } from './sources';
-import { resetCatalogCache, type CatalogFile } from './sources/klexikon';
+import { isRemovedError, markRemoved, removedIds, resetCatalogCache, type CatalogFile } from './sources/klexikon';
 import { countWords, isHeading } from './text';
 import { wikitextToParagraphs } from './wikitext';
 import type { LevelCode } from '../levels/types';
@@ -226,6 +226,62 @@ describe('catalog lists in the app', () => {
     const r = await listArticles('wikinews', { level });
     expect(r.items.length).toBeGreaterThan(0);
     expect(await knownLevel(r.items[0].id)).toBe(level);
+  });
+});
+
+describe('articles removed from the site', () => {
+  /** A minimal localStorage for this device. */
+  function stubStorage(initial: Record<string, string> = {}) {
+    const data = new Map(Object.entries(initial));
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+      removeItem: (k: string) => void data.delete(k),
+    });
+    return data;
+  }
+  const MISSING = { error: { code: 'missingtitle', info: "The page you specified doesn't exist." } };
+
+  it('a deleted article gets a friendly error and is hidden from the lists on this device', async () => {
+    const data = stubStorage();
+    serve({ '/reading/klexikon.json': CATALOG }, (u) => (u.searchParams.get('action') === 'parse' ? MISSING : new Response('', { status: 500 })));
+    const before = await listArticles('klexikon', { level: 'B2' });
+    expect(before.items).toHaveLength(3);
+    const err = await getArticle('klexikon:Klex B2 01').catch((e: unknown) => e);
+    expect(isRemovedError(err)).toBe(true);
+    expect((err as Error).message).toBe('This article was removed from Klexikon.');
+    expect(JSON.parse(data.get('reading:removed')!)).toEqual(['klexikon:Klex B2 01']);
+    const after = await listArticles('klexikon', { level: 'B2' });
+    expect(after.items.map((i) => i.title).sort()).toEqual(['Klex B2 00', 'Klex B2 02']);
+    // Only on this source: the same title elsewhere stays.
+    expect(removedIds().has('miniklexikon:Klex B2 01')).toBe(false);
+  });
+
+  it('other errors (outage, offline) do not hide anything', async () => {
+    const data = stubStorage();
+    serve({ '/reading/klexikon.json': CATALOG }, () => new Response('', { status: 503 }));
+    const err = await getArticle('klexikon:Klex B2 01').catch((e: unknown) => e);
+    expect(isRemovedError(err)).toBe(false);
+    expect(data.has('reading:removed')).toBe(false);
+  });
+
+  it('reads the stored list defensively', () => {
+    stubStorage({ 'reading:removed': '{"not":"a list"}' });
+    expect(removedIds().size).toBe(0);
+    stubStorage({ 'reading:removed': 'not json' });
+    expect(removedIds().size).toBe(0);
+    stubStorage({ 'reading:removed': JSON.stringify(['klexikon:Hund', 42, 'wikipedia:Hund', '']) });
+    expect([...removedIds()]).toEqual(['klexikon:Hund']);
+    vi.stubGlobal('localStorage', {
+      getItem: () => {
+        throw new Error('blocked');
+      },
+      setItem: () => {
+        throw new Error('blocked');
+      },
+    });
+    expect(removedIds().size).toBe(0);
+    expect(() => markRemoved('klexikon:Hund')).not.toThrow();
   });
 });
 

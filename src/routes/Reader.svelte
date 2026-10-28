@@ -18,6 +18,7 @@
   import type { LexEntry } from '../lib/dict/types';
   import { getArticle, knownLevel, LICENSE_URLS, sourceInfo } from '../lib/reading/sources';
   import { nextPart } from '../lib/reading/sources/gutenberg';
+  import { isRemovedError } from '../lib/reading/sources/klexikon';
   import { headingText, isHeading, sentenceAt, tokenize, countWords, type Token } from '../lib/reading/text';
   import { comfortRank, estimateLevel, isFunctionWord, knownShare } from '../lib/reading/level';
   import { rankLookup } from '../lib/reading/rate';
@@ -47,6 +48,8 @@
 
   let article = $state<Article | null>(null);
   let error = $state('');
+  /** The article no longer exists on its site (deleted): no point in "Try again". */
+  let removed = $state(false);
   let attempt = $state(0);
 
   const row = live(() => db.articles.get(id));
@@ -58,6 +61,7 @@
     void attempt;
     const ctrl = new AbortController();
     error = '';
+    removed = false;
     getArticle(id, ctrl.signal)
       .then(async (a) => {
         if (ctrl.signal.aborted) return;
@@ -72,6 +76,7 @@
       })
       .catch((e: Error) => {
         if (ctrl.signal.aborted || e.name === 'AbortError') return;
+        removed = isRemovedError(e);
         error = online.value ? e.message || 'Couldn’t load the article.' : 'You’re offline and this article isn’t saved.';
       });
     return () => ctrl.abort();
@@ -324,10 +329,16 @@
   </div>
 
   {#if error}
-    <EmptyState icon="refresh" title="Couldn’t open the article" text={error}>
-      <button class="btn btn-primary" onclick={() => attempt++}>Try again</button>
-      <button class="btn" onclick={() => back('/read')}>Back to Read</button>
-    </EmptyState>
+    {#if removed}
+      <EmptyState icon="search" title="Article removed" text={error}>
+        <button class="btn btn-primary" onclick={() => back('/read')}>Back to Read</button>
+      </EmptyState>
+    {:else}
+      <EmptyState icon="refresh" title="Couldn’t open the article" text={error}>
+        <button class="btn btn-primary" onclick={() => attempt++}>Try again</button>
+        <button class="btn" onclick={() => back('/read')}>Back to Read</button>
+      </EmptyState>
+    {/if}
   {:else if !article}
     <div class="text-col">
       <Skeleton lines={5} />

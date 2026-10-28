@@ -26,31 +26,55 @@ export async function rateArticle(page, shared) {
   return { title: page.title, level, words };
 }
 
+/** Rows (Map title → { level, words }) → { [level]: [title, words][] }, sorted by title. */
+export function sourcesFromRows(rows) {
+  const byLevel = {};
+  for (const [title, { level, words }] of rows) (byLevel[level] ??= []).push([title, words]);
+  const sorted = {};
+  for (const l of LEVEL_ORDER) {
+    if (!byLevel[l]) continue;
+    sorted[l] = byLevel[l].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  }
+  return sorted;
+}
+
 /**
- * { version, generated, license, sources: { [sourceId]: { [level]: [title, words][] } } }
+ * { version, generated, license, sync?, sources: { [sourceId]: { [level]: [title, words][] } } }
  * Rows are sorted by title so rebuilds give small diffs. No snippets: they would quadruple the
  * file (≈390 KB instead of ≈95 KB for ~5,000 articles).
+ *
+ * `only[sourceId]` (Map title → row, the committed catalog): rebuild just these articles —
+ * re-rated where the page text is at hand, kept as they are otherwise (pages added by an
+ * incremental update elsewhere). Pages deleted on the site since the cache was made stay out.
+ * `stats.kept` counts the rows kept without text.
  */
-export async function buildCatalog(pagesBySource, shared, { generated = '' } = {}) {
+export async function buildCatalog(pagesBySource, shared, { generated = '', sync, only, stats = {} } = {}) {
   const sources = {};
+  stats.kept = 0;
   for (const [id, pages] of Object.entries(pagesBySource)) {
-    const byLevel = {};
-    const seen = new Set();
-    for (const page of pages) {
-      if (seen.has(page.title)) continue;
-      seen.add(page.title);
-      const row = await rateArticle(page, shared);
-      if (!row) continue;
-      (byLevel[row.level] ??= []).push([row.title, row.words]);
+    const byTitle = new Map();
+    for (const p of pages) if (!byTitle.has(p.title)) byTitle.set(p.title, p);
+    const rows = new Map();
+    if (only?.[id]) {
+      for (const [title, row] of only[id]) {
+        const page = byTitle.get(title);
+        if (!page) {
+          rows.set(title, row);
+          stats.kept++;
+          continue;
+        }
+        const r = await rateArticle(page, shared);
+        if (r) rows.set(title, { level: r.level, words: r.words });
+      }
+    } else {
+      for (const page of byTitle.values()) {
+        const r = await rateArticle(page, shared);
+        if (r) rows.set(r.title, { level: r.level, words: r.words });
+      }
     }
-    const sorted = {};
-    for (const l of LEVEL_ORDER) {
-      if (!byLevel[l]) continue;
-      sorted[l] = byLevel[l].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-    }
-    sources[id] = sorted;
+    sources[id] = sourcesFromRows(rows);
   }
-  return { version: CATALOG_VERSION, generated, license: 'CC BY-SA 4.0', sources };
+  return { version: CATALOG_VERSION, generated, license: 'CC BY-SA 4.0', ...(sync ? { sync } : {}), sources };
 }
 
 /** A source is listed at a level when the catalog has at least this many articles there. */

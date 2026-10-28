@@ -49,6 +49,7 @@
 <div class="page">
   <Header title="Library">
     {#snippet actions()}
+      <button class="icon-btn" aria-label="Search for a word" onclick={() => go('/search')}><Icon name="search" /></button>
       <button class="icon-btn" aria-label="Import" onclick={() => go('/import')}><Icon name="import" /></button>
       <button class="icon-btn plus" aria-label="Add" onclick={addMenu}><Icon name="plus" /></button>
     {/snippet}

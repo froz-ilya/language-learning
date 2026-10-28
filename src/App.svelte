@@ -29,6 +29,7 @@
   import PasteText from './routes/PasteText.svelte';
   import HardWords from './routes/HardWords.svelte';
   import Share from './routes/Share.svelte';
+  import Search from './routes/Search.svelte';
 
   /*
    * Routes (hash based). Tab roots (show the bottom tab bar): /, /library, /levels, /settings.
@@ -51,6 +52,7 @@
    *   /paste                    Paste your own text into the reader
    *   /hard                     Hard words: missed 5+ times, practice + memory hooks
    *   /share?term=:word         Android share target: picks a set, then → /card/new?set=…&term=…
+   *   /search                   Quick word search (German, English, Russian → German), add to a set optionally
    * Route components read route.parts / route.query themselves.
    */
   const ROUTES = {
@@ -71,6 +73,7 @@
     paste: PasteText,
     hard: HardWords,
     share: Share,
+    search: Search,
   } as const;
 
   // Backup reminder pop-up (waits for the first screen and any study session; once per launch).

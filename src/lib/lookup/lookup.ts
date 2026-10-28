@@ -13,9 +13,13 @@ import { localPrefix, localWord } from '../sources/providers/local';
 import {
   deWiktionaryDetails,
   deWiktionaryEntry,
+  deWiktionaryPages,
   deWiktionaryPrefix,
+  lemmaEntry,
+  wikiDetails,
   type WikiDetails,
 } from '../sources/providers/dewiktionary';
+import { PageLoader } from './pageLoader';
 import { enWiktionaryGlosses, enWiktionaryPrefix } from '../sources/providers/enwiktionary';
 import { googleText, type TextQuery } from '../sources/providers/google';
 import { myMemoryText } from '../sources/providers/mymemory';
@@ -50,9 +54,6 @@ const FOUND_TTL = 30 * DAY;
 const NOT_FOUND_TTL = DAY;
 /** How long a complete offline entry waits for Wiktionary's examples before returning without them. */
 const ENRICH_TIMEOUT_MS = 3000;
-
-/** Delays used by fillCards (exported so tests can shorten them). */
-export const fillTiming = { gapMs: 700, rateLimitWaitMs: 20_000 };
 
 // ---------- Small helpers ----------
 
@@ -98,9 +99,20 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 
 // ---------- Source chains ----------
 
-/** Collects which providers failed during one lookup (several chains). */
-class Trace {
-  failed = new Set<ProviderId>();
+/** What one lookup carries through its steps. */
+interface Ctx {
+  lang: Lang;
+  signal?: AbortSignal;
+  /**
+   * fillCards: providers that failed earlier in the run. They are not asked again during the
+   * run, not even when every provider of a chain is cooling (no forced retries in a loop).
+   */
+  avoid?: Set<ProviderId>;
+  /**
+   * fillCards: the card already has the user's own translation, which merging keeps. No service
+   * is asked to fill a translation gap (the result is then not cached).
+   */
+  ownTranslation?: boolean;
 }
 
 interface Step<O> {
@@ -110,15 +122,11 @@ interface Step<O> {
   ok: boolean;
 }
 
-async function step<I, O>(
-  trace: Trace,
-  capability: string,
-  providers: Provider<I, O>[],
-  input: I,
-  signal?: AbortSignal,
-): Promise<Step<O>> {
-  const o = await runChainDetailed(capability, providers, input, signal);
-  for (const id of o.failed) trace.failed.add(id);
+async function step<I, O>(ctx: Ctx, capability: string, providers: Provider<I, O>[], input: I): Promise<Step<O>> {
+  const usable = ctx.avoid ? providers.filter((p) => !ctx.avoid!.has(p.id)) : providers;
+  if (!usable.length) return { value: null, via: null, ok: false };
+  const o = await runChainDetailed(capability, usable, input, ctx.signal);
+  for (const id of o.failed) ctx.avoid?.add(id);
   return {
     value: o.result?.value ?? null,
     via: o.result?.via ?? null,
@@ -169,18 +177,17 @@ function translationProviders(lang: Lang, pos?: Pos): Provider<string, WordTrans
 
 type Details = { kind: 'local'; hit: LocalHit } | WikiDetails;
 
-/** Word details: offline dictionary → de.wiktionary (entry, lemma redirect, compound fallback). */
-const DETAIL_PROVIDERS: Provider<ParsedTerm, Details>[] = [
-  {
-    id: 'local',
-    timeoutMs: localWord.timeoutMs,
-    async run(parsed, signal) {
-      const hit = await localWord.run({ term: parsed.term, genders: parsed.genders }, signal);
-      return hit ? { kind: 'local', hit } : null;
-    },
+const LOCAL_DETAILS: Provider<ParsedTerm, Details> = {
+  id: 'local',
+  timeoutMs: localWord.timeoutMs,
+  async run(parsed, signal) {
+    const hit = await localWord.run({ term: parsed.term, genders: parsed.genders }, signal);
+    return hit ? { kind: 'local', hit } : null;
   },
-  deWiktionaryDetails,
-];
+};
+
+/** Word details: offline dictionary → de.wiktionary (entry, lemma redirect, compound fallback). */
+const DETAIL_PROVIDERS: Provider<ParsedTerm, Details>[] = [LOCAL_DETAILS, deWiktionaryDetails];
 
 // ---------- Cache (IndexedDB; failures are ignored so lookups still work without it) ----------
 
@@ -231,67 +238,54 @@ interface Resolved {
   complete: boolean;
   /** No grammar source answered because one failed, was cooling or offline. */
   detailsMissing: boolean;
-  /** Some provider failed during this lookup and was put in cooldown. */
-  refused: boolean;
-}
-
-/** Translate up to 3 example sentences in one request (Google → MyMemory). */
-async function translateExamples(
-  sentences: string[],
-  lang: Lang,
-  trace: Trace,
-  signal?: AbortSignal,
-): Promise<{ examples: Example[]; ok: boolean }> {
-  const de = sentences.slice(0, 3);
-  if (!de.length) return { examples: [], ok: true };
-  const s = await step(trace, 'translate-text', TEXT_PROVIDERS, { text: de.join('\n'), from: 'de', to: lang }, signal);
-  if (s.value !== null) {
-    const lines = s.value.split('\n').map((l) => l.trim());
-    if (lines.length === de.length) return { examples: de.map((d, i) => ({ de: d, tr: lines[i] || undefined })), ok: true };
-  }
-  return { examples: de.map((d) => ({ de: d })), ok: s.ok };
 }
 
 /**
- * Example sentences of several articles ("der See", "die See") translated in one request:
- * up to `per` sentences each. Returns the examples per set.
+ * A lookup up to its last step: everything but the example sentences' translations. A single
+ * lookup translates them right away (one request); fillCards translates the examples of many
+ * words in one request, then finishes each word.
  */
-async function translateExampleSets(
-  sets: string[][],
-  lang: Lang,
-  trace: Trace,
-  signal?: AbortSignal,
-  per = 2,
-): Promise<{ examples: Example[][]; ok: boolean }> {
-  const lists = sets.map((s) => s.slice(0, per));
-  const flat = lists.flat();
-  if (!flat.length) return { examples: lists.map(() => []), ok: true };
-  const s = await step(trace, 'translate-text', TEXT_PROVIDERS, { text: flat.join('\n'), from: 'de', to: lang }, signal);
-  const lines = s.value?.split('\n').map((l) => l.trim());
-  const ok = !!lines && lines.length === flat.length;
+interface Plan {
+  /** Sentences to translate: one list (≤ 3), or one list per article (≤ 2 each). */
+  lists: string[][];
+  /** The lookup with the lists' translated examples; `ok` is false when translating failed. */
+  finish(examples: Example[][], ok: boolean): Resolved;
+}
+
+/** A lookup that needs no example translations. */
+const planned = (r: Resolved): Plan => ({ lists: [], finish: () => r });
+
+/** Sentences paired with translated lines (no translations when the line count doesn't match). */
+function pairLines(lists: string[][], lines: string[] | null): Example[][] {
+  const n = lists.reduce((sum, l) => sum + l.length, 0);
+  const ok = !!lines && lines.length === n;
   let i = 0;
-  const examples = lists.map((l) =>
+  return lists.map((l) =>
     l.map((de) => {
       const tr = ok ? lines![i] : '';
       i++;
       return tr ? { de, tr } : { de };
     }),
   );
-  return { examples, ok: ok || s.ok };
+}
+
+const splitLines = (text: string) => text.split('\n').map((l) => l.trim());
+
+/** Translate example sentences (all lists) in one request: Google → MyMemory. */
+async function translateLists(lists: string[][], ctx: Ctx): Promise<{ examples: Example[][]; ok: boolean }> {
+  const flat = lists.flat();
+  if (!flat.length) return { examples: lists.map(() => []), ok: true };
+  const s = await step(ctx, 'translate-text', TEXT_PROVIDERS, { text: flat.join('\n'), from: 'de', to: ctx.lang });
+  return { examples: pairLines(lists, s.value === null ? null : splitLines(s.value)), ok: s.ok };
 }
 
 /** "the sea" → "sea": Google's translation of "die See" with the article it added. */
 const stripArticle = (t: string) => t.replace(/^(?:the|a|an)\s+/i, '');
 
 /** Translation of a word that the dictionaries have no translation for. */
-async function translateWord(
-  term: string,
-  lang: Lang,
-  pos: Pos | undefined,
-  trace: Trace,
-  signal?: AbortSignal,
-): Promise<{ text: string; ok: boolean }> {
-  const s = await step(trace, 'word-translation', translationProviders(lang, pos), term, signal);
+async function translateWord(term: string, pos: Pos | undefined, ctx: Ctx): Promise<{ text: string; ok: boolean }> {
+  if (ctx.ownTranslation) return { text: '', ok: false };
+  const s = await step(ctx, 'word-translation', translationProviders(ctx.lang, pos), term);
   return { text: s.value?.text ?? '', ok: s.ok };
 }
 
@@ -337,13 +331,8 @@ interface ArticleDraft {
  * into both languages, like the dictionary's). A missing translation is asked for with the
  * article ("die See"), so Google can tell them apart. [] when the noun has one article.
  */
-async function articleDrafts(
-  local: LexEntry[],
-  wiki: WikiEntry | null,
-  lang: Lang,
-  trace: Trace,
-  signal?: AbortSignal,
-): Promise<{ drafts: ArticleDraft[]; ok: boolean }> {
+async function articleDrafts(local: LexEntry[], wiki: WikiEntry | null, ctx: Ctx): Promise<{ drafts: ArticleDraft[]; ok: boolean }> {
+  const { lang } = ctx;
   const drafts: ArticleDraft[] = [];
   for (const x of local) {
     const g = x.genders[0];
@@ -366,54 +355,49 @@ async function articleDrafts(
   const term = local[0]?.term ?? wiki?.title ?? '';
   for (const d of drafts) {
     if (d.translation) continue;
-    const t = await translateWord(`${ARTICLE[d.gender]} ${term}`, lang, 'noun', trace, signal);
+    const t = await translateWord(`${ARTICLE[d.gender]} ${term}`, 'noun', ctx);
     d.translation = stripArticle(t.text);
     ok &&= t.ok;
   }
   return { drafts, ok };
 }
 
-/** Article drafts with translated examples, as the result's `articles`. */
-async function finishArticles(
-  drafts: ArticleDraft[],
-  lang: Lang,
-  trace: Trace,
-  signal?: AbortSignal,
-): Promise<{ articles: ArticleVariant[]; ok: boolean }> {
-  const ex = await translateExampleSets(
-    drafts.map((d) => d.examples),
-    lang,
-    trace,
-    signal,
-  );
-  return {
-    articles: drafts.map((d, i) => ({ genders: [d.gender], plural: d.plural, translation: d.translation, examples: ex.examples[i] })),
-    ok: ex.ok,
-  };
+/** Example sentences to translate for article drafts: up to 2 each. */
+const draftLists = (drafts: ArticleDraft[]) => drafts.map((d) => d.examples.slice(0, 2));
+
+/** Article drafts with their translated examples, as the result's `articles`. */
+const draftArticles = (drafts: ArticleDraft[], examples: Example[][]): ArticleVariant[] =>
+  drafts.map((d, i) => ({ genders: [d.gender], plural: d.plural, translation: d.translation, examples: examples[i] }));
+
+/** Wiktionary's entry for an offline-dictionary hit; ok is false when it failed, was cooling or offline. */
+interface LocalWiki {
+  entry: WikiEntry | null;
+  ok: boolean;
 }
 
-/** Offline-dictionary hit, plus examples (and gaps) from Wiktionary when it answers in time. */
-async function fromLocal(hit: LocalHit, parsed: ParsedTerm, lang: Lang, trace: Trace, signal?: AbortSignal): Promise<Resolved> {
+/** One request for the entry of an offline hit; a complete offline entry doesn't wait long for it. */
+async function localWiki(e: LexEntry, ctx: Ctx): Promise<LocalWiki> {
+  if (isCooling('de.wiktionary')) return { entry: null, ok: false };
+  const localComplete = !!(e.tr[ctx.lang] ?? '').trim() && grammarComplete(e);
+  const provider = localComplete ? { ...deWiktionaryEntry, timeoutMs: ENRICH_TIMEOUT_MS } : deWiktionaryEntry;
+  const s = await step(ctx, 'word-examples', [provider], e.term);
+  return { entry: s.value, ok: s.ok };
+}
+
+/** Offline-dictionary hit, plus examples (and gaps) from its Wiktionary entry when that answered. */
+async function planLocal(hit: LocalHit, wikiStep: LocalWiki, parsed: ParsedTerm, ctx: Ctx): Promise<Plan> {
+  const { lang } = ctx;
   const e = hit.entry;
   const localTr = (e.tr[lang] ?? '').trim();
-  const localComplete = !!localTr && grammarComplete(e);
 
-  let complete = true;
-  let wiki: WikiEntry | null = null;
-  if (isCooling('de.wiktionary')) {
-    complete = false;
-  } else {
-    const provider = localComplete ? { ...deWiktionaryEntry, timeoutMs: ENRICH_TIMEOUT_MS } : deWiktionaryEntry;
-    const s = await step(trace, 'word-examples', [provider], e.term, signal);
-    wiki = s.value;
-    complete = s.ok;
-  }
+  let complete = wikiStep.ok;
+  const wiki = wikiStep.entry;
   const same = wiki && (e.pos === 'other' || wiki.pos === e.pos) ? wiki : null;
   const pos: Pos = e.pos !== 'other' ? e.pos : (same?.pos ?? 'other');
 
   // A noun whose articles differ in meaning: every article, the hit's one as the result.
   const gender = e.pos === 'noun' ? e.genders[0] : undefined;
-  const split = gender ? await articleDrafts(await articleVariants(e), same, lang, trace, signal) : { drafts: [], ok: true };
+  const split = gender ? await articleDrafts(await articleVariants(e), same, ctx) : { drafts: [], ok: true };
   complete &&= split.ok;
   const mine = split.drafts.find((d) => d.gender === gender);
   // Translations and examples of the matching article only (not "die See"'s for "der See").
@@ -421,7 +405,7 @@ async function fromLocal(hit: LocalHit, parsed: ParsedTerm, lang: Lang, trace: T
 
   let translation = localTr || mine?.translation || (own ? formatMeanings(own.translations[lang]) : '');
   if (!translation) {
-    const t = await translateWord(e.term, lang, pos, trace, signal);
+    const t = await translateWord(e.term, pos, ctx);
     translation = t.text;
     complete &&= t.ok;
   }
@@ -438,100 +422,119 @@ async function fromLocal(hit: LocalHit, parsed: ParsedTerm, lang: Lang, trace: T
     examples: [],
     source: 'wiktionary',
   };
+  const done = (ok: boolean): Resolved => {
+    if (hit.form && hit.form !== e.term) result.lemmaOf = hit.form;
+    return { result, via: 'local', complete: complete && ok, detailsMissing: false };
+  };
   if (mine) {
-    const done = await finishArticles(split.drafts, lang, trace, signal);
-    complete &&= done.ok;
-    result.articles = done.articles;
-    result.examples = done.articles.find((a) => a.genders[0] === gender)!.examples.map((x) => ({ ...x }));
-  } else {
-    const ex = await translateExamples(own?.examples ?? [], lang, trace, signal);
-    complete &&= ex.ok;
-    result.examples = ex.examples;
+    return {
+      lists: draftLists(split.drafts),
+      finish(examples, ok) {
+        result.articles = draftArticles(split.drafts, examples);
+        result.examples = result.articles.find((a) => a.genders[0] === gender)!.examples.map((x) => ({ ...x }));
+        return done(ok);
+      },
+    };
   }
-  if (hit.form && hit.form !== e.term) result.lemmaOf = hit.form;
-  return { result, via: 'local', complete, detailsMissing: false, refused: trace.failed.size > 0 };
+  return {
+    lists: [(own?.examples ?? []).slice(0, 3)],
+    finish(examples, ok) {
+      result.examples = examples[0];
+      return done(ok);
+    },
+  };
 }
 
-async function fromWiki(details: WikiDetails, parsed: ParsedTerm, lang: Lang, trace: Trace, signal?: AbortSignal): Promise<Resolved> {
-  const done = (result: LookupResult, complete: boolean): Resolved => ({
-    result,
-    via: 'de.wiktionary',
-    complete,
-    detailsMissing: false,
-    refused: trace.failed.size > 0,
-  });
+async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Promise<Plan> {
+  const done = (result: LookupResult, complete: boolean): Resolved => ({ result, via: 'de.wiktionary', complete, detailsMissing: false });
 
   if (details.kind === 'compound') {
-    const t = await translateWord(details.word, lang, 'noun', trace, signal);
-    return done(
-      {
-        term: details.word,
-        pos: 'noun',
-        genders: details.head.genders,
-        plural: details.plural,
-        praeteritum: '',
-        partizip2: '',
-        auxiliary: '',
-        translation: t.text,
-        examples: [],
-        source: 'compound',
-      },
-      t.ok,
+    const t = await translateWord(details.word, 'noun', ctx);
+    return planned(
+      done(
+        {
+          term: details.word,
+          pos: 'noun',
+          genders: details.head.genders,
+          plural: details.plural,
+          praeteritum: '',
+          partizip2: '',
+          auxiliary: '',
+          translation: t.text,
+          examples: [],
+          source: 'compound',
+        },
+        t.ok,
+      ),
     );
   }
 
   const { entry, lemmaOf } = details;
   let complete = true;
-  let translation = formatMeanings(entry.translations[lang]);
+  let translation = formatMeanings(entry.translations[ctx.lang]);
   if (!translation) {
-    const t = await translateWord(entry.title, lang, entry.pos, trace, signal);
+    const t = await translateWord(entry.title, entry.pos, ctx);
     translation = t.text;
     complete = t.ok;
   }
-  let articles: ArticleVariant[] | undefined;
-  let examples: Example[];
-  if (entry.pos === 'noun' && entry.articles) {
-    const split = await articleDrafts([], entry, lang, trace, signal);
-    const done = await finishArticles(split.drafts, lang, trace, signal);
-    complete &&= split.ok && done.ok;
-    articles = done.articles.length ? done.articles : undefined;
-    examples = articles?.[0].examples ?? [];
-    if (articles && !translation) translation = articles[0].translation;
-  } else {
-    const ex = await translateExamples(entry.examples, lang, trace, signal);
-    complete &&= ex.ok;
-    examples = ex.examples;
-  }
+  const split = entry.pos === 'noun' && entry.articles ? await articleDrafts([], entry, ctx) : null;
+  if (split) complete &&= split.ok;
 
-  const result: LookupResult = {
-    term: entry.title,
-    pos: entry.pos,
-    genders: entry.genders.length ? entry.genders : entry.pos === 'noun' ? parsed.genders : [],
-    plural: entry.plural || (entry.pos === 'noun' ? (parsed.plural ?? '') : ''),
-    praeteritum: entry.praeteritum || (entry.pos === 'verb' ? (parsed.praeteritum ?? '') : ''),
-    partizip2: entry.partizip2 || (entry.pos === 'verb' ? (parsed.partizip2 ?? '') : ''),
-    auxiliary: entry.auxiliary || (entry.pos === 'verb' ? (parsed.auxiliary ?? '') : ''),
-    translation,
-    examples,
-    source: 'wiktionary',
+  const build = (examples: Example[], articles: ArticleVariant[] | undefined, ok: boolean): Resolved => {
+    const result: LookupResult = {
+      term: entry.title,
+      pos: entry.pos,
+      genders: entry.genders.length ? entry.genders : entry.pos === 'noun' ? parsed.genders : [],
+      plural: entry.plural || (entry.pos === 'noun' ? (parsed.plural ?? '') : ''),
+      praeteritum: entry.praeteritum || (entry.pos === 'verb' ? (parsed.praeteritum ?? '') : ''),
+      partizip2: entry.partizip2 || (entry.pos === 'verb' ? (parsed.partizip2 ?? '') : ''),
+      auxiliary: entry.auxiliary || (entry.pos === 'verb' ? (parsed.auxiliary ?? '') : ''),
+      translation: articles && !translation ? articles[0].translation : translation,
+      examples,
+      source: 'wiktionary',
+    };
+    if (articles) result.articles = articles;
+    if (lemmaOf) result.lemmaOf = lemmaOf;
+    return done(result, complete && ok);
   };
-  if (articles) result.articles = articles;
-  if (lemmaOf) result.lemmaOf = lemmaOf;
-  return done(result, complete);
+  if (split) {
+    return {
+      lists: draftLists(split.drafts),
+      finish(examples, ok) {
+        const articles = split.drafts.length ? draftArticles(split.drafts, examples) : undefined;
+        return build(articles?.[0].examples ?? [], articles, ok);
+      },
+    };
+  }
+  return { lists: [entry.examples.slice(0, 3)], finish: (examples, ok) => build(examples[0], undefined, ok) };
 }
 
-async function resolve(parsed: ParsedTerm, lang: Lang, signal?: AbortSignal): Promise<Resolved> {
-  const trace = new Trace();
-  const details = await step(trace, 'word-details', DETAIL_PROVIDERS, parsed, signal);
-  if (details.value?.kind === 'local') return fromLocal(details.value.hit, parsed, lang, trace, signal);
-  if (details.value) return fromWiki(details.value, parsed, lang, trace, signal);
+/** What the word-details step found. */
+type Found =
+  /** An offline-dictionary hit, with Wiktionary's entry for its lemma (examples, gaps). */
+  | { kind: 'local'; hit: LocalHit; wiki: LocalWiki }
+  | { kind: 'wiki'; details: WikiDetails }
+  /** Nothing; `ok` is false when a source failed, was cooling or offline. */
+  | { kind: 'none'; ok: boolean };
+
+/** Word details for one word: offline dictionary, else de.wiktionary (one request per page). */
+async function find(parsed: ParsedTerm, ctx: Ctx): Promise<Found> {
+  const d = await step(ctx, 'word-details', DETAIL_PROVIDERS, parsed);
+  if (d.value?.kind === 'local') return { kind: 'local', hit: d.value.hit, wiki: await localWiki(d.value.hit.entry, ctx) };
+  if (d.value) return { kind: 'wiki', details: d.value };
+  return { kind: 'none', ok: d.ok };
+}
+
+async function plan(found: Found, parsed: ParsedTerm, ctx: Ctx): Promise<Plan> {
+  if (found.kind === 'local') return planLocal(found.hit, found.wiki, parsed, ctx);
+  if (found.kind === 'wiki') return planWiki(found.details, parsed, ctx);
 
   // Last resort: a translation-only result (no grammar beyond what was typed).
-  const s = await step(trace, 'word-translation', translationProviders(lang, parsed.pos), parsed.term, signal);
-  const base = { complete: details.ok && s.ok, detailsMissing: !details.ok, refused: trace.failed.size > 0 };
-  if (!s.value) return { ...base, result: null, via: null };
+  const s = await step(ctx, 'word-translation', translationProviders(ctx.lang, parsed.pos), parsed.term);
+  const base = { complete: found.ok && s.ok, detailsMissing: !found.ok };
+  if (!s.value) return planned({ ...base, result: null, via: null });
   const pos: Pos = parsed.pos ?? s.value.pos ?? 'other';
-  return {
+  return planned({
     ...base,
     via: s.via,
     result: {
@@ -546,27 +549,49 @@ async function resolve(parsed: ParsedTerm, lang: Lang, signal?: AbortSignal): Pr
       examples: [],
       source: 'google',
     },
-  };
+  });
+}
+
+async function resolve(parsed: ParsedTerm, ctx: Ctx): Promise<Resolved> {
+  const p = await plan(await find(parsed, ctx), parsed, ctx);
+  const ex = await translateLists(p.lists, ctx);
+  return p.finish(ex.examples, ex.ok);
 }
 
 interface Lookup extends Resolved {
   fromCache: boolean;
 }
 
-async function lookupWithCache(input: string, lang: Lang, signal?: AbortSignal): Promise<Lookup> {
-  const parsed = parseGermanInput(input.normalize('NFC'));
-  const none = { result: null, via: null, complete: true, detailsMissing: false, refused: false };
-  if (!parsed.term) return { ...none, fromCache: true };
-  const key = `${CACHE_VERSION}:${lang}:${parsed.term}`;
-  // "See" and "die See" share the row: it holds the first article; a typed one is picked here.
-  const typed = (r: LookupResult | null) => (r ? preferArticle(r, parsed.genders) : r);
-  const cached = await readCache(key);
-  if (cached.hit) return { ...none, result: typed(cached.result), via: cached.via, fromCache: true };
+/** A word to look up: parsed input, its cache key, and the cached lookup if there is one. */
+interface Prepared {
+  parsed: ParsedTerm;
+  key: string;
+  cached: Lookup | null;
+}
 
-  const r = await resolve(parsed, lang, signal);
+const NONE = { result: null, via: null, complete: true, detailsMissing: false } as const;
+
+async function prepare(input: string, lang: Lang): Promise<Prepared> {
+  const parsed = parseGermanInput(input.normalize('NFC'));
+  const key = `${CACHE_VERSION}:${lang}:${parsed.term}`;
+  if (!parsed.term) return { parsed, key, cached: { ...NONE, fromCache: true } };
+  const cached = await readCache(key);
+  // "See" and "die See" share the row: it holds the first article; a typed one is picked here.
+  const result = cached.result ? preferArticle(cached.result, parsed.genders) : null;
+  return { parsed, key, cached: cached.hit ? { ...NONE, result, via: cached.via, fromCache: true } : null };
+}
+
+/** Cache a finished lookup (when complete) and return it with the typed article picked. */
+async function store(w: Prepared, r: Resolved): Promise<Lookup> {
   const canonical = r.result?.articles ? withArticle(r.result, r.result.articles[0]) : r.result;
-  if (r.complete) await writeCache(key, canonical, r.via);
-  return { ...r, result: typed(canonical), fromCache: false };
+  if (r.complete) await writeCache(w.key, canonical, r.via);
+  return { ...r, result: canonical ? preferArticle(canonical, w.parsed.genders) : null, fromCache: false };
+}
+
+async function lookupWithCache(input: string, lang: Lang, signal?: AbortSignal): Promise<Lookup> {
+  const w = await prepare(input, lang);
+  if (w.cached) return w.cached;
+  return store(w, await resolve(w.parsed, { lang, signal }));
 }
 
 /**
@@ -689,11 +714,167 @@ export function mergeIntoCard(card: Card, lookup: LookupResult): Card {
   };
 }
 
+// ---------- Filling many cards ----------
+
+/** Batch size and the pause between batches of fillCards (exported so tests can change them). */
+export const fillTiming = { batchSize: 50, batchGapMs: 500 };
+/** Example sentences sent to Google in one fillCards request, at most this many characters. */
+const MAX_BATCH_TEXT = 4000;
+
+/** Google for a batch of example sentences: a longer text, so a longer timeout. */
+const googleBatch: Provider<TextQuery, string> = { ...googlePlain, timeoutMs: 10_000 };
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
+}
+
 /**
- * Auto-fill many cards (import / "fill later"), paced, saving each to the DB and clearing
- * needsFill. A word whose grammar sources all failed, were cooling or offline counts as failed
- * and keeps needsFill = 1. After a source refuses, waits longer before the next word.
- * Stops early when aborted.
+ * Example translations of many lookups: one Google request per ~4000 characters, the lines
+ * mapped back to each word. When Google fails, is cooling or answers with another number of
+ * lines, those words are translated one by one as a single lookup would (Google → MyMemory;
+ * MyMemory takes at most 500 bytes per query, so it is never sent a batch).
+ */
+async function translatePlans(plans: Plan[], ctx: Ctx): Promise<{ examples: Example[][]; ok: boolean }[]> {
+  const out = plans.map((p) => ({ examples: p.lists.map((): Example[] => []), ok: true }));
+  const chunks: number[][] = [];
+  let size = 0;
+  plans.forEach((p, i) => {
+    const flat = p.lists.flat();
+    if (!flat.length) return;
+    const len = flat.join('\n').length + 1;
+    if (!chunks.length || size + len > MAX_BATCH_TEXT) {
+      chunks.push([]);
+      size = 0;
+    }
+    chunks.at(-1)!.push(i);
+    size += len;
+  });
+
+  for (const chunk of chunks) {
+    const flat = chunk.flatMap((i) => plans[i].lists.flat());
+    let lines: string[] | null = null;
+    // A lone word goes the single-lookup way at once; a cooling Google isn't forced.
+    if (chunk.length > 1 && !isCooling('google') && !ctx.avoid?.has('google')) {
+      const s = await step(ctx, 'translate-text', [googleBatch], { text: flat.join('\n'), from: 'de', to: ctx.lang });
+      if (s.value !== null) lines = splitLines(s.value);
+    }
+    if (lines && lines.length === flat.length) {
+      let at = 0;
+      for (const i of chunk) {
+        const n = plans[i].lists.flat().length;
+        out[i] = { examples: pairLines(plans[i].lists, lines.slice(at, at + n)), ok: true };
+        at += n;
+      }
+    } else {
+      for (const i of chunk) out[i] = await translateLists(plans[i].lists, ctx);
+    }
+  }
+  return out;
+}
+
+/**
+ * Lookups of one batch of cards, with the same results (and cache rows) as one lookup per card:
+ * cache and offline dictionary first, then every Wiktionary page the words need in batched
+ * requests (a round per spelling variant / lemma / compound head still needed), then one
+ * translation request for all example sentences. Null for a card whose lookup broke.
+ */
+async function lookupBatch(cards: Card[], lang: Lang, avoid: Set<ProviderId>, signal?: AbortSignal): Promise<(Lookup | null)[]> {
+  const shared: Ctx = { lang, signal, avoid };
+  const words = await Promise.all(cards.map((c) => prepare(c.term, lang)));
+  const out: (Lookup | null)[] = words.map((w) => w.cached);
+  const todo = words.flatMap((w, i) => (w.cached ? [] : [i]));
+  if (!todo.length) return out;
+
+  // Offline dictionary.
+  const local: Step<Details>[] = [];
+  for (const i of todo) local[i] = await step(shared, 'word-details', [LOCAL_DETAILS], words[i].parsed);
+  throwIfAborted(signal);
+
+  // Wiktionary pages, batched. A refusal puts Wiktionary in cooldown: the rest of the run goes on without it.
+  const loader = new PageLoader(async (q) => {
+    if (avoid.has('de.wiktionary') || isCooling('de.wiktionary')) throw new SourceUnavailableError();
+    const o = await runChainDetailed('word-pages', [deWiktionaryPages], q, signal);
+    for (const id of o.failed) avoid.add(id);
+    if (!o.result) throw new SourceUnavailableError();
+    return o.result.value;
+  });
+  const settled = await loader.all(
+    todo.map((i) => async (): Promise<Found> => {
+      const l = local[i];
+      if (l.value?.kind === 'local') {
+        const { hit } = l.value;
+        try {
+          return { kind: 'local', hit, wiki: { entry: await lemmaEntry(hit.entry.term, loader), ok: true } };
+        } catch {
+          return { kind: 'local', hit, wiki: { entry: null, ok: false } };
+        }
+      }
+      try {
+        const details = await wikiDetails(words[i].parsed, loader);
+        return details ? { kind: 'wiki', details } : { kind: 'none', ok: l.ok };
+      } catch {
+        return { kind: 'none', ok: false };
+      }
+    }),
+  );
+  throwIfAborted(signal);
+
+  // Each word up to its examples (a translation gap is still asked for per word, see translateWord).
+  const plans: (Plan | null)[] = [];
+  for (const [k, i] of todo.entries()) {
+    throwIfAborted(signal);
+    const s = settled[k];
+    const found: Found = s.status === 'fulfilled' ? s.value : { kind: 'none', ok: false };
+    if (found.kind === 'none' && !found.ok) {
+      // No grammar source answered: the card stays "needs fill", so no translation is asked for.
+      out[i] = { result: null, via: null, complete: false, detailsMissing: true, fromCache: false };
+      continue;
+    }
+    try {
+      plans[i] = await plan(found, words[i].parsed, { ...shared, ownTranslation: !!cards[i].translation.trim() });
+    } catch (e) {
+      if (isAbortError(e) || signal?.aborted) throw e;
+    }
+  }
+
+  // Example sentences of the whole batch.
+  const ready = todo.filter((i) => plans[i]);
+  const examples = await translatePlans(
+    ready.map((i) => plans[i]!),
+    shared,
+  );
+  for (const [k, i] of ready.entries()) out[i] = await store(words[i], plans[i]!.finish(examples[k].examples, examples[k].ok));
+  return out;
+}
+
+/**
+ * Save a lookup into the card as it is in the DB right now: filling runs in the background, so
+ * the user may have edited the card (their edits win, only empty fields are filled) or deleted
+ * it (it isn't re-created). Read and write happen in one transaction. False when it's gone.
+ */
+async function saveFilled(card: Card, result: LookupResult | null): Promise<boolean> {
+  const fill = (c: Card): Card => (result ? mergeIntoCard(c, result) : { ...c, needsFill: 0 });
+  const id = card.id;
+  if (id === undefined) {
+    await saveCard(fill(card));
+    return true;
+  }
+  return db.transaction('rw', db.cards, async () => {
+    const fresh = await db.cards.get(id);
+    if (!fresh) return false;
+    await saveCard(fill(fresh));
+    return true;
+  });
+}
+
+/**
+ * Auto-fill many cards (import / "fill later") in batches of 50, saving each to the DB in order
+ * and clearing needsFill. Each card is merged into its current DB copy (see saveFilled); a card
+ * deleted meanwhile is skipped and not counted. Results are the same as looking up each card on its own, with far
+ * fewer requests (see lookupBatch). A word whose grammar sources all failed, were cooling or
+ * offline counts as failed and keeps needsFill = 1; a source that refuses is not asked again
+ * during the run. Short pause between batches; stops early when aborted (unsaved cards keep
+ * needsFill = 1).
  */
 export async function fillCards(
   cards: Card[],
@@ -702,39 +883,42 @@ export async function fillCards(
   signal?: AbortSignal,
 ): Promise<{ filled: number; notFound: number; failed: number }> {
   const counts = { filled: 0, notFound: 0, failed: 0 };
+  const avoid = new Set<ProviderId>();
+  const size = Math.max(1, fillTiming.batchSize);
   let done = 0;
-  let wait = 0;
+  let asked = false;
 
-  for (const card of cards) {
+  for (let start = 0; start < cards.length; start += size) {
     if (signal?.aborted) break;
-    if (wait) {
-      await sleep(wait, signal);
+    if (asked) {
+      await sleep(fillTiming.batchGapMs, signal);
       if (signal?.aborted) break;
     }
-
-    let outcome: Lookup | undefined;
+    const batch = cards.slice(start, start + size);
+    let outcomes: (Lookup | null)[];
     try {
-      outcome = await lookupWithCache(card.term, lang, signal);
+      outcomes = await lookupBatch(batch, lang, avoid, signal);
     } catch (e) {
       if (isAbortError(e) || signal?.aborted) break;
+      outcomes = batch.map(() => null);
     }
-    if (signal?.aborted) break;
-    wait = outcome?.fromCache ? 0 : outcome?.refused ? fillTiming.rateLimitWaitMs : fillTiming.gapMs;
+    asked = outcomes.some((o) => !o?.fromCache);
 
-    try {
-      if (!outcome || outcome.detailsMissing || (!outcome.result && !outcome.complete)) {
+    for (const [i, card] of batch.entries()) {
+      if (signal?.aborted) return counts;
+      const outcome = outcomes[i];
+      try {
+        if (!outcome || outcome.detailsMissing || (!outcome.result && !outcome.complete)) {
+          counts.failed++;
+        } else if (await saveFilled(card, outcome.result)) {
+          if (outcome.result) counts.filled++;
+          else counts.notFound++;
+        }
+      } catch {
         counts.failed++;
-      } else if (outcome.result) {
-        await saveCard(mergeIntoCard(card, outcome.result));
-        counts.filled++;
-      } else {
-        await saveCard({ ...card, needsFill: 0 });
-        counts.notFound++;
       }
-    } catch {
-      counts.failed++;
+      onProgress?.(++done, cards.length);
     }
-    onProgress?.(++done, cards.length);
   }
   return counts;
 }

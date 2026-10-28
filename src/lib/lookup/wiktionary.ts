@@ -72,6 +72,92 @@ export async function fetchWikitext(title: string, signal?: AbortSignal): Promis
   return data.parse?.wikitext ?? null;
 }
 
+/** Titles per request (the API's limit without a bot account). */
+export const MAX_TITLES = 50;
+/** Longest "titles" parameter (URL-encoded) sent in one GET request. */
+const MAX_TITLES_CHARS = 4000;
+/** Follow-up requests for pages a response left out, at most (guards against a loop). */
+const MAX_PAGE_REQUESTS = 20;
+
+/** Titles split into requests of at most MAX_TITLES titles and MAX_TITLES_CHARS URL characters. */
+export function titleChunks(titles: string[]): string[][] {
+  const out: string[][] = [];
+  let cur: string[] = [];
+  let size = 0;
+  for (const t of titles) {
+    const len = encodeURIComponent(t).length + 3; // "|" encoded
+    if (cur.length && (cur.length >= MAX_TITLES || size + len > MAX_TITLES_CHARS)) {
+      out.push(cur);
+      cur = [];
+      size = 0;
+    }
+    cur.push(t);
+    size += len;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+interface QueryPage {
+  title: string;
+  missing?: boolean;
+  invalid?: boolean;
+  revisions?: { slots?: { main?: { content?: unknown } } }[];
+}
+
+interface QueryResponse {
+  query?: { normalized?: { from: string; to: string }[]; redirects?: { from: string; to: string }[]; pages?: QueryPage[] };
+  error?: { code: string };
+}
+
+/**
+ * Raw wikitext of many pages: one request per 50 titles instead of one per page. Follows
+ * redirects like fetchWikitext and maps normalized/redirected titles back to the requested
+ * ones. A response cut short by the API's size limit (pages without content) is continued with
+ * the pages it left out. Returns each requested title's wikitext, or null when the page
+ * doesn't exist (or the title is invalid); titles the API never sent content for are absent.
+ */
+export async function fetchWikitexts(titles: string[], signal?: AbortSignal): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  let queue: string[] = [];
+  for (const t of new Set(titles)) {
+    // "|" separates titles; the single-page API calls such titles invalid as well.
+    if (!t.trim() || t.includes('|')) out.set(t, null);
+    else queue.push(t);
+  }
+  for (let requests = 0; queue.length && requests < MAX_PAGE_REQUESTS; ) {
+    const next: string[] = [];
+    for (const chunk of titleChunks(queue)) {
+      if (requests++ >= MAX_PAGE_REQUESTS) break;
+      const data = (await api(
+        { action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main', titles: chunk.join('|'), redirects: '1' },
+        signal,
+      )) as QueryResponse;
+      if (data.error) {
+        if (data.error.code === 'ratelimited') throw new RateLimitError('Wiktionary is rate-limiting requests.');
+        throw new SourceError(`Wiktionary error ${data.error.code}`);
+      }
+      const normalized = new Map((data.query?.normalized ?? []).map((n) => [n.from, n.to]));
+      const redirects = new Map((data.query?.redirects ?? []).map((r) => [r.from, r.to]));
+      const pages = new Map((data.query?.pages ?? []).map((p) => [p.title, p]));
+      const left: string[] = [];
+      for (const t of chunk) {
+        const n = normalized.get(t) ?? t;
+        const page = pages.get(redirects.get(n) ?? n);
+        const content = page?.revisions?.[0]?.slots?.main?.content;
+        if (typeof content === 'string') out.set(t, content);
+        else if (!page || page.missing || page.invalid) out.set(t, null);
+        else left.push(t);
+      }
+      // Pages without content: the response hit the size limit; ask again for the rest. A
+      // response that sent no content at all is not asked again.
+      if (left.length < chunk.length) next.push(...left);
+    }
+    queue = next;
+  }
+  return out;
+}
+
 /** Which of the given titles exist (one request for up to 50 titles). */
 export async function existingTitles(titles: string[], signal?: AbortSignal): Promise<Set<string>> {
   const data = (await api({ action: 'query', titles: titles.slice(0, 50).join('|') }, signal)) as {

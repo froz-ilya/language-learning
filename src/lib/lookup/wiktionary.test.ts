@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
-import { lineSegments, parseEntry, parseSenseTranslations, stripMarkup, templateParams } from './wiktionary';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fetchWikitexts, lineSegments, parseEntry, RateLimitError, titleChunks, parseSenseTranslations, stripMarkup, templateParams } from './wiktionary';
 import { formatMeanings } from './meanings';
 
 const fixture = (name: string) => readFileSync(new URL(`./__fixtures__/${name}.wikitext`, import.meta.url), 'utf8');
@@ -159,5 +159,60 @@ describe('helpers', () => {
 
   it('strips markup', () => {
     expect(stripMarkup("Ich ''gehe'' über die [[Straße]]&nbsp;… [[Haus|Häuser]]{{Ref|x}}")).toBe('Ich gehe über die Straße … Häuser');
+  });
+});
+
+describe('fetchWikitexts', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+
+  it('maps normalized and redirected titles back, and marks missing or invalid ones', async () => {
+    const fetch = vi.fn(async (_url: string) =>
+      json({
+        query: {
+          normalized: [{ from: 'Rote_Bete', to: 'Rote Bete' }],
+          redirects: [{ from: 'Rote Bete', to: 'Bete' }],
+          pages: [
+            { pageid: 1, ns: 0, title: 'Bete', revisions: [{ slots: { main: { content: 'B' } } }] },
+            { pageid: 2, ns: 0, title: 'Haus', revisions: [{ slots: { main: { content: 'H' } } }] },
+            { ns: 0, title: 'Qwrtz', missing: true },
+            { title: 'x[y', invalid: true },
+          ],
+        },
+      }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    const out = await fetchWikitexts(['Rote_Bete', 'Haus', 'Qwrtz', 'x[y', 'a|b', 'Haus']);
+    expect(Object.fromEntries(out)).toEqual({ Rote_Bete: 'B', Haus: 'H', Qwrtz: null, 'x[y': null, 'a|b': null });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(new URL(fetch.mock.calls[0][0]).searchParams.get('titles')).toBe('Rote_Bete|Haus|Qwrtz|x[y');
+  });
+
+  it('asks again for pages a cut-short response left out, but not for ones it never sends', async () => {
+    const page = (title: string, content?: string) =>
+      content === undefined ? { pageid: 1, ns: 0, title } : { pageid: 1, ns: 0, title, revisions: [{ slots: { main: { content } } }] };
+    const replies = [
+      { query: { pages: [page('A', 'a'), page('B'), page('C')] } },
+      { query: { pages: [page('B', 'b'), page('C')] } },
+      { query: { pages: [page('C')] } },
+    ];
+    const fetch = vi.fn(async () => json(replies.shift()));
+    vi.stubGlobal('fetch', fetch);
+    const out = await fetchWikitexts(['A', 'B', 'C']);
+    expect(Object.fromEntries(out)).toEqual({ A: 'a', B: 'b' });
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('reports a rate limit', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json({ error: { code: 'ratelimited' } })));
+    await expect(fetchWikitexts(['A'])).rejects.toBeInstanceOf(RateLimitError);
+    vi.stubGlobal('fetch', vi.fn(async () => json({}, 429)));
+    await expect(fetchWikitexts(['A'])).rejects.toBeInstanceOf(RateLimitError);
+  });
+
+  it('splits titles into requests of 50', () => {
+    const titles = Array.from({ length: 120 }, (_, i) => `T${i}`);
+    expect(titleChunks(titles).map((c) => c.length)).toEqual([50, 50, 20]);
+    expect(titleChunks(Array.from({ length: 50 }, (_, i) => 'Ä'.repeat(40) + i)).length).toBeGreaterThan(1);
   });
 });

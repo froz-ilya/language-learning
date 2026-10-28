@@ -4,7 +4,12 @@ import type { Card, LookupResult } from '../types';
 import type { LexEntry, LocalHit } from '../dict/types';
 
 // In-memory stand-ins for IndexedDB (node has none).
-const mem = vi.hoisted(() => ({ cache: new Map<string, unknown>(), saved: [] as unknown[] }));
+const mem = vi.hoisted(() => ({
+  cache: new Map<string, unknown>(),
+  saved: [] as unknown[],
+  cards: new Map<number, unknown>(),
+  transactions: 0,
+}));
 
 vi.mock('../db/schema', () => ({
   db: {
@@ -12,12 +17,18 @@ vi.mock('../db/schema', () => ({
       get: async (key: string) => mem.cache.get(key),
       put: async (row: { key: string }) => void mem.cache.set(row.key, row),
     },
+    cards: { get: async (id: number) => structuredClone(mem.cards.get(id)) },
+    transaction: async (_mode: string, _table: unknown, fn: () => Promise<unknown>) => {
+      mem.transactions++;
+      return fn();
+    },
   },
 }));
 vi.mock('../db/repo', () => ({
-  saveCard: vi.fn(async (card: unknown) => {
+  saveCard: vi.fn(async (card: { id?: number }) => {
     mem.saved.push(card);
-    return 1;
+    if (card.id !== undefined) mem.cards.set(card.id, structuredClone(card));
+    return card.id ?? 1;
   }),
 }));
 
@@ -65,6 +76,12 @@ interface MockOptions {
   opensearch?: string[];
   google?: GoogleReply | 'fail' | 429;
   wiktionary?: 'fail' | 429;
+  /** de.wiktionary answers 429 from this request on (0-based). */
+  wiki429From?: number;
+  /** Redirects by (normalized) title. Titles are normalized like MediaWiki: "_" → " ". */
+  redirects?: Record<string, string>;
+  /** Batched page requests send content for at most this many pages (the API's size limit). */
+  maxContents?: number;
   /** MyMemory reply for (q, langpair); default: echoes q back (= "doesn't know"). */
   mymemory?: ((q: string, langpair: string) => string) | 'fail';
   /** en.wiktionary REST definition responses by title (others: 404). */
@@ -77,6 +94,8 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 function mockFetch(opts: MockOptions = {}) {
   const pages = opts.pages ?? ALL_PAGES;
   const calls = { wiki: [] as URLSearchParams[], google: [] as string[], mymemory: [] as string[], en: [] as string[] };
+  const norm = (t: string) => t.normalize('NFC').replace(/_/g, ' ');
+  const target = (t: string) => opts.redirects?.[norm(t)] ?? norm(t);
   const fetch = vi.fn(async (input: string, init?: RequestInit) => {
     init?.signal?.throwIfAborted();
     const url = new URL(input);
@@ -109,13 +128,28 @@ function mockFetch(opts: MockOptions = {}) {
       calls.wiki.push(p);
       if (opts.wiktionary === 'fail') throw new TypeError('Failed to fetch');
       if (opts.wiktionary === 429) return json({}, 429);
+      if (opts.wiki429From !== undefined && calls.wiki.length > opts.wiki429From) return json({}, 429);
       switch (p.get('action')) {
         case 'parse': {
-          const page = p.get('page')!.normalize('NFC');
+          const page = target(p.get('page')!);
           return json(pages[page] !== undefined ? { parse: { wikitext: pages[page] } } : { error: { code: 'missingtitle' } });
         }
         case 'query': {
           const titles = p.get('titles')!.split('|');
+          if (p.get('prop') === 'revisions') {
+            expect(titles.length).toBeLessThanOrEqual(50);
+            expect(Object.fromEntries(p)).toMatchObject({ rvprop: 'content', rvslots: 'main', redirects: '1', formatversion: '2' });
+            const normalized = titles.filter((t) => norm(t) !== t.normalize('NFC')).map((t) => ({ from: t, to: norm(t) }));
+            const redirects = [...new Set(titles.map(norm))].filter((t) => opts.redirects?.[t]).map((t) => ({ from: t, to: opts.redirects![t] }));
+            let sent = 0;
+            const out = [...new Set(titles.map(target))].map((title) => {
+              if (pages[title] === undefined) return { ns: 0, title, missing: true };
+              if (opts.maxContents !== undefined && sent >= opts.maxContents) return { pageid: 1, ns: 0, title };
+              sent++;
+              return { pageid: 1, ns: 0, title, revisions: [{ slots: { main: { contentmodel: 'wikitext', content: pages[title] } } }] };
+            });
+            return json({ batchcomplete: true, query: { normalized, redirects, pages: out } });
+          }
           const exist = new Set(opts.existing ?? Object.keys(pages));
           return json({ query: { pages: titles.map((title) => (exist.has(title) ? { title } : { title, missing: true })) } });
         }
@@ -168,6 +202,8 @@ const GEHEN_LEX = lex({
 beforeEach(() => {
   mem.cache.clear();
   mem.saved.length = 0;
+  mem.cards.clear();
+  mem.transactions = 0;
   dict.hits.clear();
   dict.prefix = [];
   vi.stubGlobal('localStorage', memoryStorage());
@@ -737,16 +773,71 @@ describe('mergeIntoCard', () => {
 
 // ---------- fillCards ----------
 
+let nextId = 100;
+/** Cards as stored in the DB (fillCards re-reads each one right before saving it). */
+function stored(...over: Partial<Card>[]): Card[] {
+  return over.map((o) => {
+    const c = card({ id: nextId++, ...o });
+    mem.cards.set(c.id!, structuredClone(c));
+    return c;
+  });
+}
+const storedTerms = (...terms: string[]) => stored(...terms.map((term) => ({ term })));
+
+/** A small Wiktionary noun page: gender, plural, ru/en translation, two examples. */
+function nounPage(w: string, i: number): string {
+  const g = (['m', 'f', 'n'] as const)[i % 3];
+  return [
+    `== ${w} ({{Sprache|Deutsch}}) ==`,
+    `=== {{Wortart|Substantiv|Deutsch}}, {{${g}}} ===`,
+    '',
+    '{{Deutsch Substantiv Übersicht',
+    `|Genus=${g}`,
+    `|Nominativ Singular=${w}`,
+    `|Nominativ Plural=${w}e`,
+    '}}',
+    '',
+    '{{Bedeutungen}}',
+    ':[1] etwas',
+    '',
+    '{{Beispiele}}',
+    `:[1] Das ist ein ${w}.`,
+    `:[1] Wir sehen den ${w} heute.`,
+    '',
+    '==== {{Übersetzungen}} ====',
+    '{{Ü-Tabelle|1|G=etwas|Ü-Liste=',
+    `*{{en}}: [1] {{Ü|en|thing${i}}}`,
+    `*{{ru}}: [1] {{Ü|ru|вещь${i}}}`,
+    '}}',
+    '',
+  ].join('\n');
+}
+const words = (n: number) =>
+  Array.from({ length: n }, (_, i) => `Wort${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + (i % 26))}`);
+const nounPages = (ws: string[]) => Object.fromEntries(ws.map((w, i) => [w, nounPage(w, i)]));
+
+/** The old way: one lookup per card, merged in order. */
+async function perCard(cards: Card[], lang: 'ru' | 'en' = 'ru'): Promise<Card[]> {
+  const out: Card[] = [];
+  for (const c of cards) {
+    const r = await lookupWord(c.term, lang);
+    out.push(r ? mergeIntoCard(c, r) : { ...c, needsFill: 0 });
+  }
+  return out;
+}
+const cacheRows = () =>
+  Object.fromEntries([...mem.cache].map(([k, v]) => [k, { result: (v as { result: unknown }).result, via: (v as { via?: unknown }).via }]));
+
 describe('fillCards', () => {
   beforeEach(() => {
-    fillTiming.gapMs = 0;
-    fillTiming.rateLimitWaitMs = 0;
+    fillTiming.batchSize = 50;
+    fillTiming.batchGapMs = 0;
   });
 
   it('fills, saves and counts', async () => {
     mockFetch({ pages: without('Hausschlüssel'), existing: [], google: unknownGoogle });
     const progress: [number, number][] = [];
-    const cards = [card({ term: 'Haus' }), card({ term: 'qwrtzx' }), card({ term: 'der Tisch' })];
+    const cards = storedTerms('Haus', 'qwrtzx', 'der Tisch');
     const r = await fillCards(cards, 'ru', (d, t) => progress.push([d, t]));
     expect(r).toEqual({ filled: 2, notFound: 1, failed: 0 });
     expect(progress).toEqual([
@@ -755,7 +846,7 @@ describe('fillCards', () => {
       [3, 3],
     ]);
     const saved = mem.saved as Card[];
-    expect(saved).toHaveLength(3);
+    expect(saved.map((c) => c.id)).toEqual(cards.map((c) => c.id));
     expect(saved.every((c) => c.needsFill === 0)).toBe(true);
     expect(saved[0].translation).toContain('дом');
     expect(saved[1].translation).toBe('');
@@ -764,50 +855,226 @@ describe('fillCards', () => {
 
   it('counts failures without saving', async () => {
     mockFetch({ wiktionary: 'fail' });
-    const r = await fillCards([card({ term: 'Haus' })], 'ru');
+    const r = await fillCards(storedTerms('Haus'), 'ru');
     expect(r).toEqual({ filled: 0, notFound: 0, failed: 1 });
     expect(mem.saved).toHaveLength(0);
   });
 
-  it('backs off after a rate limit and skips the cooling source afterwards', async () => {
-    vi.useFakeTimers();
-    fillTiming.rateLimitWaitMs = 20_000;
-    const { calls } = mockFetch({ wiktionary: 429 });
-    const progress: number[] = [];
-    const p = fillCards([card({ term: 'Haus' }), card({ term: 'Tisch' })], 'ru', (d) => progress.push(d));
-    await vi.advanceTimersByTimeAsync(19_000);
-    expect(progress).toEqual([1]);
-    await vi.advanceTimersByTimeAsync(2_000);
-    // Google could translate both, but without grammar the words stay "needs fill".
-    expect(await p).toEqual({ filled: 0, notFound: 0, failed: 2 });
-    expect(calls.wiki).toHaveLength(1);
-    expect(mem.saved).toHaveLength(0);
-  });
-
-  it('counts a word as failed when every source is cooling', async () => {
+  it('counts a word as failed when every source is cooling, without asking anyone again', async () => {
     mockFetch({ wiktionary: 'fail', google: 'fail', mymemory: 'fail' });
     await expect(lookupWord('Haus', 'ru')).rejects.toThrow(SourceUnavailableError);
     const { fetch } = mockFetch({ wiktionary: 'fail', google: 'fail', mymemory: 'fail' });
-    const r = await fillCards([card({ term: 'Tisch' })], 'ru');
+    const r = await fillCards(storedTerms('Tisch'), 'ru');
     expect(r).toEqual({ filled: 0, notFound: 0, failed: 1 });
     expect(mem.saved).toHaveLength(0);
-    // Wiktionary is skipped (cooling); only the soonest translation source is retried.
-    expect(fetch.mock.calls.map(([u]) => new URL(u as string).host)).toEqual(['translate.googleapis.com']);
+    // Wiktionary is cooling, and without grammar the card stays "needs fill": no request at all.
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('fills from the offline dictionary when Wiktionary is down', async () => {
     dict.hits.set('Haus', [{ entry: HAUS_LEX }]);
     mockFetch({ wiktionary: 'fail' });
-    const r = await fillCards([card({ term: 'das Haus' })], 'ru');
+    const r = await fillCards(storedTerms('das Haus'), 'ru');
     expect(r).toEqual({ filled: 1, notFound: 0, failed: 0 });
     expect((mem.saved as Card[])[0]).toMatchObject({ translation: 'дом, здание', genders: ['n'], plural: 'Häuser', needsFill: 0 });
   });
 
-  it('stops when aborted', async () => {
+  it('stops when aborted; unsaved cards keep needsFill', async () => {
     mockFetch();
     const ctrl = new AbortController();
-    const r = await fillCards([card({ term: 'Haus' }), card({ term: 'Tisch' })], 'ru', () => ctrl.abort(), ctrl.signal);
+    const cards = storedTerms('Haus', 'Tisch');
+    const r = await fillCards(cards, 'ru', () => ctrl.abort(), ctrl.signal);
     expect(r).toEqual({ filled: 1, notFound: 0, failed: 0 });
     expect(mem.saved).toHaveLength(1);
+    expect((mem.cards.get(cards[1].id!) as Card).needsFill).toBe(1);
+  });
+
+  it('stops between batches when aborted', async () => {
+    fillTiming.batchSize = 2;
+    const ws = words(4);
+    const { calls } = mockFetch({ pages: nounPages(ws) });
+    const ctrl = new AbortController();
+    const cards = storedTerms(...ws);
+    const r = await fillCards(cards, 'ru', (d) => d === 2 && ctrl.abort(), ctrl.signal);
+    expect(r).toEqual({ filled: 2, notFound: 0, failed: 0 });
+    expect(calls.wiki).toHaveLength(1);
+    expect(cards.slice(2).map((c) => (mem.cards.get(c.id!) as Card).needsFill)).toEqual([1, 1]);
+  });
+
+  it('gives the same cards and cache rows as one lookup per card', async () => {
+    const SEE_M = lex({ term: 'See', pos: 'noun', genders: ['m'], plural: 'Seen', rank: 1112, tr: { ru: 'озеро', en: 'lake' } });
+    const SEE_F = lex({ term: 'See', pos: 'noun', genders: ['f'], plural: 'Seen', rank: 2632, tr: { ru: 'море', en: 'sea' } });
+    const ZWIEBEL = lex({ term: 'Zwiebel', pos: 'noun', genders: ['f'], plural: 'Zwiebeln', tr: { ru: 'лук', en: 'onion' } });
+    dict.hits.set('See', [{ entry: SEE_M }, { entry: SEE_F }]);
+    dict.hits.set('Zwiebel', [{ entry: ZWIEBEL }]);
+    dict.hits.set('Haus', [{ entry: HAUS_LEX }]);
+    const opts: MockOptions = {
+      // Rote_Bete is normalized to "Rote Bete"; Schreibtisch redirects to Tisch.
+      pages: { ...without('Hausschlüssel'), 'Rote Bete': ALL_PAGES.Tisch, Teil: fixture('Teil') },
+      redirects: { Schreibtisch: 'Tisch' },
+      google: (q, tl) => (/^qwrtzx$/i.test(q) ? unknownGoogle(q, tl) : echoGoogle(q, tl)),
+    };
+    const terms = [
+      'Folge', // cache hit
+      'Zwiebel', // offline only (no Wiktionary page)
+      'Tisch', // Wiktionary only
+      'See', // split noun, offline + Wiktionary
+      'die See',
+      'gehen', // verb
+      'ging', // inflected form → lemma
+      'Häuser', // plural → singular
+      'haus', // second spelling variant
+      'qwrtzx', // nothing anywhere
+      'Schreibtisch', // redirect
+      'Rote_Bete', // normalized title
+      'Hausschlüssel', // compound fallback
+      'Teil', // gender variants
+      'das Haus', // offline + Wiktionary examples
+      'schön',
+    ];
+    const over: Partial<Card>[] = [...terms.map((term) => ({ term })), { term: 'Tisch', translation: 'мой стол', notes: 'own' }];
+
+    for (const lang of ['ru', 'en'] as const) {
+      mem.cache.clear();
+      resetProviders();
+      mockFetch(opts);
+      await lookupWord('Folge', lang);
+      const seed = new Map(mem.cache);
+
+      const one = mockFetch(opts);
+      const expected = await perCard(stored(...over), lang);
+      const expectedCache = cacheRows();
+
+      mem.cache = new Map(seed);
+      mem.saved.length = 0;
+      resetProviders();
+      const many = mockFetch(opts);
+      const r = await fillCards(stored(...over), lang);
+      const saved = mem.saved as Card[];
+      expect(saved.map((c) => ({ ...c, id: 0 }))).toEqual(expected.map((c) => ({ ...c, id: 0 })));
+      expect(cacheRows()).toEqual(expectedCache);
+      expect(r).toEqual({ filled: over.length - 1, notFound: 1, failed: 0 });
+      // One request per round of pages (variants, lemmas, compound heads), one for all examples.
+      expect(many.calls.wiki.length).toBeLessThanOrEqual(6);
+      expect(many.calls.wiki.length).toBeLessThan(one.calls.wiki.length / 2);
+      expect(many.calls.google.length).toBeLessThan(one.calls.google.length / 2);
+    }
+  });
+
+  it('needs 1 Wiktionary and 1 translation request for 30 words (one each per card before)', async () => {
+    const ws = words(30);
+    dict.hits.set(ws[0], [{ entry: lex({ term: ws[0], pos: 'noun', genders: ['m'], tr: { ru: 'вещь', en: 'thing' } }) }]);
+    const opts = { pages: nounPages(ws) };
+    const one = mockFetch(opts);
+    await perCard(storedTerms(...ws));
+    expect([one.calls.wiki.length, one.calls.google.length]).toEqual([30, 30]);
+
+    mem.cache.clear();
+    const many = mockFetch(opts);
+    const r = await fillCards(storedTerms(...ws), 'ru');
+    expect(r).toEqual({ filled: 30, notFound: 0, failed: 0 });
+    expect([many.calls.wiki.length, many.calls.google.length]).toEqual([1, 1]);
+    expect(many.calls.google[0].split('\n')).toHaveLength(60);
+    const saved = mem.saved as Card[];
+    expect(saved.map((c) => c.term)).toEqual(ws);
+    expect(saved[1]).toMatchObject({ translation: 'вещь1', genders: ['f'], plural: `${ws[1]}e` });
+    expect(saved[1].examples).toEqual([
+      { de: `Das ist ein ${ws[1]}.`, tr: `TR(Das ist ein ${ws[1]}.)` },
+      { de: `Wir sehen den ${ws[1]} heute.`, tr: `TR(Wir sehen den ${ws[1]} heute.)` },
+    ]);
+  });
+
+  it('needs 6 + 6 requests for 300 words (600 before)', async () => {
+    const ws = words(300);
+    const { calls } = mockFetch({ pages: nounPages(ws) });
+    const progress: number[] = [];
+    const r = await fillCards(storedTerms(...ws), 'ru', (d) => progress.push(d));
+    expect(r).toEqual({ filled: 300, notFound: 0, failed: 0 });
+    expect([calls.wiki.length, calls.google.length]).toEqual([6, 6]);
+    expect(progress).toEqual(ws.map((_, i) => i + 1));
+  });
+
+  it('goes on without Wiktionary after a 429 mid-run, without waiting in a loop', async () => {
+    vi.useFakeTimers();
+    fillTiming.batchGapMs = 500;
+    const ws = words(120);
+    // Two words of the last batch are in the offline dictionary.
+    for (const w of ws.slice(110, 112)) dict.hits.set(w, [{ entry: lex({ term: w, pos: 'noun', genders: ['n'], tr: { ru: 'вещь', en: 'thing' } }) }]);
+    const { calls } = mockFetch({ pages: nounPages(ws), wiki429From: 1 });
+    const cards = storedTerms(...ws);
+    let result: unknown = null;
+    void fillCards(cards, 'ru').then((r) => (result = r));
+    await vi.advanceTimersByTimeAsync(1_100); // the two pauses between batches
+    expect(result).toEqual({ filled: 52, notFound: 0, failed: 68 });
+    expect(isCooling('de.wiktionary')).toBe(true);
+    // Batch 1: one request; batch 2: refused; batch 3: not asked.
+    expect(calls.wiki).toHaveLength(2);
+    expect(calls.google).toHaveLength(1);
+    const after = (c: Card) => mem.cards.get(c.id!) as Card;
+    expect(cards.slice(50, 110).every((c) => after(c).needsFill === 1)).toBe(true);
+    expect(cards.slice(110, 112).map((c) => [after(c).translation, after(c).needsFill])).toEqual([
+      ['вещь', 0],
+      ['вещь', 0],
+    ]);
+  });
+
+  it('translates per card when the batch comes back with another number of lines', async () => {
+    const ws = words(3);
+    const { calls } = mockFetch({
+      pages: nounPages(ws),
+      google: (q, tl) => (q.split('\n').length > 2 ? [[['eine Zeile', q]], null, 'de'] : echoGoogle(q, tl)),
+    });
+    expect(await fillCards(storedTerms(...ws), 'ru')).toEqual({ filled: 3, notFound: 0, failed: 0 });
+    expect(calls.google.map((q) => q.split('\n').length)).toEqual([6, 2, 2, 2]);
+    expect((mem.saved as Card[]).every((c) => c.examples.every((e) => e.tr === `TR(${e.de})`))).toBe(true);
+  });
+
+  it('translates per card through MyMemory when Google refuses the batch', async () => {
+    const ws = words(2);
+    const { calls } = mockFetch({ pages: nounPages(ws), google: 429, mymemory: (q) => `MM(${q})` });
+    expect(await fillCards(storedTerms(...ws), 'ru')).toEqual({ filled: 2, notFound: 0, failed: 0 });
+    expect(calls.google).toHaveLength(1);
+    expect(calls.mymemory).toHaveLength(2);
+    expect((mem.saved as Card[])[0].examples[0].tr).toMatch(/^MM\(/);
+  });
+
+  it('never overwrites the user’s translation, and does not ask for one it would not use', async () => {
+    const noRu = ALL_PAGES.Tisch.replace(/^\*\{\{ru\}\}:.*$/gm, '');
+    const { calls } = mockFetch({ pages: { ...ALL_PAGES, Tisch: noRu } });
+    const cards = stored({ term: 'Tisch', translation: 'мой стол' }, { term: 'Haus', translation: 'мой дом' });
+    expect(await fillCards(cards, 'ru')).toEqual({ filled: 2, notFound: 0, failed: 0 });
+    const saved = mem.saved as Card[];
+    expect(saved.map((c) => c.translation)).toEqual(['мой стол', 'мой дом']);
+    expect(saved[0]).toMatchObject({ genders: ['m'], plural: 'Tische', pos: 'noun' });
+    // Only the example sentences were translated (no "Tisch" word request).
+    expect(calls.google).toHaveLength(1);
+    expect(calls.google[0].split('\n')).not.toContain('Tisch');
+    // The Tisch result lacks its translation, so it isn't cached; Haus is.
+    expect([...mem.cache.keys()]).toEqual(['v3:ru:Haus']);
+  });
+
+  it('continues with the pages a response left out (size limit)', async () => {
+    const ws = words(5);
+    const { calls } = mockFetch({ pages: nounPages(ws), maxContents: 2 });
+    expect(await fillCards(storedTerms(...ws), 'ru')).toEqual({ filled: 5, notFound: 0, failed: 0 });
+    expect(calls.wiki.map((p) => p.get('titles')!.split('|').length)).toEqual([5, 3, 1]);
+  });
+
+  it('keeps edits made while filling and does not re-create deleted cards', async () => {
+    const [haus, tisch, gehen] = storedTerms('Haus', 'Tisch', 'gehen');
+    mockFetch({
+      google: (q, tl) => {
+        // The user edits Haus and deletes gehen while the words are being looked up.
+        mem.cards.set(haus.id!, { ...haus, translation: 'моё', notes: 'edited', starred: 0 });
+        mem.cards.delete(gehen.id!);
+        return echoGoogle(q, tl);
+      },
+    });
+    expect(await fillCards([haus, tisch, gehen], 'ru')).toEqual({ filled: 2, notFound: 0, failed: 0 });
+    const saved = mem.saved as Card[];
+    expect(saved.map((c) => c.term)).toEqual(['Haus', 'Tisch']);
+    expect(saved[0]).toMatchObject({ translation: 'моё', notes: 'edited', starred: 0, genders: ['n'], plural: 'Häuser', needsFill: 0 });
+    expect(mem.cards.has(gehen.id!)).toBe(false);
+    expect(mem.transactions).toBe(3);
   });
 });

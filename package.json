@@ -10,7 +10,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "data:levels": "node scripts/levels/build.mjs --offline",
-    "data:dict": "node scripts/dict/build.mjs",
+    "data:dict": "node scripts/dict/build.mjs && node scripts/dict/reverse.mjs",
     "data:reading": "node scripts/reading/gutenberg.mjs --offline && node scripts/reading/klexikon.mjs --offline",
     "data:klexikon": "node scripts/reading/klexikon.mjs --update",
     "data:klexikon:full": "node scripts/reading/klexikon.mjs --full"

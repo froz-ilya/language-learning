@@ -12,6 +12,7 @@ npm test         # vitest (includes database migration tests)
 npm run check    # svelte-check, must stay at 0 errors / 0 warnings
 npm run build    # production build
 npm run data:levels && npm run data:dict && npm run data:reading   # rebuild generated data from caches
+node scripts/dict/reverse.mjs   # only the RU/EN → DE reverse index (public/dict/rev) from public/dict
 ```
 
 ## User data must stay compatible (hard rule)

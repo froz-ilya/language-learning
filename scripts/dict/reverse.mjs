@@ -3,61 +3,46 @@
 // Builds the reverse dictionary (public/dict/rev/) from the offline dictionary in public/dict:
 // for each translation language, Russian / English words → the German entries they translate.
 //   node scripts/dict/reverse.mjs        (run by `npm run data:dict` after build.mjs)
-// Output: rev/index.json { version, langs: { ru: { [key]: file }, en: … } } plus shards
-//   { w: { [word]: id[] }, e: { [id]: [rank, tags, translation] } }
-// keyed by the word's first two letters (see reverse-lib.mjs); small shards share a file.
+// Format and matching rules: reverse-lib.mjs; runtime: src/lib/dict/reverse.ts.
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { buildShards } from './reverse-lib.mjs';
+import { buildReverse } from './reverse-lib.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const DICT = path.join(ROOT, 'public/dict');
 const OUT = path.join(DICT, 'rev');
-/** Shards are packed into files of at least this many bytes. */
-const MIN_FILE = 6000;
 
-const pieces = fs.readdirSync(DICT).filter((f) => f.endsWith('.json') && f !== 'index.json');
+const pieces = fs.readdirSync(DICT).filter((f) => f.endsWith('.json') && f !== 'index.json').sort();
+/** @type {Record<string, { id: string, rank: number, tags: string, tr: string }[]>} */
 const entries = { ru: [], en: [] };
 for (const f of pieces) {
   const { lemmas } = JSON.parse(fs.readFileSync(path.join(DICT, f), 'utf8'));
   for (const [id, [rank, tags, ru, en]] of Object.entries(lemmas)) {
-    entries.ru.push({ id, rank, tags, tr: ru });
-    entries.en.push({ id, rank, tags, tr: en });
+    if (ru) entries.ru.push({ id, rank, tags, tr: ru });
+    if (en) entries.en.push({ id, rank, tags, tr: en });
   }
 }
 
+const { index, files } = buildReverse(entries);
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
-const index = { version: 1, langs: {} };
-let total = 0;
-for (const lang of /** @type {const} */ (['ru', 'en'])) {
-  const shards = buildShards(entries[lang]);
-  const keys = [...shards.keys()].sort();
-  const files = [];
-  let cur = null;
-  for (const k of keys) {
-    const size = JSON.stringify(shards.get(k)).length;
-    if (!cur || cur.size >= MIN_FILE) files.push((cur = { keys: [], size: 0 }));
-    cur.keys.push(k);
-    cur.size += size;
-  }
-  index.langs[lang] = {};
-  files.forEach((file, i) => {
-    const name = `${lang}-${i}.json`;
-    const merged = { w: {}, e: {} };
-    for (const k of file.keys) {
-      Object.assign(merged.w, shards.get(k).w);
-      Object.assign(merged.e, shards.get(k).e);
-      index.langs[lang][k] = name;
-    }
-    const text = JSON.stringify(merged);
-    total += Buffer.byteLength(text);
-    fs.writeFileSync(path.join(OUT, name), text);
-  });
-  console.log(`${lang}: ${entries[lang].filter((e) => e.tr).length} entries, ${keys.length} keys → ${files.length} files`);
+let raw = 0;
+let gz = 0;
+let largest = ['', 0];
+const write = (name, text) => {
+  const size = Buffer.byteLength(text);
+  fs.writeFileSync(path.join(OUT, name), text);
+  raw += size;
+  gz += zlib.gzipSync(text).length;
+  if (size > largest[1]) largest = [name, size];
+};
+for (const [name, text] of files) write(name, text);
+write('index.json', JSON.stringify(index));
+for (const lang of Object.keys(entries)) {
+  const { files: names, keys } = index.langs[lang];
+  console.log(`${lang}: ${entries[lang].length} entries, ${Object.keys(keys).length} keys → ${names.length} files`);
 }
-const indexText = JSON.stringify(index);
-fs.writeFileSync(path.join(OUT, 'index.json'), indexText);
-total += Buffer.byteLength(indexText);
-console.log(`public/dict/rev: ${(total / 1024).toFixed(0)} KB`);
+const kb = (n) => `${(n / 1024).toFixed(0)} KB`;
+console.log(`public/dict/rev: ${files.size + 1} files, ${kb(raw)} raw, ${kb(gz)} gzip; largest ${largest[0]} ${kb(largest[1])}`);

@@ -43,14 +43,14 @@ export default defineConfig({
         navigateFallback: `${base}index.html`,
         // Dictionary/translation requests are cached per word in IndexedDB instead.
         navigateFallbackDenylist: [/^\/w\//],
-        // Level lists, dictionary pieces and bundled texts aren't precached (several MB);
-        // each file is cached when first used.
+        // Level lists, dictionary pieces (dict/*.json and the reverse index dict/rev/*.json) and
+        // bundled texts aren't precached (several MB); each file is cached when first used.
         runtimeCaching: [
           {
             // Index files say which data files exist: always take the fresh one when online, so
             // a new deploy never pairs an old index with renamed pieces. Offline: cached copy.
             urlPattern: ({ url }) =>
-              /^(levels|dict)\/index\.json$/.test(url.pathname.slice(base.length)),
+              /^(levels|dict|dict\/rev)\/index\.json$/.test(url.pathname.slice(base.length)),
             handler: 'NetworkFirst',
             options: { cacheName: 'offline-index', networkTimeoutSeconds: 3 },
           },
@@ -58,7 +58,7 @@ export default defineConfig({
             urlPattern: ({ url }) =>
               /^(levels|dict|reading)\//.test(url.pathname.slice(base.length)) && url.pathname.endsWith('.json'),
             handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'offline-data', expiration: { maxEntries: 400 } },
+            options: { cacheName: 'offline-data', expiration: { maxEntries: 500 } },
           },
         ],
       },

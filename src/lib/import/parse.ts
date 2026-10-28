@@ -44,13 +44,49 @@ function splitFirst(row: string, sep: string): [string, string] {
   return [row.slice(0, i), row.slice(i + sep.length)];
 }
 
+/** A letter outside the Latin script (Cyrillic, Greek…): the translation side, not German. */
+const FOREIGN = /[^\P{L}\p{Script=Latin}]/u;
+const hasForeign = (s: string) => FOREIGN.test(s);
+
+/** German column that clearly continues past a comma: a plural or verb forms ("das Haus, die Häuser"). */
+const isGermanWithForms = (s: string) => {
+  const p = parseGermanInput(s);
+  return !!(p.plural || p.praeteritum);
+};
+
+/**
+ * Split a row on a comma, which may also appear inside the German column ("die Folge, die Folgen,
+ * последствия, серия"): when one side is in another script (Cyrillic), split at the comma
+ * where the script changes; otherwise at the last comma that still leaves a German term with
+ * forms ("der Tisch, die Tische, table, desk"), else at the first comma.
+ */
+function splitComma(row: string, swap: boolean): [string, string] {
+  const commas = [...row.matchAll(/,/g)].map((m) => m.index!);
+  if (commas.length < 2) return splitFirst(row, ',');
+  const at = (i: number): [string, string] => [row.slice(0, i), row.slice(i + 1)];
+  if (hasForeign(row)) {
+    // German | translation: the last comma before the first foreign letter.
+    // Swapped (translation | German): the first comma after the last foreign letter.
+    const foreign = [...row.matchAll(new RegExp(FOREIGN, 'gu'))].map((m) => m.index!);
+    const pick = swap ? commas.find((i) => i > foreign[foreign.length - 1]) : commas.filter((i) => i < foreign[0]).pop();
+    if (pick !== undefined) return at(pick);
+  } else if (!swap) {
+    for (let k = commas.length - 1; k > 0; k--) {
+      const [left] = at(commas[k]);
+      if (isGermanWithForms(left)) return at(commas[k]);
+    }
+  }
+  return splitFirst(row, ',');
+}
+
 export function parseImport(text: string, opts: ImportOptions): ImportRow[] {
   const rows: ImportRow[] = [];
   for (const raw of splitRows(text, opts.rowSep)) {
     // Rows split on ";" may still contain stray newlines; treat them as spaces.
     const row = opts.rowSep === '\n' ? raw.trim() : raw.replace(/\s*\n\s*/g, ' ').trim();
     if (!row) continue;
-    let [a, b] = splitFirst(row, opts.termSep).map((s) => s.trim()) as [string, string];
+    const split = opts.termSep === ',' ? splitComma(row, !!opts.swap) : splitFirst(row, opts.termSep);
+    let [a, b] = split.map((s) => s.trim()) as [string, string];
     if (opts.swap) [a, b] = [b, a];
     if (!a && !b) continue;
     rows.push({ term: a, translation: b, parsed: parseGermanInput(a) });

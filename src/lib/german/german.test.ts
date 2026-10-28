@@ -53,6 +53,17 @@ describe('parseGermanInput', () => {
     expect(parseGermanInput('der Tisch')).toMatchObject({ term: 'Tisch', pos: 'noun', genders: ['m'] });
     expect(parseGermanInput('der/das Teil').genders).toEqual(['m', 'n']);
     expect(parseGermanInput('das Haus, die Häuser')).toMatchObject({ term: 'Haus', plural: 'Häuser' });
+    expect(parseGermanInput('die Sucht, Süchte')).toMatchObject({ term: 'Sucht', plural: 'Süchte' });
+    expect(parseGermanInput('die Handlung, en').plural).toBe('Handlungen');
+    expect(parseGermanInput('die Lampe, -n').plural).toBe('Lampen');
+    expect(parseGermanInput('das Haus, -¨er').plural).toBe('Häuser');
+    expect(parseGermanInput('die Mutter, ¨').plural).toBe('Mütter');
+    expect(parseGermanInput('der Lehrer, -').plural).toBe('Lehrer');
+    expect(parseGermanInput('der Vater, ¨').plural).toBe('Väter');
+    expect(parseGermanInput('der Apfel, ¨').plural).toBe('Äpfel');
+    expect(parseGermanInput('der Baum, ¨e').plural).toBe('Bäume');
+    expect(parseGermanInput('der Tisch (-e)').plural).toBeUndefined();
+    expect(parseGermanInput('der Weg, nur Singular').plural).toBeUndefined();
   });
 
   it('reads verb forms', () => {

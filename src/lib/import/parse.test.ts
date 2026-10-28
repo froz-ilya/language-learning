@@ -65,6 +65,46 @@ describe('parseImport', () => {
     expect(rows[1].parsed).toMatchObject({ term: 'Teil', genders: ['m', 'n'] });
   });
 
+  it('splits comma lists where the German column also has commas (a Quizlet comma export)', () => {
+    const text = [
+      'die Serie, die Serien,сериал',
+      'die Folge, die Folgen,последствия, серия',
+      'der Darsteller,исполнитель, актер',
+      'lächeln,улыбаться; усмехаться',
+      'die Sucht, Süchte,страсть, мания, зависимость',
+      'die Handlung, en,действие, поступок',
+      'stammen aus,происходить, быть родом из',
+      'wird in ... gedreht,снимается в ...',
+    ].join('\n');
+    const rows = parseImport(text, { termSep: ',', rowSep: '\n' });
+    expect(rows.map((r) => [r.term, r.translation])).toEqual([
+      ['die Serie, die Serien', 'сериал'],
+      ['die Folge, die Folgen', 'последствия, серия'],
+      ['der Darsteller', 'исполнитель, актер'],
+      ['lächeln', 'улыбаться; усмехаться'],
+      ['die Sucht, Süchte', 'страсть, мания, зависимость'],
+      ['die Handlung, en', 'действие, поступок'],
+      ['stammen aus', 'происходить, быть родом из'],
+      ['wird in ... gedreht', 'снимается в ...'],
+    ]);
+    expect(rows[1].parsed).toMatchObject({ term: 'Folge', genders: ['f'], plural: 'Folgen' });
+    expect(rows[4].parsed).toMatchObject({ term: 'Sucht', plural: 'Süchte' });
+    expect(rows[5].parsed).toMatchObject({ term: 'Handlung', plural: 'Handlungen' });
+  });
+
+  it('splits comma lists with Latin translations after German forms', () => {
+    const rows = parseImport('der Tisch, die Tische, table, desk\ngehen, ging, ist gegangen, to go', { termSep: ',', rowSep: '\n' });
+    expect(rows.map((r) => [r.term, r.translation])).toEqual([
+      ['der Tisch, die Tische', 'table, desk'],
+      ['gehen, ging, ist gegangen', 'to go'],
+    ]);
+  });
+
+  it('splits swapped comma lists at the script change', () => {
+    const rows = parseImport('последствия, серия,die Folge, die Folgen', { termSep: ',', rowSep: '\n', swap: true });
+    expect(rows[0]).toMatchObject({ term: 'die Folge, die Folgen', translation: 'последствия, серия' });
+  });
+
   it('skips empty rows', () => {
     expect(parseImport('\n\n  \n\t\n', { termSep: '\t', rowSep: '\n' })).toEqual([]);
   });

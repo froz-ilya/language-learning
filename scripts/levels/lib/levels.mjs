@@ -15,7 +15,8 @@ const FUNCTION_POS = new Set(['pron', 'det', 'article', 'prep', 'conj', 'particl
 
 /** Topic of a word: the committed classification, else a fallback by part of speech. */
 export function topicOf(word, topics) {
-  const t = topics[`${word.term}|${word.rawPos}`];
+  // The other article of a split noun ("See|noun#f") may have its own topic, else the word's.
+  const t = (word.mainKey && topics[`${word.term}|${word.rawPos}#${word.article}`]) || topics[`${word.term}|${word.rawPos}`];
   if (t && TOPICS.includes(t)) return t;
   if (FUNCTION_POS.has(word.rawPos)) return 'Funktionswörter';
   if (word.rawPos === 'num') return 'Zahlen & Mengen';
@@ -94,19 +95,45 @@ export function groupTopics(words, { min = 5, max = 40 } = {}) {
   return out;
 }
 
-/** Build LevelFiles + LevelIndex from enriched words ({term,rawPos,pos,…,tr (meanings),example,example_ru,example_en,topic,rank}). */
+/**
+ * Set of an added article word ("die See"): a set of its topic in this level (the smallest when
+ * the topic is split), else the set of its main word when that is in this level, else
+ * "Gemischt" or a set of its own. The other words' sets are computed without it, so adding
+ * articles never moves existing words between sets.
+ */
+function articleSet(w, list, sets) {
+  const names = new Map();
+  for (const x of list) if (x.topic === w.topic) names.set(sets.get(x), (names.get(sets.get(x)) ?? 0) + 1);
+  if (names.size) return [...names].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1))[0][0];
+  const main = list.find((x) => x.key === w.mainKey);
+  if (main) return sets.get(main);
+  return [...sets.values()].includes(MIXED) ? MIXED : w.topic;
+}
+
+/**
+ * Build LevelFiles + LevelIndex from enriched words ({term,rawPos,pos,…,tr (meanings),example,
+ * example_ru,example_en,topic,rank}). Ids are "A1:Haus", "A1:Haus#<rawPos>" for a later
+ * homograph, and "B2:See#f" for an added article of a split noun (`mainKey`, `article`), which
+ * never takes part in the homograph count so the other ids stay as they were.
+ */
 export function buildLevels(words, sources) {
   const seen = new Map();
   const files = [];
   const index = { version: 1, sources, levels: [] };
   for (const [code] of BANDS) {
-    const list = words.filter((w) => levelOf(w.rank) === code).sort((a, b) => a.rank - b.rank);
+    const all = words.filter((w) => levelOf(w.rank) === code).sort((a, b) => a.rank - b.rank);
+    const list = all.filter((w) => !w.mainKey);
     const sets = groupTopics(list);
-    const out = list.map((w) => {
-      const n = (seen.get(w.term) ?? 0) + 1;
-      seen.set(w.term, n);
+    for (const w of all) if (w.mainKey) sets.set(w, articleSet(w, list, sets));
+    const out = all.map((w) => {
+      let id = `${code}:${w.term}#${w.article}`;
+      if (!w.mainKey) {
+        const n = (seen.get(w.term) ?? 0) + 1;
+        seen.set(w.term, n);
+        id = n === 1 ? `${code}:${w.term}` : `${code}:${w.term}#${w.rawPos}`;
+      }
       const word = {
-        id: n === 1 ? `${code}:${w.term}` : `${code}:${w.term}#${w.rawPos}`,
+        id,
         term: w.term,
         pos: w.pos,
         genders: w.genders,

@@ -8,22 +8,29 @@
 // Output: public/dict/index.json + one piece per group of 2-letter prefixes. A piece is
 //   { lemmas: { [id]: [rank, tags, ru, en, a?, b?] }, forms: { [formLower]: id[] } }
 // (compact entries, decoded to LexEntry by src/lib/dict/local.ts; see encodeEntry in lib.mjs).
+// Ids: the term ("Haus"), term#pos for a rarer homograph ("sein#other"), and id#gender for
+// another article of a noun whose articles differ in meaning ("See" = der See, "See#f" = die See).
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { formatMeanings, parseKaikkiEntry } from '../levels/lib/extract.mjs';
+import { formatMeanings, parseKaikkiEntry, parseMeanings } from '../levels/lib/extract.mjs';
 import {
+  articleCounts,
+  articleKey,
   candidates,
   exclusionReason,
   groupId,
   keysByWord,
   lemmaCounts,
+  mainArticles,
   parseFrequency,
   rankLemmas,
   resolveTarget,
+  tieRank,
 } from '../levels/lib/rank.mjs';
+import { DICT_FORMAT } from '../levels/lib/dict.mjs';
 import { baseWords } from '../levels/lib/words.mjs';
 import {
   encodeEntry,
@@ -71,6 +78,14 @@ const need = (f) => {
   if (!fs.existsSync(f)) throw new Error(`missing ${f}: run node scripts/levels/build.mjs --stage=dict first`);
   return f;
 };
+const readDict = (f) => {
+  const dict = readJson(need(f));
+  if (dict.format !== DICT_FORMAT) throw new Error(`${f} is an older format: run node scripts/levels/build.mjs --offline --stage=dict`);
+  return dict;
+};
+
+/** Group id of a preset word: term|pos, or term|pos#gender for an added article ("B2:See#f"). */
+const presetKey = (w) => `${w.term}|${w.pos}${/#[mfn]$/.test(w.id) ? w.id.slice(-2) : ''}`;
 
 /** term|pos → level code from the committed presets. */
 function presetLevels() {
@@ -78,7 +93,7 @@ function presetLevels() {
   for (const f of fs.readdirSync(LEVELS)) {
     if (!/^[ABC][12]\.json$/.test(f)) continue;
     const file = readJson(path.join(LEVELS, f));
-    for (const w of file.words) if (!out.has(`${w.term}|${w.pos}`)) out.set(`${w.term}|${w.pos}`, file.level);
+    for (const w of file.words) if (!out.has(presetKey(w))) out.set(presetKey(w), file.level);
   }
   return out;
 }
@@ -88,7 +103,45 @@ function presetTranslations() {
   const out = new Map();
   for (const f of fs.readdirSync(LEVELS)) {
     if (!/^[ABC][12]\.json$/.test(f)) continue;
-    for (const w of readJson(path.join(LEVELS, f)).words) if (!out.has(`${w.term}|${w.pos}`)) out.set(`${w.term}|${w.pos}`, w.tr ?? {});
+    for (const w of readJson(path.join(LEVELS, f)).words) if (!out.has(presetKey(w))) out.set(presetKey(w), w.tr ?? {});
+  }
+  return out;
+}
+
+/**
+ * Groups for the other articles of split nouns ("die See" next to "der See"): rank from the
+ * estimated count (ties allowed, so no other rank moves), after every ranked word when the
+ * corpus gives it nothing ("der Tor"). Kept only with both a Russian and an English translation
+ * (a lone "das Tag" = "tag" would only clutter "der Tag"), not excluded or offensive. `of` is
+ * the main group; an article stays in the dictionary as long as its main word does.
+ */
+function articleGroups(groups, freq, cands, totals, dict, overrides, rankedCounts) {
+  const counts = articleCounts(freq, cands, dict.lemmas, totals, overrides.articleShare);
+  const exclude = new Set(overrides.exclude);
+  const out = [];
+  for (const g of groups) {
+    for (const key of g.members) {
+      const rec = dict.lemmas[key];
+      (counts.get(key) ?? []).forEach((c, i) => {
+        const a = rec.articles[i + 1];
+        const k = articleKey(key, c.gender);
+        if (exclude.has(k) || a.offensive) return;
+        const tr = {
+          ru: overrides.tr[k]?.ru ? parseMeanings(overrides.tr[k].ru) : a.tr.ru,
+          en: overrides.tr[k]?.en ? parseMeanings(overrides.tr[k].en) : a.tr.en,
+        };
+        if (!tr.ru.length || !tr.en.length) return;
+        out.push({
+          id: `${g.id}#${c.gender}`,
+          members: [],
+          of: g,
+          gender: c.gender,
+          count: c.count,
+          rank: c.count ? tieRank(rankedCounts, c.count) : rankedCounts.length + 1,
+          word: { term: rec.word, pos: 'noun', genders: a.genders.slice(0, 1), plural: a.plural, praeteritum: '', partizip2: '', auxiliary: '', tr },
+        });
+      });
+    }
   }
   return out;
 }
@@ -98,7 +151,9 @@ function selectLemmas(freq, dict, overrides, levels) {
   const cands = candidates(freq, dict, new Set(overrides.exclude), new Set(overrides.keep));
   const totals = lemmaCounts(freq, cands, dict.lemmas);
   const ranked = rankLemmas(totals, dict.lemmas);
-  const words = baseWords(ranked, dict.lemmas, overrides.tr);
+  // Split nouns: the group is the main article; the others are added after the selection.
+  const lemmas = mainArticles(dict.lemmas);
+  const words = baseWords(ranked, lemmas, overrides.tr);
   const groups = ranked.map((g, i) => ({ id: groupId(dict.lemmas[g.key]), members: g.members, word: words[i] }));
   const ids = new Set(groups.map((g) => g.id));
   console.log(`ranked by frequency: ${groups.length}`);
@@ -123,7 +178,7 @@ function selectLemmas(freq, dict, overrides, levels) {
     groups.push({
       id: g.id,
       members: g.members,
-      word: baseWords([{ key: g.members[0], members: g.members }], dict.lemmas, overrides.tr)[0],
+      word: baseWords([{ key: g.members[0], members: g.members }], lemmas, overrides.tr)[0],
       tokenCount: g.count,
     });
   }
@@ -144,13 +199,13 @@ function selectLemmas(freq, dict, overrides, levels) {
     const id = groupId(rec);
     if (seen.has(id)) continue;
     seen.add(id);
-    groups.push({ id, members: [key], word: baseWords([{ key, members: [key] }], dict.lemmas, overrides.tr)[0] });
+    groups.push({ id, members: [key], word: baseWords([{ key, members: [key] }], lemmas, overrides.tr)[0] });
   }
 
   // Preset words always stay in, whatever their position.
   const selected = groups.filter((g, i) => i < MAX_LEMMAS || levels.has(g.id));
   const inPresets = new Set(selected.map((g) => g.id));
-  const missing = [...levels.keys()].filter((k) => !inPresets.has(k));
+  const missing = [...levels.keys()].filter((k) => !inPresets.has(k) && !/#[mfn]$/.test(k));
   if (missing.length) console.warn(`  ⚠ ${missing.length} preset words not in the dictionary: ${missing.slice(0, 10).join(', ')}`);
   selected.forEach((g, i) => (g.rank = i + 1));
   // Rescued words ("die", "ihr", "man") sit after the ranking in the list, but their rank should
@@ -168,8 +223,11 @@ function selectLemmas(freq, dict, overrides, levels) {
     }
     g.rank = Math.min(g.rank, lo + 1);
   }
-  console.log(`selected: ${selected.length} (fill ${Math.max(0, selected.length - ranked.length)})`);
-  return selected;
+  const articles = articleGroups(selected, freq, cands, totals, dict, overrides, counts);
+  const missingArticles = [...levels.keys()].filter((k) => /#[mfn]$/.test(k) && !articles.some((a) => a.id === k));
+  if (missingArticles.length) console.warn(`  ⚠ preset articles not in the dictionary: ${missingArticles.join(', ')}`);
+  console.log(`selected: ${selected.length} (fill ${Math.max(0, selected.length - ranked.length)}) + ${articles.length} articles of split nouns`);
+  return [...selected, ...articles];
 }
 
 /** LexEntry for a group, with the short id (term, or term#pos for the rarer homograph). */
@@ -200,9 +258,11 @@ function toEntries(groups, levels, presetTr) {
         filled++;
       }
     }
+    if (g.of) continue; // ids of added articles derive from their main word's (below)
     g.lid = used.has(w.term) ? `${w.term}#${w.pos}` : w.term;
     used.add(w.term);
   }
+  for (const g of groups) if (g.of) g.lid = `${g.of.lid}#${g.gender}`;
   console.log(`translations filled from public/levels: ${filled}`);
 }
 
@@ -210,6 +270,19 @@ function toEntries(groups, levels, presetTr) {
 async function collectForms(groups, dict) {
   const idOfKey = new Map();
   for (const g of groups) for (const k of g.members) idOfKey.set(k, g.lid);
+  // Split nouns: lemma key → gender → id ("See|noun" → m: "See", f: "See#f"). An entry's forms
+  // table goes to the id of its own article; a form-of entry ("Gehälter") to the articles whose
+  // tables have that form (all of them when none does), resolved after the stream.
+  const articleIds = new Map();
+  for (const g of groups) {
+    if (!g.of) continue;
+    const key = g.of.members.find((k) => dict.lemmas[k].articles?.some((a) => a.genders[0] === g.gender));
+    if (!key) continue;
+    if (!articleIds.has(key)) articleIds.set(key, new Map([[dict.lemmas[key].articles[0].genders[0], g.of.lid]]));
+    articleIds.get(key).set(g.gender, g.lid);
+  }
+  const tableForms = new Map(); // article id → Set(form)
+  const pendingForms = []; // [form, key, imperative]
   const byWord = keysByWord(dict.lemmas);
   const forms = new Map(); // form → Set(id)
   const imperative = new Map();
@@ -239,18 +312,29 @@ async function collectForms(groups, dict) {
       const form = rec.word.toLowerCase();
       for (const l of rec.lemmas) {
         for (const k of resolveTarget(`${l}|?${rec.rawPos}`, dict.lemmas, byWord)) {
+          if (articleIds.has(k)) pendingForms.push([form, k, rec.imperative]);
           const id = idOfKey.get(k);
-          if (id) add(rec.imperative ? imperative : forms, form, id);
+          if (id && !articleIds.has(k)) add(rec.imperative ? imperative : forms, form, id);
         }
       }
       continue;
     }
-    const id = idOfKey.get(`${rec.word}|${rec.rawPos}`);
+    const key = `${rec.word}|${rec.rawPos}`;
+    const id = articleIds.get(key)?.get(rec.genders[0]) ?? idOfKey.get(key);
     // Pronoun/article paradigms list other words ("ich" lists "wir"): only content words map forms.
     if (!id || ['pron', 'det', 'article', 'num'].includes(rec.rawPos)) continue;
     const fs_ = formsOfEntry(entry);
     for (const f of fs_.forms) add(forms, f, id);
     for (const f of fs_.separable) add(separable, f, id);
+    if (articleIds.has(key)) {
+      if (!tableForms.has(id)) tableForms.set(id, new Set());
+      for (const f of fs_.forms) tableForms.get(id).add(f);
+    }
+  }
+  for (const [form, key, imp] of pendingForms) {
+    const ids = [...articleIds.get(key).values()];
+    const own = ids.filter((id) => tableForms.get(id)?.has(form));
+    for (const id of own.length ? own : ids) add(imp ? imperative : forms, form, id);
   }
   // Contractions and article forms are not in Wiktionary's tables: map them by hand.
   for (const [form, term] of Object.entries(HAND_FORMS)) {
@@ -284,7 +368,8 @@ const kb = (b) => `${(b / 1024).toFixed(1)} KB`;
  * serialised bytes of each `"key":value,` pair.
  */
 function layout(groups, rawForms, count, n) {
-  const kept = groups.filter((g) => g.rank <= n || g.entry.level);
+  const keep = (g) => g.rank <= n || g.entry.level;
+  const kept = groups.filter((g) => keep(g) || (g.of && keep(g.of)));
   const rank = new Map(kept.map((g) => [g.lid, g.rank]));
   const byLower = new Map();
   for (const g of kept) {
@@ -342,7 +427,7 @@ function fit(groups, rawForms, count) {
 
 async function main() {
   const freq = parseFrequency(fs.readFileSync(need(path.join(CACHE, 'de_50k.txt')), 'utf8'));
-  const dict = readJson(need(path.join(CACHE, 'dict.json')));
+  const dict = readDict(path.join(CACHE, 'dict.json'));
   const overrides = readJson(path.join(ROOT, 'scripts/levels/overrides.json'));
   const levels = presetLevels();
 
@@ -405,7 +490,8 @@ async function main() {
   // Step 6: sanity report.
   fileSizes.sort((a, b) => a[1] - b[1]);
   const miss = (l) => kept.filter((g) => !g.entry.tr[l]).length;
-  console.log(`\nLemmas ${kept.length} (${kept.filter((g) => g.entry.level).length} with a level), last #${kept.at(-1).rank} ${kept.at(-1).entry.term}`);
+  const last = kept.filter((g) => !g.of).at(-1);
+  console.log(`\nLemmas ${kept.length} (${kept.filter((g) => g.entry.level).length} with a level, ${kept.filter((g) => g.of).length} added articles), last #${last.rank} ${last.entry.term}`);
   console.log(`Forms ${forms.length} stored (${forms.filter((f) => f.count).length} in the frequency list); regular forms are left to the ending rules`);
   console.log(`Without ru ${miss('ru')}, without en ${miss('en')}`);
   const top = kept.filter((g) => g.rank <= 8000);
@@ -426,7 +512,7 @@ async function main() {
     const gram = e.slice(4).map((s) => expandForm(term, s));
     return `${id} #${e[0]} [${e[1]}] ru: ${e[2] || '–'} | en: ${e[3] || '–'}${gram.length ? ` | ${gram.join(', ')}` : ''}`;
   };
-  for (const w of ['ging', 'Häuser', 'rief', 'schöneren', 'war', 'Hausschlüssel', 'Tisch', 'Tische', 'Ging']) {
+  for (const w of ['ging', 'Häuser', 'rief', 'schöneren', 'war', 'Hausschlüssel', 'Tisch', 'Tische', 'Ging', 'See', 'Gehälter', 'Steuern', 'Kiefer', 'Leitern', 'Band', 'Tor', 'Schilder', 'Teil', 'Liter', 'Joghurt', 'Bank']) {
     const p = load(w);
     const lower = w.toLowerCase();
     const cap = lower[0].toUpperCase() + lower.slice(1);

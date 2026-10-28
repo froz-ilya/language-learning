@@ -197,6 +197,88 @@ export function rankLemmas(totals, lemmas, limit = Infinity) {
   });
 }
 
+/** Key of one article of a split noun: "See|noun" + "f" → "See|noun#f". */
+export const articleKey = (key, gender) => `${key}#${gender}`;
+
+/**
+ * The lemmas with each split noun's main article in place of the merged record: its own
+ * translations, plural and examples ("die Mark" no longer shows the translation of "das Mark").
+ * Ranking keeps using the merged records, so ranks and level ids do not move.
+ */
+export function mainArticles(lemmas) {
+  const out = { ...lemmas };
+  for (const [key, rec] of Object.entries(lemmas)) {
+    const a = rec.articles?.[0];
+    if (a) out[key] = { ...rec, genders: a.genders, plural: a.plural, tr: a.tr, examples: a.examples };
+  }
+  return out;
+}
+
+/** Pseudo-count of the dictionary prior when splitting a noun's count among its articles. */
+const ARTICLE_PRIOR = 50;
+/** An article estimated below this share of the word's count is a minor reading: count 0. */
+const MINOR_ARTICLE = 0.1;
+
+/**
+ * Token counts of the articles of split nouns ("der See" / "die See"). The word's count
+ * (`totals`, as ranked) is shared out by evidence: the frequency of tokens only one article's
+ * forms table has ("Gehälter" → das Gehalt, "Schilder" → das Schild; a token other lemmas also
+ * claim counts by the lemmas' totals), smoothed by a dictionary-richness prior (senses × translations,
+ * worth ARTICLE_PRIOR tokens). An article without a forms table gives no evidence; one under
+ * MINOR_ARTICLE gets 0. `shares` (overrides.json "articleShare", key "See|noun#f" → 0–1) fixes
+ * the share where the corpus can't tell the articles apart ("die Band" / "das Band").
+ * Returns Map key → [{gender, count}] for every article after the main one.
+ */
+export function articleCounts(freq, cands, lemmas, totals, fixed = {}) {
+  const count = new Map(freq);
+  const result = new Map();
+  for (const [key, rec] of Object.entries(lemmas)) {
+    const arts = rec.articles;
+    if (!(arts?.length > 1)) continue;
+    const total = totals.get(key) ?? 0;
+    const sets = arts.map((a) => new Set(a.forms));
+    const evidence = arts.map((a, i) => {
+      let e = 0;
+      for (const t of sets[i]) {
+        if (t === rec.word.toLowerCase() || sets.some((s, j) => j !== i && (s.has(t) || !s.size))) continue;
+        // A token other lemmas also claim ("Schilder" / schildern) counts by their totals.
+        const c = cands.get(t) ?? [];
+        if (!c.includes(key)) continue;
+        const sum = c.reduce((x, k) => x + (totals.get(k) ?? 0), 0);
+        e += sum ? ((count.get(t) ?? 0) * (totals.get(key) ?? 0)) / sum : 0;
+      }
+      return e;
+    });
+    const prior = arts.map((a) => (a.senses ?? 1) * (1 + (a.trCount ?? 0)));
+    const priorSum = prior.reduce((x, y) => x + y, 0);
+    const evSum = evidence.reduce((x, y) => x + y, 0);
+    const shares = arts.map((_, i) => (evidence[i] + (ARTICLE_PRIOR * prior[i]) / priorSum) / (evSum + ARTICLE_PRIOR));
+    result.set(
+      key,
+      arts.slice(1).map((a, i) => {
+        const share = fixed[articleKey(key, a.genders[0])] ?? (shares[i + 1] < MINOR_ARTICLE ? 0 : shares[i + 1]);
+        return { gender: a.genders[0], count: Math.round(total * share) };
+      }),
+    );
+  }
+  return result;
+}
+
+/**
+ * Rank a count would have among `counts` (sorted descending), ties allowed: the number of
+ * higher counts + 1. Words placed this way never move the ranks of the others.
+ */
+export function tieRank(counts, count) {
+  let lo = 0;
+  let hi = counts.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (counts[mid] > count) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo + 1;
+}
+
 /** Translations of a group: first meaning of each member (by part of speech), then the rest. */
 const MEMBER_ORDER = ['noun', 'verb', 'adj', 'conj', 'pron', 'prep', 'det', 'num', 'adv', 'intj', 'postp', 'particle'];
 

@@ -405,12 +405,14 @@
     "Zeus|noun",
     "Zicke|noun",
     "zig|noun",
-    "Zweiter|noun"
+    "Zweiter|noun",
+    "Loch|noun#m",
+    "Wende|noun#m"
   ],
   "keep": [
     "Morgen|noun"
   ],
-  "_comment": "exclude: lemma keys (word|kaikki pos) dropped as homograph noise, names, subtitle English or offensive words. keep: nouns allowed to compete with a function word of the same spelling. tr: hand-fixed translations for frequent words whose Wiktionary order is misleading, written like the output: meanings separated by \"; \", synonyms by \", \".",
+  "_comment": "exclude: lemma keys (word|kaikki pos) dropped as homograph noise, names, subtitle English or offensive words. keep: nouns allowed to compete with a function word of the same spelling. tr: hand-fixed translations for frequent words whose Wiktionary order is misleading, written like the output: meanings separated by \"; \", synonyms by \", \". articleShare: share of a split noun's count that goes to another article (\"See|noun#f\": die See next to der See), where the corpus can't tell the articles apart; keys like \"See|noun#f\" also work in exclude and tr.",
   "tr": {
     "leid|adj": {
       "en": "sorry",
@@ -517,7 +519,7 @@
       "en": "role; roll"
     },
     "Band|noun": {
-      "en": "band; tape; volume"
+      "en": "ribbon; tape; ligament"
     },
     "Erde|noun": {
       "en": "earth; soil, ground"
@@ -543,6 +545,28 @@
     },
     "Pferd|noun": {
       "ru": "лошадь, конь"
+    },
+    "Mark|noun": {
+      "ru": "марка"
+    },
+    "Leiter|noun#f": {
+      "ru": "лестница, стремянка"
     }
+  },
+  "articleShare": {
+    "Alter|noun#n": 0.9,
+    "Band|noun#f": 0.3,
+    "Band|noun#m": 0.05,
+    "Bulle|noun#f": 0.01,
+    "Gehalt|noun#n": 0.8,
+    "Golf|noun#n": 0.4,
+    "Heroin|noun#f": 0.2,
+    "Kiefer|noun#m": 0.4,
+    "Kunde|noun#f": 0.02,
+    "Mark|noun#n": 0.15,
+    "Messer|noun#m": 0.02,
+    "See|noun#f": 0.3,
+    "Steuer|noun#f": 0.7,
+    "Wetter|noun#m": 0.01
   }
 }

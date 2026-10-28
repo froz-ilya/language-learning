@@ -37,6 +37,16 @@ export default defineConfig({
           method: 'GET',
           params: { title: 'title', text: 'text', url: 'url' },
         },
+        // Android: long-press the app icon → "Search word" (iOS ignores manifest shortcuts).
+        shortcuts: [
+          {
+            name: 'Search word',
+            short_name: 'Search',
+            description: 'Look a word up in German, English or Russian',
+            url: `${base}#/search`,
+            icons: [{ src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'],

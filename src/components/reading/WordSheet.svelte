@@ -9,23 +9,25 @@
   import { online } from '../../lib/online.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { db } from '../../lib/db/schema';
-  import { articleVariants, lookupLocal } from '../../lib/dict/local';
   import { saveCard } from '../../lib/db/repo';
   import type { LexEntry } from '../../lib/dict/types';
-  import { lookupWord } from '../../lib/lookup/lookup';
-  import { ARTICLE, displayPlural, displayVerbForms, speakableTerm } from '../../lib/german/articles';
+  import { ARTICLE, speakableTerm } from '../../lib/german/articles';
   import { setKnown, STATUS_LABELS } from '../../lib/progress';
-  import type { ArticleVariant, Card, Gender, LookupResult } from '../../lib/types';
+  import type { ArticleVariant, Gender } from '../../lib/types';
   import type { Article } from '../../lib/reading/types';
   import type { CardRef } from '../../lib/reading/vocab';
+  import { addWordToArticle, articleSetName, buildCard, ensureArticleSet } from '../../lib/reading/store';
   import {
-    addWordToArticle,
-    articleSetName,
-    buildCard,
-    ensureArticleSet,
-    fieldsFromEntry,
-    fieldsFromLookup,
-  } from '../../lib/reading/store';
+    articleCardFields,
+    articleRowsOf,
+    displayOf,
+    formsOf,
+    initialWordLookup,
+    loadWordInfo,
+    mergeInfo,
+    type WordFields,
+  } from '../../lib/search/wordInfo';
+  import { findDuplicate } from '../../lib/search/addToSet';
   import { showToast } from '../../lib/ui/dialogs.svelte';
 
   /**
@@ -55,12 +57,8 @@
     onclose?: () => void;
   } = $props();
 
-  let local = $state<LexEntry | null>(null);
-  /** Every article of a noun whose articles differ in meaning (der See, die See); else [local]. */
-  let localArticles = $state<LexEntry[]>([]);
-  let localDone = $state(false);
-  let remote = $state<LookupResult | null>(null);
-  let remoteState = $state<'idle' | 'loading' | 'done' | 'failed'>('idle');
+  /** Offline entry, its articles, and the online lookup when needed (see lib/search/wordInfo). */
+  let lookup = $state(initialWordLookup());
   let busy = $state(false);
 
   const lang = $derived(settings.lang);
@@ -68,91 +66,31 @@
 
   // Offline dictionary first; the online lookup only when it has nothing (or no translation).
   $effect(() => {
-    const w = word;
     const ctrl = new AbortController();
-    let cancelled = false;
-    (async () => {
-      let best: LexEntry | null = entry;
-      let variants: LexEntry[] = [];
-      try {
-        const hits = await lookupLocal(w);
-        best = hits[0]?.entry ?? entry;
-        if (best) variants = await articleVariants(best);
-      } catch {
-        // keep the precomputed entry
-      }
-      if (cancelled) return;
-      local = best;
-      localArticles = variants;
-      localDone = true;
-      const untranslated = variants.length > 1 ? variants.some((v) => !v.tr[settings.lang]) : !best?.tr[settings.lang];
-      if ((!best || untranslated) && online.value) {
-        remoteState = 'loading';
-        try {
-          remote = await lookupWord(best?.term ?? w, settings.lang, ctrl.signal);
-          if (!cancelled) remoteState = 'done';
-        } catch {
-          if (!cancelled) remoteState = 'failed';
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-      ctrl.abort();
-    };
+    void loadWordInfo(word, {
+      entry,
+      lang: settings.lang,
+      isOnline: () => online.value,
+      signal: ctrl.signal,
+      onchange: (s) => (lookup = s),
+    });
+    return () => ctrl.abort();
   });
 
+  const remoteState = $derived(lookup.remoteState);
   /** Everything known about the word, local entry first, gaps filled from the online lookup. */
-  const info = $derived.by((): (Partial<Card> & { term: string }) | null => {
-    const base = local ? fieldsFromEntry(local, lang) : null;
-    const extra = remote ? fieldsFromLookup(remote) : null;
-    if (!base && !extra) return null;
-    if (!base) return { ...extra!, term: extra!.term! };
-    if (!extra) return { ...base, term: base.term! };
-    return {
-      ...base,
-      term: base.term!,
-      translation: base.translation || extra.translation,
-      genders: base.genders?.length ? base.genders : extra.genders,
-      plural: base.plural || extra.plural,
-      examples: extra.examples,
-    };
-  });
-
-  const display = $derived(
-    info
-      ? {
-          term: info.term,
-          pos: info.pos ?? 'other',
-          genders: info.genders ?? [],
-          plural: info.plural ?? '',
-          praeteritum: info.praeteritum ?? '',
-          partizip2: info.partizip2 ?? '',
-          auxiliary: info.auxiliary ?? '',
-        }
-      : null,
-  );
-  const forms = $derived(
-    display ? (display.pos === 'noun' ? displayPlural(display) : display.pos === 'verb' ? displayVerbForms(display) : '') : '',
-  );
+  const info = $derived(mergeInfo(lookup.local, lookup.remote, lang));
+  const display = $derived(displayOf(info));
+  const forms = $derived(formsOf(display));
   const translation = $derived(info?.translation?.trim() ?? '');
-  const lookingUp = $derived(!localDone || remoteState === 'loading');
+  const lookingUp = $derived(!lookup.localDone || remoteState === 'loading');
   const sameAsWord = $derived(!!display && display.term.toLowerCase() === word.toLowerCase());
 
   /**
    * A noun whose articles differ in meaning: one row per article ("der See — озеро",
    * "die See — море"), each added as its own card. Offline entries first, gaps from the lookup.
    */
-  const articleRows = $derived.by((): ArticleVariant[] => {
-    const online = remote?.term === local?.term || !local ? (remote?.articles ?? []) : [];
-    if (localArticles.length > 1) {
-      return localArticles.map((e) => {
-        const r = online.find((a) => a.genders[0] === e.genders[0]);
-        return { genders: [...e.genders], plural: e.plural || r?.plural || '', translation: e.tr[lang] || r?.translation || '', examples: r?.examples ?? [] };
-      });
-    }
-    return online;
-  });
+  const articleRows = $derived(articleRowsOf(lookup.local, lookup.localArticles, lookup.remote, lang));
 
   /** Genders of the user's cards for this lemma (to tell which article is in the set already). */
   let cardGenders = $state(new Map<number, Gender[]>());
@@ -183,7 +121,7 @@
   });
 
   /** Card fields for adding: what we know, or just the word (filled in later). */
-  function fields(): Partial<Card> & { term: string } {
+  function fields(): WordFields {
     return info ?? { term: word };
   }
 
@@ -213,18 +151,8 @@
     const label = `${ARTICLE[g]} ${display.term}`;
     try {
       const setId = await ensureArticleSet(article);
-      const term = display.term.trim().toLowerCase();
-      const existing = (await db.cards.where('setId').equals(setId).toArray()).find(
-        (c) => c.term.toLowerCase() === term && (!c.genders.length || c.genders.includes(g)),
-      );
-      const fields: Partial<Card> = {
-        term: display.term,
-        pos: 'noun',
-        genders: [g],
-        plural: a.plural,
-        translation: a.translation,
-        examples: a.examples.map((e) => ({ ...e })),
-      };
+      const fields = articleCardFields(display.term, a);
+      const existing = findDuplicate(await db.cards.where('setId').equals(setId).toArray(), fields);
       const cardId = existing?.id ?? (await saveCard(buildCard(setId, fields, context)));
       showToast(existing ? `${label} is already in «${setName}»` : `Added ${label} to «${setName}»`, {
         actionLabel: 'Open set',

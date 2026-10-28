@@ -110,9 +110,12 @@
       <h1>{greeting}</h1>
       <div class="gruss" lang="de">{gruss}!</div>
     </div>
-    {#if counts && !firstLaunch}
-      <button class="add-btn" aria-label="Add a word" onclick={quickAddWord}><Icon name="plus" size={24} /></button>
-    {/if}
+    <div class="top-actions" class:two={counts && !firstLaunch}>
+      <button class="add-btn" aria-label="Search for a word" onclick={() => go('/search')}><Icon name="search" size={22} /></button>
+      {#if counts && !firstLaunch}
+        <button class="add-btn" aria-label="Add a word" onclick={quickAddWord}><Icon name="plus" size={24} /></button>
+      {/if}
+    </div>
   </header>
 
   {#if showInstallBanner}
@@ -337,6 +340,17 @@
     font-weight: 700;
     color: var(--accent);
     margin-top: 2px;
+  }
+  .top-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  /* Search + add side by side: a little smaller, so the date line keeps its width. */
+  .top-actions.two .add-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
   }
   .add-btn {
     display: inline-flex;

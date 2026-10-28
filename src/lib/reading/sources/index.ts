@@ -3,27 +3,33 @@ import { db } from '../../db/schema';
 import type { Article, ArticleSummary, ReadingSourceId, ReadingSourceInfo } from '../types';
 import { firstSentence, isHeading } from '../text';
 import type { ListOptions, ListResult, Source } from './types';
-import { klexikonSource } from './klexikon';
+import { catalogEntry, klexikonSource } from './klexikon';
 import { wikinewsSource } from './wikinews';
 import { wikipediaSource } from './wikipedia';
-import { gutenbergSource, GUTENBERG_LICENSE } from './gutenberg';
+import { gutenbergSource, GUTENBERG_LICENSE, loadGutenberg } from './gutenberg';
 import { SourceError } from './mediawiki';
+import CATALOG_LEVELS from './klexikon-levels.json';
 
 export type { ListOptions, ListResult } from './types';
 export { SourceError } from './mediawiki';
 
+/**
+ * Levels: where each source has articles. MiniKlexikon/Klexikon: the levels of the bundled
+ * catalog with at least 20 articles (klexikon-levels.json, written by the catalog build).
+ * Wikinews/Wikipedia: where their intros usually rate (lists are filtered per batch).
+ */
 export const READING_SOURCES: ReadingSourceInfo[] = [
   {
     id: 'miniklexikon',
     name: 'MiniKlexikon',
-    levels: ['A1', 'A2'],
+    levels: CATALOG_LEVELS.miniklexikon as LevelCode[],
     license: 'CC BY-SA 4.0',
     homepage: 'https://miniklexikon.zum.de/',
   },
   {
     id: 'klexikon',
     name: 'Klexikon',
-    levels: ['A2', 'B1'],
+    levels: CATALOG_LEVELS.klexikon as LevelCode[],
     license: 'CC BY-SA 4.0',
     homepage: 'https://klexikon.zum.de/',
   },
@@ -44,7 +50,7 @@ export const READING_SOURCES: ReadingSourceInfo[] = [
   {
     id: 'wikipedia',
     name: 'Wikipedia',
-    levels: ['C1', 'C2'],
+    levels: ['B2', 'C1', 'C2'],
     license: 'CC BY-SA 4.0',
     homepage: 'https://de.wikipedia.org/',
   },
@@ -116,12 +122,51 @@ export function splitArticleId(id: string): { source: ReadingSourceId; key: stri
   return { source, key: id.slice(i + 1) };
 }
 
+/** Levels the lists showed this session (article id → level), so the reader can show the same. */
+const listedLevels = new Map<string, LevelCode>();
+
 /** Articles from one source (network; throws on failure so callers can try another source). */
 export async function listArticles(
   source: ReadingSourceId,
   opts?: ListOptions,
 ): Promise<{ items: ArticleSummary[]; cursor?: string }> {
-  return SOURCES[source].list(opts);
+  const r = await SOURCES[source].list(opts);
+  for (const i of r.items) if (i.level) listedLevels.set(i.id, i.level);
+  return r;
+}
+
+/**
+ * The level an article has without the reader's own estimate: the catalog level
+ * (MiniKlexikon/Klexikon), the bundled level (Gutenberg), or the level its list showed this
+ * session (Wikinews/Wikipedia, rated from the intro). Null when none is known: the reader then
+ * estimates from the full text.
+ */
+export async function knownLevel(id: string, title?: string): Promise<LevelCode | null> {
+  let source: ReadingSourceId;
+  let key: string;
+  try {
+    ({ source, key } = splitArticleId(id));
+  } catch {
+    return null;
+  }
+  const titles = title && title !== key ? [key, title] : [key];
+  if (source === 'miniklexikon' || source === 'klexikon') {
+    const e = await catalogEntry(source, ...titles);
+    if (e) return e.level;
+  } else if (source === 'gutenberg') {
+    try {
+      const t = (await loadGutenberg()).texts.find((x) => x.id === key);
+      if (t) return t.level;
+    } catch {
+      // Not loaded: fall through.
+    }
+  }
+  return listedLevels.get(id) ?? null;
+}
+
+/** For tests: forget the levels the lists showed. */
+export function resetListedLevels() {
+  listedLevels.clear();
 }
 
 /** Full text of an article: from db.articles if saved, otherwise from its source. */

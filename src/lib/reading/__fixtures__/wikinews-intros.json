@@ -1,0 +1,29 @@
+{
+ "batchcomplete": true,
+ "continue": {
+  "gcmcontinue": "20261020101010|99999",
+  "continue": "gcmcontinue||"
+ },
+ "query": {
+  "pages": [
+   {
+    "pageid": 86781,
+    "ns": 0,
+    "title": "Microsoft beendet Support für Windows 10",
+    "extract": "Microsoft beendet Support für Windows 10\n\nMillionen Nutzer weltweit betroffen – Sicherheitsupdates enden nach über zehn Jahren\n\nWashington D.C. (Vereinigte Staaten), 17.10.2025 – Am 14. Oktober 2025 hat Microsoft den offiziellen Support für Windows 10 eingestellt. Damit endet nach über zehn Jahren die Ära eines der meistverwendeten Betriebssysteme weltweit. Für Privatanwender und Unternehmen bedeutet das: keine Sicherheitsupdates, keine Fehlerkorrekturen und kein technischer Support mehr. Millionen Geräte sind betroffen.\nWindows 10 erschien im Jahr 2015 und war als „letztes Windows“ angekündigt worden, das durch fortlaufende Updates aktuell bleiben sollte. Dennoch entschied sich Microsoft 2021 für den Nachfolger Windows 11, der neue Hardwareanforderungen wie TPM 2.0 und Secure Boot voraussetzt. Seitdem bereitete das Unternehmen den schrittweisen Übergang vor. Der finale „Patch Tuesday“ am 14. Oktober markierte nun das Ende der Unterstützung für alle gängigen Editionen von Windows 10 Home und Pro."
+   },
+   {
+    "pageid": 86823,
+    "ns": 0,
+    "title": "Wikipedia-Sprechstunde in Bautzen",
+    "extract": "Bautzen, 12.03.2026 – Für das Jahr 2026 ist in Bautzen auch eine Wikipedia-Sprechstunde geplant. Veranstaltungen wie in Bautzen gibt es auch in anderen Städten. So wird es auch in der Oberlausitz den  Bürgern der Stadt und dem Umland ermöglicht, sich zu Themen über Wikipedia und die der Schwesterprojekten zu informieren. Der Besucher kann erfahrenen Wikipedia-Autorinnen und -Autoren Fragen stellen, sich zu eigenen Ideen beraten lassen oder diese direkt vor Ort umsetzen. Hierbei ist es egal, ob man Leser ist, Autor ist oder einfach einmal mehr über Wikipedia und verwandte Themen wissen möchte. Zur Verfügung stehen ein Raum mit Internet, ein Laptop muss selber mitgebracht werden. Die Veranstaltungen sind öffentlich und richten sich an alle Interessierten. Kosten entstehen keine."
+   },
+   {
+    "pageid": 86838,
+    "ns": 0,
+    "title": "Die Wikimedia Foundation hat die Einstellung von Wikinews bekanntgegeben",
+    "extract": "Die Wikimedia Foundation hat die Einstellung von Wikinews bekanntgegeben\n\nAlle 31 Wikinews-Sprachversionen werden beendet\n\nKalifornien (USA), 10.04.2026 – Die Wikimedia Foundation hat die Einstellung von Wikinews beschlossen.\nLaut der Stiftung werden alle Sprachversionen des Projekts ab dem 4. Mai 2026 in den Lesemodus überführt. Ab diesem Zeitpunkt bleiben die Seiten zwar weiterhin öffentlich zugänglich, jedoch sind keine neuen Beiträge oder Bearbeitungen mehr möglich. Diese Entscheidung ist das Ergebnis ausführlicher interner Diskussionen innerhalb der Wikimedia-Bewegung. Die Stiftung führt den Schritt auf die langfristige Nachhaltigkeit des Projekts, das niedrige Aktivitätsniveau und die Verfügbarkeit zuverlässiger Nachrichtenquellen auf anderen Plattformen zurück. Bereits im Jahr 2025 hatte die zuständige „Sister Projects Task Force“ als Projekt mit den größten Bedenken zur Überprüfung vorgeschlagen und es als das am wenigsten aktive Schwesterprojekt bezeichnet.\nIn ihrer Mitteilung bedankte sich die Wikimedia Foundation bei den freiwilligen Mitarbeitenden von Wikinews für ihre Arbeit. (WikiBayer)"
+   }
+  ]
+ }
+}

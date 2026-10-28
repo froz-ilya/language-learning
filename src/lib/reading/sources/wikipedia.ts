@@ -2,6 +2,7 @@ import type { Article, ArticleSummary, ReadingSourceInfo } from '../types';
 import { extractToParagraphs, firstSentence, stripTags, truncateParagraphs } from '../text';
 import type { ListOptions, ListResult, Source } from './types';
 import { mwGet, SourceError, wikiUrl, type PagesResponse, type SearchResponse } from './mediawiki';
+import { keepLevel } from '../rate';
 
 const API = 'https://de.wikipedia.org/w/api.php';
 const WIKI = 'https://de.wikipedia.org/wiki/';
@@ -56,7 +57,11 @@ export function wikipediaSource(info: ReadingSourceInfo): Source {
     return { items, cursor: next !== undefined ? String(next) : undefined };
   }
 
-  /** One page of a quality category, alternating between "exzellent" and "lesenswert". */
+  /**
+   * One page of a quality category, alternating between "exzellent" and "lesenswert". The
+   * whole intro of each article comes along (one request) and is rated; with a level, only the
+   * articles at that level are returned (possibly none: the next batch comes with "Load more").
+   */
   async function list(opts: ListOptions = {}): Promise<ListResult> {
     const query = opts.query?.trim();
     if (query) return search(query, opts);
@@ -80,18 +85,18 @@ export function wikipediaSource(info: ReadingSourceInfo): Source {
         prop: 'extracts',
         exintro: 1,
         explaintext: 1,
-        exsentences: 3,
         exlimit: 20,
       },
       opts.signal,
     );
     const pages = (data.query?.pages ?? []).filter((p) => !p.missing);
-    const items: ArticleSummary[] = pages.map((p) => ({
-      id: `wikipedia:${p.title}`,
-      source: 'wikipedia',
-      title: p.title,
-      snippet: introSnippet(p.extract),
-    }));
+    const items = await keepLevel<ArticleSummary>(
+      pages.map((p) => ({
+        item: { id: `wikipedia:${p.title}`, source: 'wikipedia', title: p.title, snippet: introSnippet(p.extract) },
+        paragraphs: extractToParagraphs(p.extract ?? ''),
+      })),
+      opts.level,
+    );
     const cont: Cursor['cont'] = [...cur.cont];
     cont[which] = data.continue?.gcmcontinue ?? DONE;
     const done = cont[0] === DONE && cont[1] === DONE;

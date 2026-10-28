@@ -6,7 +6,7 @@ export type ReadingSourceId = 'miniklexikon' | 'klexikon' | 'wikinews' | 'wikipe
 export interface ReadingSourceInfo {
   id: ReadingSourceId;
   name: string;
-  /** Typical level range, e.g. ['A1', 'A2']. */
+  /** Levels the source has articles at (the Read tab lists it there), e.g. ['A1', 'A2']. */
   levels: LevelCode[];
   license: string;
   homepage: string;
@@ -22,6 +22,8 @@ export interface ArticleSummary {
   snippet?: string;
   /** Estimated level, if known without fetching the text. */
   level?: LevelCode;
+  /** Word count, if known without fetching the text (catalog articles). */
+  words?: number;
 }
 
 export interface Article {

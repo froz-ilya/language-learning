@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getArticle, listArticles, READING_SOURCES, sourcesForLevel, splitArticleId } from './sources';
 import { loadGutenberg, nextPart, resetGutenbergCache, type GutenbergFile } from './sources/gutenberg';
+import { resetCatalogCache } from './sources/klexikon';
 import { newsSnippet } from './sources/wikinews';
 import { introSnippet } from './sources/wikipedia';
 import { isHeading } from './text';
@@ -24,15 +25,20 @@ function mockFetch(handler: (url: URL) => unknown) {
   return calls;
 }
 
-beforeEach(() => resetGutenbergCache());
+beforeEach(() => {
+  resetGutenbergCache();
+  resetCatalogCache();
+});
 afterEach(() => vi.unstubAllGlobals());
 
 describe('source registry', () => {
   it('maps levels to sources', () => {
-    expect(sourcesForLevel('A1').map((s) => s.id)).toEqual(['miniklexikon']);
-    expect(sourcesForLevel('A2').map((s) => s.id)).toEqual(['miniklexikon', 'klexikon']);
-    expect(sourcesForLevel('B2').map((s) => s.id)).toEqual(['gutenberg', 'wikinews']);
-    expect(sourcesForLevel('C2').map((s) => s.id)).toEqual(['gutenberg', 'wikipedia']);
+    const ids = (l: Parameters<typeof sourcesForLevel>[0]) => sourcesForLevel(l).map((s) => s.id);
+    // MiniKlexikon/Klexikon levels come from the catalog (klexikon-levels.json, see catalog.test.ts).
+    expect(ids('A1')).toContain('miniklexikon');
+    expect(ids('A2')).toEqual(['miniklexikon', 'klexikon']);
+    expect(ids('B2')).toEqual(['miniklexikon', 'klexikon', 'gutenberg', 'wikinews', 'wikipedia']);
+    expect(ids('C2')).toEqual(['gutenberg', 'wikipedia']);
     expect(READING_SOURCES.every((s) => s.id === 'paste' || s.license)).toBe(true);
   });
 
@@ -55,17 +61,17 @@ describe('source registry', () => {
 });
 
 describe('Klexikon / MiniKlexikon', () => {
-  it('lists random articles with a continue cursor', async () => {
+  it('without a level, lists random articles with a continue cursor (also the fallback without catalog)', async () => {
     const calls = mockFetch(() => ({
       continue: { rncontinue: '0.81|0.82|7212|0' },
       query: { random: [{ id: 1, ns: 0, title: 'Aachen' }, { id: 2, ns: 0, title: 'Brasília' }] },
     }));
-    const r = await listArticles('klexikon', { level: 'A2' });
+    const r = await listArticles('klexikon');
     expect(r.items).toEqual([
       { id: 'klexikon:Aachen', source: 'klexikon', title: 'Aachen' },
       { id: 'klexikon:Brasília', source: 'klexikon', title: 'Brasília' },
     ]);
-    expect(r.cursor).toBe('0.81|0.82|7212|0');
+    expect(r.cursor).toBe('r:0.81|0.82|7212|0');
     const u = calls[0];
     expect(u.origin + u.pathname).toBe('https://klexikon.zum.de/api.php');
     expect(u.searchParams.get('list')).toBe('random');
@@ -83,6 +89,7 @@ describe('Klexikon / MiniKlexikon', () => {
     }));
     const r = await listArticles('miniklexikon', { query: 'Hund' });
     expect(calls[0].hostname).toBe('miniklexikon.zum.de');
+    // (the catalog request for levels gets the search response here and is ignored)
     expect(calls[0].searchParams.get('srsearch')).toBe('Hund');
     expect(r.items[0]).toEqual({ id: 'miniklexikon:Hunde', source: 'miniklexikon', title: 'Hunde', snippet: 'Die Hunde sind Tiere' });
     expect(r.cursor).toBe('20');
@@ -107,7 +114,9 @@ describe('Klexikon / MiniKlexikon', () => {
     mockFetch(() => new Response('nope', { status: 503 }));
     await expect(listArticles('klexikon')).rejects.toThrow('HTTP 503');
     mockFetch(() => ({ error: { code: 'missingtitle', info: "The page you specified doesn't exist." } }));
-    await expect(getArticle('miniklexikon:Gibtsnicht')).rejects.toThrow('missingtitle');
+    await expect(getArticle('miniklexikon:Gibtsnicht')).rejects.toThrow('This article was removed from MiniKlexikon.');
+    mockFetch(() => ({ error: { code: 'badvalue', info: 'Unrecognized value.' } }));
+    await expect(getArticle('miniklexikon:Hund')).rejects.toThrow('badvalue');
   });
 });
 
@@ -141,15 +150,17 @@ describe('Wikipedia', () => {
   });
 
   it('lists quality articles, alternating "exzellent" and "lesenswert"', async () => {
-    const calls = mockFetch((u) => ({
+    const all = mockFetch((u) => ({
       continue: { gcmcontinue: `${u.searchParams.get('gcmtitle')}|next` },
       query: {
         pages: [{ pageid: 1, ns: 0, title: 'Molybdän', extract: 'Molybdän [molʏpˈdɛːn] (von altgriechisch „Blei“) ist ein chemisches Element. Es ist hart.' }],
       },
     }));
-    const p1 = await listArticles('wikipedia', { level: 'C1' });
-    expect(calls[0].searchParams.get('gcmtitle')).toBe('Kategorie:Wikipedia:Exzellent');
-    expect(calls[0].searchParams.get('generator')).toBe('categorymembers');
+    // Only the API requests (the intros are rated with the offline dictionary, also fetched).
+    const api = (i: number) => all.filter((u) => u.hostname === 'de.wikipedia.org')[i];
+    const p1 = await listArticles('wikipedia');
+    expect(api(0).searchParams.get('gcmtitle')).toBe('Kategorie:Wikipedia:Exzellent');
+    expect(api(0).searchParams.get('generator')).toBe('categorymembers');
     expect(p1.items[0]).toEqual({
       id: 'wikipedia:Molybdän',
       source: 'wikipedia',
@@ -157,11 +168,11 @@ describe('Wikipedia', () => {
       snippet: 'Molybdän [molʏpˈdɛːn] ist ein chemisches Element.',
     });
     await listArticles('wikipedia', { cursor: p1.cursor });
-    expect(calls[1].searchParams.get('gcmtitle')).toBe('Kategorie:Wikipedia:Lesenswert');
-    expect(calls[1].searchParams.get('gcmcontinue')).toBeNull();
+    expect(api(1).searchParams.get('gcmtitle')).toBe('Kategorie:Wikipedia:Lesenswert');
+    expect(api(1).searchParams.get('gcmcontinue')).toBeNull();
     const p3 = await listArticles('wikipedia', { cursor: (await listArticles('wikipedia', { cursor: p1.cursor })).cursor });
-    expect(calls[3].searchParams.get('gcmtitle')).toBe('Kategorie:Wikipedia:Exzellent');
-    expect(calls[3].searchParams.get('gcmcontinue')).toBe('Kategorie:Wikipedia:Exzellent|next');
+    expect(api(3).searchParams.get('gcmtitle')).toBe('Kategorie:Wikipedia:Exzellent');
+    expect(api(3).searchParams.get('gcmcontinue')).toBe('Kategorie:Wikipedia:Exzellent|next');
     expect(p3.cursor).toBeDefined();
   });
 
@@ -183,7 +194,7 @@ describe('Wikinews', () => {
         ],
       },
     }));
-    const r = await listArticles('wikinews', { level: 'B2' });
+    const r = await listArticles('wikinews');
     const u = calls[0];
     expect(u.hostname).toBe('de.wikinews.org');
     expect(u.searchParams.get('gcmtitle')).toBe('Kategorie:Veröffentlicht');

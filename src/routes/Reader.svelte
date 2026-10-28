@@ -16,10 +16,12 @@
   import { addCards } from '../lib/db/repo';
   import { speak, stopSpeaking } from '../lib/speech/tts';
   import type { LexEntry } from '../lib/dict/types';
-  import { getArticle, LICENSE_URLS, sourceInfo } from '../lib/reading/sources';
+  import { getArticle, knownLevel, LICENSE_URLS, sourceInfo } from '../lib/reading/sources';
   import { nextPart } from '../lib/reading/sources/gutenberg';
+  import { isRemovedError } from '../lib/reading/sources/klexikon';
   import { headingText, isHeading, sentenceAt, tokenize, countWords, type Token } from '../lib/reading/text';
-  import { clampLevel, comfortRank, estimateLevel, isFunctionWord, knownShare } from '../lib/reading/level';
+  import { comfortRank, estimateLevel, isFunctionWord, knownShare } from '../lib/reading/level';
+  import { rankLookup } from '../lib/reading/rate';
   import { cardsFor, lemmaMap, loadVocab, type CardRef } from '../lib/reading/vocab';
   import {
     articleIdFromParts,
@@ -38,6 +40,7 @@
     trackOpen,
   } from '../lib/reading/store';
   import type { Article } from '../lib/reading/types';
+  import type { LevelCode } from '../lib/levels/types';
   import type { Card } from '../lib/types';
   import { confirmAction, showToast } from '../lib/ui/dialogs.svelte';
 
@@ -46,6 +49,8 @@
 
   let article = $state<Article | null>(null);
   let error = $state('');
+  /** The article no longer exists on its site (deleted): no point in "Try again". */
+  let removed = $state(false);
   let attempt = $state(0);
 
   const row = live(() => db.articles.get(id));
@@ -57,6 +62,7 @@
     void attempt;
     const ctrl = new AbortController();
     error = '';
+    removed = false;
     getArticle(id, ctrl.signal)
       .then(async (a) => {
         if (ctrl.signal.aborted) return;
@@ -71,6 +77,7 @@
       })
       .catch((e: Error) => {
         if (ctrl.signal.aborted || e.name === 'AbortError') return;
+        removed = isRemovedError(e);
         error = online.value ? e.message || 'Couldn’t load the article.' : 'You’re offline and this article isn’t saved.';
       });
     return () => ctrl.abort();
@@ -125,13 +132,28 @@
 
   const share = $derived(vocab.value ? knownShare(allTokens, (w) => cardsOf(w)[0]?.status) : null);
 
+  /**
+   * The level the article's list shows (catalog / bundled / rated intro), so list and reader
+   * agree. undefined while looking it up; null when unknown (the text is estimated instead).
+   */
+  let listedLevel = $state<LevelCode | null | undefined>(undefined);
+  $effect(() => {
+    const a = article;
+    if (!a) return;
+    let cancelled = false;
+    listedLevel = undefined;
+    knownLevel(a.id, a.title)
+      .then((l) => !cancelled && (listedLevel = l))
+      .catch(() => !cancelled && (listedLevel = null));
+    return () => {
+      cancelled = true;
+    };
+  });
+
   const estimated = $derived.by(() => {
-    if (!lemmas || !allTokens.length || !article) return null;
-    const raw = estimateLevel(allTokens, (w) => {
-      const e = lemmas!.get(w);
-      return e ? { rank: e.rank, pos: e.pos } : null;
-    });
-    return raw && clampLevel(raw, sourceInfo(article.source).levels);
+    if (listedLevel) return listedLevel;
+    if (listedLevel === undefined || !lemmas || !allTokens.length) return null;
+    return estimateLevel(allTokens, rankLookup(lemmas), { title: article?.title });
   });
   const level = $derived(row.value?.level || estimated || '');
 
@@ -322,10 +344,16 @@
   </div>
 
   {#if error}
-    <EmptyState icon="refresh" title="Couldn’t open the article" text={error}>
-      <button class="btn btn-primary" onclick={() => attempt++}>Try again</button>
-      <button class="btn" onclick={() => back('/read')}>Back to Read</button>
-    </EmptyState>
+    {#if removed}
+      <EmptyState icon="search" title="Article removed" text={error}>
+        <button class="btn btn-primary" onclick={() => back('/read')}>Back to Read</button>
+      </EmptyState>
+    {:else}
+      <EmptyState icon="refresh" title="Couldn’t open the article" text={error}>
+        <button class="btn btn-primary" onclick={() => attempt++}>Try again</button>
+        <button class="btn" onclick={() => back('/read')}>Back to Read</button>
+      </EmptyState>
+    {/if}
   {:else if !article}
     <div class="text-col">
       <Skeleton lines={5} />

@@ -1,6 +1,7 @@
 // Offline dictionary runtime: public/dict/index.json plus pieces loaded on demand (built by
 // scripts/dict/build.mjs). A piece is { lemmas: { [id]: RawEntry }, forms: { [formLower]: id[] } };
-// ids are the lemma ("Haus") or lemma#pos for the rarer homograph ("sein#other").
+// ids are the lemma ("Haus"), lemma#pos for the rarer homograph ("sein#other"), or id#gender for
+// another article of a noun whose articles differ in meaning ("See#f" = die See next to der See).
 import type { Auxiliary, Gender, Pos } from '../types';
 import { LEVELS } from '../levels/types';
 import type { LexEntry, LocalHit } from './types';
@@ -227,6 +228,23 @@ export async function lookupLocal(word: string): Promise<LocalHit[]> {
   }
   hits.sort((a, b) => a.tier - b.tier || a.hit.entry.rank - b.hit.entry.rank);
   return hits.map((h) => h.hit);
+}
+
+/**
+ * Every article of a noun whose articles differ in meaning ("See" → der See, die See), most
+ * common first; [entry] for any other word. Uses the piece already loaded for the entry.
+ */
+export async function articleVariants(entry: LexEntry): Promise<LexEntry[]> {
+  if (entry.pos !== 'noun' || !entry.genders.length) return [entry];
+  const piece = await pieceFor(entry.term);
+  const out: LexEntry[] = [];
+  for (const id of piece?.byLower.get(entry.term.toLowerCase()) ?? []) {
+    const e = piece!.lemmas.get(id);
+    if (!e || e.term !== entry.term || e.pos !== 'noun' || !e.genders.length) continue;
+    if (!out.some((x) => x.genders[0] === e.genders[0])) out.push(e);
+  }
+  if (out.length < 2 || !out.some((e) => e.genders[0] === entry.genders[0])) return [entry];
+  return out.sort((a, b) => a.rank - b.rank);
 }
 
 /** Lemma for a token in running text (best guess), or null. */

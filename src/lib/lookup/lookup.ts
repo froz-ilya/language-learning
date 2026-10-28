@@ -1,9 +1,11 @@
-import type { Card, Example, Lang, LookupResult, Pos } from '../types';
+import type { ArticleVariant, Card, Example, Gender, Lang, LookupResult, Pos } from '../types';
 import type { LexEntry, LocalHit } from '../dict/types';
+import { articleVariants } from '../dict/local';
+import { ARTICLE } from '../german/articles';
 import { db } from '../db/schema';
 import { saveCard } from '../db/repo';
 import { parseGermanInput, type ParsedTerm } from '../german/parseTerm';
-import type { WikiEntry } from './wiktionary';
+import type { WikiArticle, WikiEntry } from './wiktionary';
 import { formatMeanings, previewOf } from './meanings';
 import { googlePos, googleTranslate, isAbortError, type DictEntry, type GoogleResult } from './google';
 import { isCooling, runChainDetailed, type Provider, type ProviderId } from '../sources/chain';
@@ -23,6 +25,11 @@ export interface Suggestion {
   word: string;
   /** Short translation preview in the target language, if available. */
   preview?: string;
+  /**
+   * Set for one article of a noun whose articles differ in meaning: "See" comes as two
+   * suggestions, ['m'] (озеро) and ['f'] (море).
+   */
+  genders?: Gender[];
 }
 
 /** Thrown when nothing was found because every source that could answer failed, was cooling or offline. */
@@ -33,8 +40,11 @@ export class SourceUnavailableError extends Error {
   }
 }
 
-/** Bump when the shape of cached results changes (v2: translations grouped by meaning). */
-const CACHE_VERSION = 'v2';
+/**
+ * Bump when the shape of cached results changes (v2: translations grouped by meaning; v3: nouns
+ * whose articles differ in meaning come as `articles`, no longer merged into one translation).
+ */
+const CACHE_VERSION = 'v3';
 const DAY = 24 * 60 * 60 * 1000;
 const FOUND_TTL = 30 * DAY;
 const NOT_FOUND_TTL = DAY;
@@ -242,6 +252,37 @@ async function translateExamples(
   return { examples: de.map((d) => ({ de: d })), ok: s.ok };
 }
 
+/**
+ * Example sentences of several articles ("der See", "die See") translated in one request:
+ * up to `per` sentences each. Returns the examples per set.
+ */
+async function translateExampleSets(
+  sets: string[][],
+  lang: Lang,
+  trace: Trace,
+  signal?: AbortSignal,
+  per = 2,
+): Promise<{ examples: Example[][]; ok: boolean }> {
+  const lists = sets.map((s) => s.slice(0, per));
+  const flat = lists.flat();
+  if (!flat.length) return { examples: lists.map(() => []), ok: true };
+  const s = await step(trace, 'translate-text', TEXT_PROVIDERS, { text: flat.join('\n'), from: 'de', to: lang }, signal);
+  const lines = s.value?.split('\n').map((l) => l.trim());
+  const ok = !!lines && lines.length === flat.length;
+  let i = 0;
+  const examples = lists.map((l) =>
+    l.map((de) => {
+      const tr = ok ? lines![i] : '';
+      i++;
+      return tr ? { de, tr } : { de };
+    }),
+  );
+  return { examples, ok: ok || s.ok };
+}
+
+/** "the sea" → "sea": Google's translation of "die See" with the article it added. */
+const stripArticle = (t: string) => t.replace(/^(?:the|a|an)\s+/i, '');
+
 /** Translation of a word that the dictionaries have no translation for. */
 async function translateWord(
   term: string,
@@ -258,6 +299,97 @@ function grammarComplete(e: LexEntry): boolean {
   if (e.pos === 'noun') return e.genders.length > 0;
   if (e.pos === 'verb') return !!(e.praeteritum && e.partizip2 && e.auxiliary);
   return true;
+}
+
+/** The Wiktionary article of one gender (der See / die See), or the whole entry when it has none. */
+function wikiArticle(wiki: WikiEntry | null, gender: Gender | undefined): WikiArticle | WikiEntry | null {
+  if (!wiki) return null;
+  if (!wiki.articles) return wiki;
+  return wiki.articles.find((a) => !!gender && a.genders.includes(gender)) ?? null;
+}
+
+/** The result as one of its articles: that article's genders, plural, translation and examples. */
+function withArticle(r: LookupResult, a: ArticleVariant): LookupResult {
+  return { ...r, genders: [...a.genders], plural: a.plural, translation: a.translation, examples: a.examples.map((e) => ({ ...e })) };
+}
+
+/**
+ * The article matching a typed or known gender ("die See" → море), else the result unchanged.
+ * Results without articles are returned as they are.
+ */
+export function preferArticle(r: LookupResult, genders: Gender[]): LookupResult {
+  if (!r.articles || !genders.length) return r;
+  const a = r.articles.find((x) => genders.includes(x.genders[0]));
+  return a ? withArticle(r, a) : r;
+}
+
+/** An article as a card would get it (one gender). */
+interface ArticleDraft {
+  gender: Gender;
+  plural: string;
+  translation: string;
+  examples: string[];
+}
+
+/**
+ * Article variants of a noun ("der See", "die See"): the offline dictionary's entries first
+ * (most common first), then Wiktionary's articles the dictionary lacks (only with translations
+ * into both languages, like the dictionary's). A missing translation is asked for with the
+ * article ("die See"), so Google can tell them apart. [] when the noun has one article.
+ */
+async function articleDrafts(
+  local: LexEntry[],
+  wiki: WikiEntry | null,
+  lang: Lang,
+  trace: Trace,
+  signal?: AbortSignal,
+): Promise<{ drafts: ArticleDraft[]; ok: boolean }> {
+  const drafts: ArticleDraft[] = [];
+  for (const x of local) {
+    const g = x.genders[0];
+    const w = wikiArticle(wiki, g);
+    drafts.push({
+      gender: g,
+      plural: x.plural || w?.plural || '',
+      translation: (x.tr[lang] ?? '').trim() || (w ? formatMeanings(w.translations[lang]) : ''),
+      examples: w?.examples ?? [],
+    });
+  }
+  for (const a of wiki?.articles ?? []) {
+    const g = a.genders[0];
+    if (!g || drafts.some((d) => d.gender === g)) continue;
+    if (drafts.length && (!a.translations.ru.length || !a.translations.en.length)) continue;
+    drafts.push({ gender: g, plural: a.plural, translation: formatMeanings(a.translations[lang]), examples: a.examples });
+  }
+  if (drafts.length < 2) return { drafts: [], ok: true };
+  let ok = true;
+  const term = local[0]?.term ?? wiki?.title ?? '';
+  for (const d of drafts) {
+    if (d.translation) continue;
+    const t = await translateWord(`${ARTICLE[d.gender]} ${term}`, lang, 'noun', trace, signal);
+    d.translation = stripArticle(t.text);
+    ok &&= t.ok;
+  }
+  return { drafts, ok };
+}
+
+/** Article drafts with translated examples, as the result's `articles`. */
+async function finishArticles(
+  drafts: ArticleDraft[],
+  lang: Lang,
+  trace: Trace,
+  signal?: AbortSignal,
+): Promise<{ articles: ArticleVariant[]; ok: boolean }> {
+  const ex = await translateExampleSets(
+    drafts.map((d) => d.examples),
+    lang,
+    trace,
+    signal,
+  );
+  return {
+    articles: drafts.map((d, i) => ({ genders: [d.gender], plural: d.plural, translation: d.translation, examples: ex.examples[i] })),
+    ok: ex.ok,
+  };
 }
 
 /** Offline-dictionary hit, plus examples (and gaps) from Wiktionary when it answers in time. */
@@ -279,27 +411,43 @@ async function fromLocal(hit: LocalHit, parsed: ParsedTerm, lang: Lang, trace: T
   const same = wiki && (e.pos === 'other' || wiki.pos === e.pos) ? wiki : null;
   const pos: Pos = e.pos !== 'other' ? e.pos : (same?.pos ?? 'other');
 
-  let translation = localTr || (same ? formatMeanings(same.translations[lang]) : '');
+  // A noun whose articles differ in meaning: every article, the hit's one as the result.
+  const gender = e.pos === 'noun' ? e.genders[0] : undefined;
+  const split = gender ? await articleDrafts(await articleVariants(e), same, lang, trace, signal) : { drafts: [], ok: true };
+  complete &&= split.ok;
+  const mine = split.drafts.find((d) => d.gender === gender);
+  // Translations and examples of the matching article only (not "die See"'s for "der See").
+  const own = gender && same?.articles ? wikiArticle(same, gender) : same;
+
+  let translation = localTr || mine?.translation || (own ? formatMeanings(own.translations[lang]) : '');
   if (!translation) {
     const t = await translateWord(e.term, lang, pos, trace, signal);
     translation = t.text;
     complete &&= t.ok;
   }
-  const ex = await translateExamples(same?.examples ?? [], lang, trace, signal);
-  complete &&= ex.ok;
 
   const result: LookupResult = {
     term: e.term,
     pos,
-    genders: e.genders.length ? [...e.genders] : same?.genders.length ? same.genders : pos === 'noun' ? parsed.genders : [],
-    plural: e.plural || same?.plural || '',
+    genders: e.genders.length ? [...e.genders] : own?.genders.length ? [...own.genders] : pos === 'noun' ? parsed.genders : [],
+    plural: e.plural || own?.plural || '',
     praeteritum: e.praeteritum || same?.praeteritum || '',
     partizip2: e.partizip2 || same?.partizip2 || '',
     auxiliary: e.auxiliary || same?.auxiliary || '',
     translation,
-    examples: ex.examples,
+    examples: [],
     source: 'wiktionary',
   };
+  if (mine) {
+    const done = await finishArticles(split.drafts, lang, trace, signal);
+    complete &&= done.ok;
+    result.articles = done.articles;
+    result.examples = done.articles.find((a) => a.genders[0] === gender)!.examples.map((x) => ({ ...x }));
+  } else {
+    const ex = await translateExamples(own?.examples ?? [], lang, trace, signal);
+    complete &&= ex.ok;
+    result.examples = ex.examples;
+  }
   if (hit.form && hit.form !== e.term) result.lemmaOf = hit.form;
   return { result, via: 'local', complete, detailsMissing: false, refused: trace.failed.size > 0 };
 }
@@ -340,8 +488,20 @@ async function fromWiki(details: WikiDetails, parsed: ParsedTerm, lang: Lang, tr
     translation = t.text;
     complete = t.ok;
   }
-  const ex = await translateExamples(entry.examples, lang, trace, signal);
-  complete &&= ex.ok;
+  let articles: ArticleVariant[] | undefined;
+  let examples: Example[];
+  if (entry.pos === 'noun' && entry.articles) {
+    const split = await articleDrafts([], entry, lang, trace, signal);
+    const done = await finishArticles(split.drafts, lang, trace, signal);
+    complete &&= split.ok && done.ok;
+    articles = done.articles.length ? done.articles : undefined;
+    examples = articles?.[0].examples ?? [];
+    if (articles && !translation) translation = articles[0].translation;
+  } else {
+    const ex = await translateExamples(entry.examples, lang, trace, signal);
+    complete &&= ex.ok;
+    examples = ex.examples;
+  }
 
   const result: LookupResult = {
     term: entry.title,
@@ -352,9 +512,10 @@ async function fromWiki(details: WikiDetails, parsed: ParsedTerm, lang: Lang, tr
     partizip2: entry.partizip2 || (entry.pos === 'verb' ? (parsed.partizip2 ?? '') : ''),
     auxiliary: entry.auxiliary || (entry.pos === 'verb' ? (parsed.auxiliary ?? '') : ''),
     translation,
-    examples: ex.examples,
+    examples,
     source: 'wiktionary',
   };
+  if (articles) result.articles = articles;
   if (lemmaOf) result.lemmaOf = lemmaOf;
   return done(result, complete);
 }
@@ -397,12 +558,15 @@ async function lookupWithCache(input: string, lang: Lang, signal?: AbortSignal):
   const none = { result: null, via: null, complete: true, detailsMissing: false, refused: false };
   if (!parsed.term) return { ...none, fromCache: true };
   const key = `${CACHE_VERSION}:${lang}:${parsed.term}`;
+  // "See" and "die See" share the row: it holds the first article; a typed one is picked here.
+  const typed = (r: LookupResult | null) => (r ? preferArticle(r, parsed.genders) : r);
   const cached = await readCache(key);
-  if (cached.hit) return { ...none, result: cached.result, via: cached.via, fromCache: true };
+  if (cached.hit) return { ...none, result: typed(cached.result), via: cached.via, fromCache: true };
 
   const r = await resolve(parsed, lang, signal);
-  if (r.complete) await writeCache(key, r.result, r.via);
-  return { ...r, fromCache: false };
+  const canonical = r.result?.articles ? withArticle(r.result, r.result.articles[0]) : r.result;
+  if (r.complete) await writeCache(key, canonical, r.via);
+  return { ...r, result: typed(canonical), fromCache: false };
 }
 
 /**
@@ -451,10 +615,18 @@ export async function suggest(prefix: string, lang: Lang, signal?: AbortSignal):
         const entries = (await localPrefix.run(q, s)) ?? [];
         const words = keep(entries.map((e) => e.term));
         if (!words) return null;
-        return words.map((word) => {
-          // "последствие; серия" for a word with several meanings, else two synonyms.
-          const preview = previewOf(entries.find((e) => e.term === word)?.tr[lang]);
-          return preview ? { word, preview } : { word };
+        return words.flatMap((word): Suggestion[] => {
+          // A noun whose articles differ in meaning: one row per article ("der See", "die See").
+          const nouns = entries.filter((e) => e.term === word && e.pos === 'noun' && e.genders.length);
+          const articles = nouns.filter((e, i) => nouns.findIndex((x) => x.genders[0] === e.genders[0]) === i);
+          const list = articles.length > 1 ? articles : [entries.find((e) => e.term === word)];
+          return list.map((e) => {
+            // "последствие; серия" for a word with several meanings, else two synonyms.
+            const preview = previewOf(e?.tr[lang]);
+            const out: Suggestion = preview ? { word, preview } : { word };
+            if (articles.length > 1 && e) out.genders = [e.genders[0]];
+            return out;
+          });
         });
       },
     },
@@ -495,8 +667,12 @@ export async function translateText(text: string, from: 'de' | Lang, to: 'de' | 
   return text; // Both services echoed it back: nothing to translate.
 }
 
-/** Merge a lookup result into a card, filling only empty fields. Pure function. */
-export function mergeIntoCard(card: Card, result: LookupResult): Card {
+/**
+ * Merge a lookup result into a card, filling only empty fields. A card that already has an
+ * article takes that article's meaning ("die See" → море, not озеро). Pure function.
+ */
+export function mergeIntoCard(card: Card, lookup: LookupResult): Card {
+  const result = card.pos === 'noun' || card.pos === 'other' ? preferArticle(lookup, card.genders) : lookup;
   return {
     ...card,
     translation: card.translation.trim() ? card.translation : result.translation,

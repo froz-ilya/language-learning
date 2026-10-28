@@ -1,8 +1,16 @@
 import type { Auxiliary, Gender, Lang, Pos } from '../types';
 import { checkResponse, SourceError } from '../sources/chain';
-import { mergeMeanings, pickMeanings, type SenseTranslations } from './meanings';
+import { mergeMeanings, pickMeanings, sameMeaning, type SenseTranslations } from './meanings';
 
 const API = 'https://de.wiktionary.org/w/api.php';
+
+/** One article of a noun whose articles differ in meaning (see WikiEntry.articles). */
+export interface WikiArticle {
+  genders: Gender[];
+  plural: string;
+  translations: Record<Lang, string[][]>;
+  examples: string[];
+}
 
 export interface WikiEntry {
   title: string;
@@ -20,6 +28,12 @@ export interface WikiEntry {
   examples: string[];
   /** For inflected forms ("ging", "Häuser"): the dictionary form. */
   lemma?: string;
+  /**
+   * Nouns whose articles differ in meaning ("der See" lake, "die See" sea): one entry per
+   * article in page order; the entry's own genders/plural/translations/examples are the
+   * first one's. Absent for gender variants of one meaning (der/das Teil: genders [n, m]).
+   */
+  articles?: WikiArticle[];
 }
 
 /** Wiktionary refused the request (HTTP 429/503). */
@@ -374,9 +388,35 @@ export function parseEntry(title: string, wikitext: string): WikiEntry | null {
 
   const main = lexical[0];
   const pos = posOf(wortarten(main.header));
-  // Blocks of the same part of speech (e.g. "der See" and "die See") are merged.
+  // Blocks of the same part of speech are merged ("die Bank" bench + bank, der/das Teil);
+  // noun blocks whose article and meaning both differ ("der See", "die See") are articles.
   const same = lexical.filter((b) => posOf(wortarten(b.header)) === pos);
+  if (pos === 'noun') {
+    const groups: { genders: Gender[]; bodies: string[]; headers: string[] }[] = [];
+    for (const b of same) {
+      const one = blockEntry(title, pos, [b.body], [b.header]);
+      const g = one.genders[0];
+      // A block of a gender seen already, or without one, joins that group; another gender
+      // joins a group with the same meaning, else starts an article of its own.
+      const group =
+        groups.find((x) => !g || !x.genders.length || x.genders.includes(g)) ??
+        groups.find((x) => sameMeaning(blockEntry(title, pos, x.bodies, x.headers).translations, one.translations));
+      if (group) {
+        group.bodies.push(b.body);
+        group.headers.push(b.header);
+        for (const x of one.genders) if (!group.genders.includes(x)) group.genders.push(x);
+      } else groups.push({ genders: [...one.genders], bodies: [b.body], headers: [b.header] });
+    }
+    const parts = groups.map((x) => blockEntry(title, pos, x.bodies, x.headers));
+    if (parts.length < 2) return parts[0];
+    const articles = parts.map(({ genders, plural, translations, examples }) => ({ genders, plural, translations, examples }));
+    return { ...parts[0], articles };
+  }
+  return blockEntry(title, pos, same.map((b) => b.body), same.map((b) => b.header));
+}
 
+/** One entry from blocks of one part of speech (merged: genders, first forms, meanings, examples). */
+function blockEntry(title: string, pos: Pos, bodies: string[], headers: string[]): WikiEntry {
   const entry: WikiEntry = {
     title,
     pos,
@@ -389,7 +429,8 @@ export function parseEntry(title: string, wikitext: string): WikiEntry | null {
     examples: [],
   };
 
-  for (const b of same) {
+  bodies.forEach((body, i) => {
+    const b = { body, header: headers[i] ?? '' };
     if (pos === 'noun') {
       const p = templateParams(b.body, 'Deutsch Substantiv Übersicht') ?? {};
       for (const key of ['Genus', 'Genus 1', 'Genus 2', 'Genus 3']) {
@@ -411,13 +452,13 @@ export function parseEntry(title: string, wikitext: string): WikiEntry | null {
       const aux = (p['Hilfsverb'] ?? '').trim();
       if (!entry.auxiliary && (aux === 'haben' || aux === 'sein')) entry.auxiliary = aux;
     }
-    // "der See" (lake) + "die See" (sea): the first meaning of each, then the rest.
+    // "die Bank" (bench) + "die Bank" (bank): the first meaning of each, then the rest.
     for (const lang of ['en', 'ru'] as const) {
       entry.translations[lang] = mergeMeanings(entry.translations[lang], parseTranslations(b.body, lang));
     }
     for (const ex of parseExamples(b.body)) {
       if (entry.examples.length < 3 && !entry.examples.includes(ex)) entry.examples.push(ex);
     }
-  }
+  });
   return entry;
 }

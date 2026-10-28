@@ -15,12 +15,11 @@
   import { live } from '../lib/live.svelte';
   import { dur } from '../lib/motion';
   import { online } from '../lib/online.svelte';
-  import { settings } from '../lib/settings.svelte';
   import { db } from '../lib/db/schema';
   import { allFolders, cardsInSet, deleteCard, deleteSet, toggleStar, updateSet } from '../lib/db/repo';
   import { isHard, progressOf, reviewsFor, setKnown, statusOf, STATUS_LABELS, type WordStatus } from '../lib/progress';
   import { displayPlural, displayVerbForms, speakableTerm } from '../lib/german/articles';
-  import { fillCards } from '../lib/lookup/lookup';
+  import { cancelFill, fillJob, fillSet } from '../lib/fill/runner.svelte';
   import { chooseAction, confirmAction, promptText, showToast, undoToast, type ActionItem } from '../lib/ui/dialogs.svelte';
   import type { Card } from '../lib/types';
 
@@ -72,33 +71,18 @@
 
   // ---------- Fill missing details ----------
 
-  let filling = $state<{ done: number; total: number } | null>(null);
-  let fillCtrl: AbortController | undefined;
+  // Runs in the app-wide background queue, so leaving the page doesn't stop it.
+  const filling = $derived(fillJob(id));
+  const FILL_LABEL = {
+    running: 'Filling in details…',
+    queued: 'Waiting for another set to finish…',
+    paused: 'Offline — continues when you’re back online',
+  } as const;
 
-  async function fillNow() {
+  function fillNow() {
     if (filling || !needFill.length) return;
-    fillCtrl = new AbortController();
-    const list = $state.snapshot(needFill) as Card[];
-    filling = { done: 0, total: list.length };
-    try {
-      const r = await fillCards(list, settings.lang, (done, total) => (filling = { done, total }), fillCtrl.signal);
-      const parts = [`Filled ${r.filled}`];
-      if (r.notFound) parts.push(`${r.notFound} not found`);
-      if (r.failed) parts.push(`${r.failed} failed`);
-      showToast(parts.join(' · '));
-    } catch (e) {
-      if (!fillCtrl.signal.aborted) showToast(`Couldn’t fill details: ${(e as Error).message}`);
-    } finally {
-      filling = null;
-    }
+    void fillSet(id);
   }
-
-  function cancelFill() {
-    fillCtrl?.abort();
-    filling = null;
-  }
-
-  $effect(() => () => fillCtrl?.abort());
 
   // ---------- Word actions ----------
 
@@ -236,7 +220,7 @@
 
         {#if filling}
           <div transition:slide={{ duration: dur(200) }}>
-            <FillProgress done={filling.done} total={filling.total} oncancel={cancelFill} />
+            <FillProgress done={filling.done} total={filling.total} label={FILL_LABEL[filling.status]} oncancel={() => cancelFill(id)} />
           </div>
         {:else if needFill.length}
           <div class="card banner" transition:slide={{ duration: dur(200) }}>

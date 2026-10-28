@@ -7,6 +7,7 @@
   import SpeakButton from '../components/SpeakButton.svelte';
   import UmlautBar from '../components/UmlautBar.svelte';
   import Skeleton from '../components/Skeleton.svelte';
+  import ArticleChoices from '../components/ArticleChoices.svelte';
   import { back, route } from '../lib/router.svelte';
   import { dur } from '../lib/motion';
   import { online } from '../lib/online.svelte';
@@ -16,12 +17,12 @@
   import { isHard, setKnown, statusOf, STATUS_LABELS, type WordStatus } from '../lib/progress';
   import { parseGermanInput } from '../lib/german/parseTerm';
   import { joinMeanings, splitMeanings } from '../lib/german/meanings';
-  import { ARTICLE, displayPlural, displayVerbForms, speakableTerm } from '../lib/german/articles';
+  import { ARTICLE, displayPlural, displayTerm, displayVerbForms, speakableTerm } from '../lib/german/articles';
   import { lookupWordWithSource, mergeIntoCard, suggest, type Suggestion } from '../lib/lookup/lookup';
   import { PROVIDER_LABELS, type ProviderId } from '../lib/sources/chain';
   import { showToast, undoToast } from '../lib/ui/dialogs.svelte';
   import { rememberQuickAddSet } from '../lib/share';
-  import type { Card, Gender, LookupResult, Pos } from '../lib/types';
+  import type { ArticleVariant, Card, Gender, LookupResult, Pos } from '../lib/types';
 
   /*
    * New word  → "Quick add": type → dictionary preview → ✓ Add (keyboard stays up for the next
@@ -122,6 +123,8 @@
     lookupState = 'idle';
     lemmaNote = '';
     via = null;
+    articles = [];
+    wantGender = null;
     if (!isNew || showDetails) return; // the full form may hold hand-typed details
     card.pos = 'other';
     card.genders = [];
@@ -165,6 +168,8 @@
     clearTimeout(blurTimer);
     applyParsed(); // keep a typed article ("der Ti" → m)
     card.term = s.word;
+    // A row of one article ("die See"): look that one up.
+    wantGender = s.genders?.[0] ?? null;
     stopSuggest();
     lastLookedUp = s.word; // a blur below must not start a second lookup
     if (isNew) {
@@ -247,6 +252,11 @@
   let via = $state<ProviderId | null>(null);
   let lookupCtrl: AbortController | undefined;
   let lastLookedUp = '';
+  /** Articles of a noun whose articles differ in meaning (der See / die See), from the last lookup. */
+  let articles = $state<ArticleVariant[]>([]);
+  /** Article picked from a suggestion row, asked for in the next lookup. */
+  let wantGender: Gender | null = null;
+  const pickedArticle = $derived(card.pos === 'noun' && card.genders.length === 1 ? card.genders[0] : null);
 
   async function runLookup() {
     applyParsed();
@@ -265,15 +275,21 @@
     lookupState = 'loading';
     lemmaNote = '';
     via = null;
+    articles = [];
+    // The article picked from a suggestion, or the one the card has: its meaning comes first.
+    const gender = wantGender ?? (card.pos === 'noun' && card.genders.length === 1 ? card.genders[0] : null);
+    wantGender = null;
+    const query = gender && !parseGermanInput(word).genders.length ? `${ARTICLE[gender]} ${word}` : word;
     try {
       // Offline dictionary first, then online sources (see lib/sources); works offline for common words.
-      const { result: r, via: from } = await lookupWordWithSource(word, settings.lang, ctrl.signal);
+      const { result: r, via: from } = await lookupWordWithSource(query, settings.lang, ctrl.signal);
       if (ctrl.signal.aborted) return;
       if (!r) {
         lookupState = online.value ? 'notfound' : 'offline';
         return;
       }
       via = from;
+      articles = r.articles && r.articles.length > 1 ? r.articles : [];
       applyResult(r);
       filled = true;
       lookupState = 'done';
@@ -312,6 +328,35 @@
       card.examples = r.examples.map((e) => ({ de: e.de, tr: e.tr ?? '' }));
       auto.examples = JSON.stringify(card.examples);
     }
+  }
+
+  /**
+   * The user picked one article ("die See"): the card becomes that word — its article, plural,
+   * meaning and examples. A translation or example the user typed is kept.
+   */
+  function chooseArticle(a: ArticleVariant) {
+    const others = articles.map((x) => x.translation.trim());
+    const translationIsAuto = !card.translation.trim() || card.translation === auto.translation || others.includes(card.translation.trim());
+    card.pos = 'noun';
+    card.genders = [...a.genders];
+    if (a.plural || isNew) card.plural = a.plural;
+    if (translationIsAuto) {
+      card.translation = a.translation;
+      auto.translation = a.translation;
+      clearMeanings();
+      offerMeanings();
+    }
+    const examplesNow = JSON.stringify(card.examples);
+    if (!card.examples.some((e) => e.de.trim()) || examplesNow === auto.examples) {
+      card.examples = a.examples.map((e) => ({ de: e.de, tr: e.tr ?? '' }));
+      auto.examples = JSON.stringify(card.examples);
+    }
+  }
+
+  /** Quick add of one article straight from its row. */
+  async function addArticle(a: ArticleVariant) {
+    chooseArticle(a);
+    await quickAdd();
   }
 
   $effect(() => () => {
@@ -437,7 +482,7 @@
   /** Save, say so, and get ready for the next word — keeping the keyboard up. */
   async function quickAdd() {
     germanEl?.focus(); // inside the tap, so iOS keeps the keyboard open
-    const term = card.term.trim();
+    const label = articles.length > 1 ? displayTerm(card) : card.term.trim();
     if (!(await save())) return;
     lookupCtrl?.abort();
     stopSuggest();
@@ -448,10 +493,11 @@
     lookupState = 'idle';
     lemmaNote = '';
     via = null;
+    articles = [];
     lastLookedUp = '';
     showDetails = false;
     addedCount++;
-    showToast(`Added “${term}”`);
+    showToast(`Added “${label}”`);
     await tick();
     germanEl?.focus();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -585,7 +631,9 @@
                 onpointerdown={onSuggestionPointerdown}
                 onclick={() => pickSuggestion(s)}
               >
-                <span class="title">{s.word}</span>
+                <span class="title"
+                  >{#if s.genders}<Term card={{ term: s.word, pos: 'noun', genders: s.genders }} />{:else}{s.word}{/if}</span
+                >
                 {#if s.preview}<span class="sub ellipsis">{s.preview}</span>{/if}
               </button>
             {/each}
@@ -602,6 +650,12 @@
           {:else if lookupState === 'done'}
             <div class="status small good">Filled in what was missing.</div>
           {/if}
+          {#if lookupState === 'done' && articles.length > 1}
+            <div class="article-pick" transition:slide={{ duration: dur(180) }}>
+              <div class="small muted">Each article has its own meaning. This word is:</div>
+              <ArticleChoices term={card.term} {articles} selected={pickedArticle} trLang={settings.lang} onpick={chooseArticle} />
+            </div>
+          {/if}
         {/if}
       </div>
 
@@ -617,11 +671,26 @@
               <div class="p-term"><Term {card} /></div>
               <SpeakButton text={speakableTerm(card)} />
             </div>
-            {#if forms}<div class="p-forms">{forms}</div>{/if}
-            {#if card.translation}
-              <div class="p-tr">{card.translation}</div>
+            {#if articles.length > 1 && lookupState === 'done'}
+              <div class="article-pick">
+                <ArticleChoices
+                  term={card.term}
+                  {articles}
+                  selected={pickedArticle}
+                  trLang={settings.lang}
+                  onpick={chooseArticle}
+                  onadd={(a) => void addArticle(a)}
+                  onpointerdown={keepFocus}
+                />
+                <div class="small muted">Each article has its own meaning — tap one, or add it with +</div>
+              </div>
             {:else}
-              <div class="p-tr muted">No translation yet</div>
+              {#if forms}<div class="p-forms">{forms}</div>{/if}
+              {#if card.translation}
+                <div class="p-tr">{card.translation}</div>
+              {:else}
+                <div class="p-tr muted">No translation yet</div>
+              {/if}
             {/if}
             {#if showMeanings && !showDetails}{@render meaningChips()}{/if}
             {#if firstExample}
@@ -673,7 +742,7 @@
               {/if}
               <button type="button" class="btn btn-primary btn-lg btn-block add" onpointerdown={keepFocus} onclick={quickAdd}>
                 <Icon name="check" size={22} />
-                {lookupState === 'done' ? 'Add' : 'Add anyway'}
+                {lookupState === 'done' ? (articles.length > 1 && pickedArticle ? `Add ${displayTerm(card)}` : 'Add') : 'Add anyway'}
               </button>
               <button type="button" class="btn btn-ghost btn-block" onclick={() => openDetails(lookupState === 'notfound')}>
                 <Icon name="edit" size={18} /> {lookupState === 'notfound' ? 'Add a translation' : 'Edit details'}
@@ -1085,6 +1154,14 @@
   }
   .via {
     font-size: 12px;
+  }
+
+  /* ---------- Articles with different meanings ---------- */
+  .article-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 4px 0 2px;
   }
 
   /* ---------- Meanings ---------- */

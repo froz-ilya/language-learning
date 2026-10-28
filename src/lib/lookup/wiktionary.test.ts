@@ -25,9 +25,10 @@ describe('parseEntry', () => {
     expect(e.translations.ru).toEqual([['стол']]);
   });
 
-  it('merges nouns with two genders', () => {
-    expect(entry('See').genders).toEqual(['m', 'f']);
-    expect(entry('Teil').genders.sort()).toEqual(['m', 'n']);
+  it('merges gender variants of one meaning (der/das Teil)', () => {
+    const teil = entry('Teil');
+    expect(teil.genders.sort()).toEqual(['m', 'n']);
+    expect(teil.articles).toBeUndefined();
   });
 
   it('reads verb forms', () => {
@@ -54,8 +55,16 @@ describe('parseEntry', () => {
     expect(e.translations.en.slice(0, 2)).toEqual([['bench'], ['bank']]);
   });
 
-  it('merges blocks of two genders the same way (der See, die See)', () => {
-    expect(entry('See').translations.ru).toEqual([['озеро'], ['море']]);
+  it('keeps articles with different meanings apart (der See, die See)', () => {
+    const see = entry('See');
+    // The entry itself is the first article, so callers that ignore `articles` get one word.
+    expect(see).toMatchObject({ genders: ['m'], plural: 'Seen', translations: { ru: [['озеро']], en: [['lake']] } });
+    expect(see.examples[0]).toBe('Ein ausgetrockneter See hat kein Wasser mehr.');
+    expect(see.articles!.map((a) => [a.genders, a.translations.ru, a.translations.en])).toEqual([
+      [['m'], [['озеро']], [['lake']]],
+      [['f'], [['море']], [['sea']]],
+    ]);
+    expect(see.articles![1].examples.every((x) => !x.includes('ausgetrocknet'))).toBe(true);
   });
 
   it('leaves out colloquial senses and labelled words when plain ones exist', () => {

@@ -3,6 +3,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  addArticle,
+  articleRecord,
   cleanExample,
   cleanTranslation,
   formatMeanings,
@@ -10,11 +12,21 @@ import {
   mergeLemma,
   parseKaikkiEntry,
   parseMeanings,
+  sameMeaning,
   similarWord,
 } from '../../../scripts/levels/lib/extract.mjs';
-import { candidates, exclusionReason, groupTranslations, lemmaCounts, rankLemmas } from '../../../scripts/levels/lib/rank.mjs';
+import {
+  articleCounts,
+  candidates,
+  exclusionReason,
+  groupTranslations,
+  lemmaCounts,
+  mainArticles,
+  rankLemmas,
+  tieRank,
+} from '../../../scripts/levels/lib/rank.mjs';
 import { buildLevels, groupTopics, topicOf } from '../../../scripts/levels/lib/levels.mjs';
-import { levelOf } from '../../../scripts/levels/lib/words.mjs';
+import { articleWords, baseWords, levelOf } from '../../../scripts/levels/lib/words.mjs';
 import { splitLines } from '../../../scripts/levels/lib/google.mjs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -267,6 +279,183 @@ describe('ranking', () => {
   });
 });
 
+describe('articles with different meanings', () => {
+  // Compact records as parseKaikkiEntry makes them (one per Wiktionary entry).
+  const noun = (word: string, g: string, ru: string[][], en: string[][], extra: Any = {}): Any => ({
+    kind: 'lemma',
+    word,
+    rawPos: 'noun',
+    pos: 'noun',
+    genders: g ? [g] : [],
+    plural: '',
+    praeteritum: '',
+    partizip2: '',
+    auxiliary: '',
+    tr: { ru, en },
+    examples: [],
+    forms: [word.toLowerCase()],
+    offensive: false,
+    tags: [],
+    senses: 1,
+    trCount: 2,
+    ...extra,
+  });
+  const collect = (...recs: Any[]) => recs.reduce((list, r) => addArticle(list, r), [] as Any[]);
+
+  it('splits a noun only when the article and the meaning differ', () => {
+    const see = collect(
+      noun('See', 'm', [['озеро']], [['lake']], { plural: 'Seen' }),
+      noun('See', 'f', [['море']], [['sea']]),
+    );
+    expect(see.map((a: Any) => [a.genders, a.tr.ru])).toEqual([
+      [['m'], [['озеро']]],
+      [['f'], [['море']]],
+    ]);
+    // Several meanings with one article stay one word ("die Bank": bench; bank).
+    const bank = collect(noun('Bank', 'f', [['скамейка']], [['bench']]), noun('Bank', 'f', [['банк']], [['bank']]));
+    expect(bank).toHaveLength(1);
+    expect(bank[0].tr.ru).toEqual([['скамейка'], ['банк']]);
+    // Gender variants of one meaning stay one word (der/das Teil: часть).
+    const teil = collect(noun('Teil', 'n', [['часть']], [['part', 'piece']]), noun('Teil', 'm', [['часть']], [['part'], ['portion']]));
+    expect(teil).toHaveLength(1);
+    expect(teil[0].genders).toEqual(['n']);
+    // An entry without translations can't be told apart: it joins (der Hut + die Hut).
+    expect(collect(noun('Hut', 'm', [['шляпа']], [['hat']]), noun('Hut', 'f', [], []))).toHaveLength(1);
+  });
+
+  it('keeps homonyms of each article together (das Band ×2, der Band, die Band)', () => {
+    const band = collect(
+      noun('Band', 'n', [['лента']], [['ribbon']]),
+      noun('Band', 'm', [['том']], [['volume']]),
+      noun('Band', 'f', [['группа']], [['band']]),
+      noun('Band', 'n', [['узы']], [['bond']]),
+    );
+    expect(band.map((a: Any) => a.genders[0])).toEqual(['n', 'm', 'f']);
+    expect(band[0].tr.ru).toEqual([['лента'], ['узы']]);
+    expect(articleRecord(band[1])).toEqual({
+      genders: ['m'],
+      plural: '',
+      tr: { ru: [['том']], en: [['volume']] },
+      examples: [],
+      forms: ['band'],
+      offensive: false,
+      senses: 1,
+      trCount: 2,
+    });
+  });
+
+  it('compares first meanings in any language both have', () => {
+    expect(sameMeaning(noun('Kristall', 'm', [['кристалл']], [['crystal']]), noun('Kristall', 'n', [], [['crystal']]))).toBe(true);
+    expect(sameMeaning(noun('Golf', 'm', [['залив'], ['гольф']], [['gulf']]), noun('Golf', 'n', [['гольф']], [['golf']]))).toBe(false);
+  });
+
+  it('uses the main article’s own translations, plural and examples for the ranked word', () => {
+    // dict.json as buildDict writes it: the merged record (as before) plus `articles`.
+    const recs = [
+      noun('Steuer', 'n', [['руль']], [['rudder']], { plural: 'Steuer' }),
+      noun('Steuer', 'f', [['налог']], [['tax']], { plural: 'Steuern', examples: ['Steuern zahlen.'] }),
+    ];
+    const lemmas: Any = { 'Steuer|noun': { ...mergeLemma(recs[0], recs[1]), articles: collect(...recs).map(articleRecord) } };
+    // The merged record (used for ranking) is unchanged, with the other article's example.
+    expect(lemmas['Steuer|noun'].examples).toEqual(['Steuern zahlen.']);
+    const main = mainArticles(lemmas)['Steuer|noun'];
+    expect(main).toMatchObject({ genders: ['n'], plural: 'Steuer', tr: { ru: [['руль']], en: [['rudder']] }, examples: [] });
+  });
+
+  it('estimates the other articles’ counts from their own forms, or a fixed share', () => {
+    const lemmas: Any = {
+      'Gehalt|noun': {
+        ...noun('Gehalt', 'm', [['содержание']], [['content']]),
+        articles: [
+          articleRecord(noun('Gehalt', 'm', [['содержание']], [['content']], { forms: ['gehalt', 'gehalte'] })),
+          articleRecord(noun('Gehalt', 'n', [['зарплата']], [['salary']], { forms: ['gehalt', 'gehälter'] })),
+        ],
+      },
+    };
+    const freq: [string, number][] = [
+      ['gehalt', 1000],
+      ['gehälter', 300],
+      ['gehalte', 10],
+    ];
+    const cands = new Map(freq.map(([t]) => [t, ['Gehalt|noun']]));
+    const totals = new Map([['Gehalt|noun', 1310]]);
+    const [n] = articleCounts(freq, cands, lemmas, totals).get('Gehalt|noun')!;
+    expect(n.gender).toBe('n');
+    // Evidence 300 vs 10, smoothed by an even prior worth 50 tokens.
+    expect(n.count).toBe(Math.round((1310 * (300 + 25)) / 360));
+    expect(articleCounts(freq, cands, lemmas, totals, { 'Gehalt|noun#n': 0.5 }).get('Gehalt|noun')![0].count).toBe(655);
+    // Without evidence a much poorer entry is a minor reading and gets nothing.
+    const tor: Any = {
+      'Tor|noun': {
+        ...noun('Tor', 'n', [['ворота']], [['gate']]),
+        articles: [
+          articleRecord(noun('Tor', 'n', [['ворота']], [['gate']], { forms: ['tor', 'tore'], senses: 4, trCount: 12 })),
+          articleRecord(noun('Tor', 'm', [['глупец']], [['fool']], { forms: ['tor', 'tore'], senses: 1, trCount: 3 })),
+        ],
+      },
+    };
+    const tf: [string, number][] = [
+      ['tor', 5000],
+      ['tore', 1000],
+    ];
+    const tc = new Map(tf.map(([t]) => [t, ['Tor|noun']]));
+    expect(articleCounts(tf, tc, tor, new Map([['Tor|noun', 6000]])).get('Tor|noun')).toEqual([{ gender: 'm', count: 0 }]);
+  });
+
+  it('places tie ranks without moving the others', () => {
+    expect(tieRank([100, 50, 50, 10], 60)).toBe(2);
+    expect(tieRank([100, 50, 50, 10], 50)).toBe(2);
+    expect(tieRank([100, 50, 50, 10], 5)).toBe(5);
+  });
+
+  it('adds the other article as its own preset word with a new id; existing ids stay', () => {
+    const lemmas: Any = {
+      'Haus|noun': { ...noun('Haus', 'n', [['дом']], [['house']]), examples: ['Das Haus ist groß.'] },
+      'See|noun': {
+        ...mergeLemma(noun('See', 'm', [['озеро']], [['lake']], { plural: 'Seen' }), noun('See', 'f', [['море']], [['sea']])),
+        articles: [
+          articleRecord(noun('See', 'm', [['озеро']], [['lake']], { plural: 'Seen' })),
+          articleRecord(noun('See', 'f', [['море']], [['sea']], { examples: ['Wir fahren an die See.'] })),
+        ],
+      },
+      'Tisch|noun': noun('Tisch', 'm', [['стол']], [['table']]),
+    };
+    const ranked = [
+      { key: 'Haus|noun', count: 900, members: ['Haus|noun'] },
+      { key: 'See|noun', count: 800, members: ['See|noun'] },
+      { key: 'Tisch|noun', count: 700, members: ['Tisch|noun'] },
+    ];
+    const words: Any[] = baseWords(ranked, mainArticles(lemmas));
+    const counts = new Map([['See|noun', [{ gender: 'f', count: 700 }]]]);
+    const added: Any[] = articleWords(ranked, lemmas, counts);
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({
+      key: 'See|noun#f',
+      mainKey: 'See|noun',
+      article: 'f',
+      term: 'See',
+      genders: ['f'],
+      rank: 3,
+      example: 'Wir fahren an die See.',
+    });
+    expect(added[0].tr).toEqual({ ru: [['море']], en: [['sea']] });
+    // Excluded, or without both languages: not a preset word.
+    expect(articleWords(ranked, lemmas, counts, {}, new Set(['See|noun#f']))).toEqual([]);
+    const noRu: Any = { ...lemmas, 'See|noun': { ...lemmas['See|noun'], articles: [lemmas['See|noun'].articles[0], { ...lemmas['See|noun'].articles[1], tr: { ru: [], en: [['sea']] } }] } };
+    expect(articleWords(ranked, noRu, counts)).toEqual([]);
+    for (const w of [...words, ...added]) w.topic = 'Natur & Wetter';
+    const { files } = buildLevels([...words, ...added], 'src');
+    const a1 = files[0].words;
+    expect(a1.map((w: Any) => w.id)).toEqual(['A1:Haus', 'A1:See', 'A1:Tisch', 'A1:See#f']);
+    expect(a1.map((w: Any) => w.rank)).toEqual([1, 2, 3, 3]);
+    expect(a1[1]).toMatchObject({ genders: ['m'], plural: 'Seen', tr: { ru: 'озеро', en: 'lake' } });
+    expect(a1[3]).toMatchObject({ genders: ['f'], tr: { ru: 'море', en: 'sea' }, topic: a1[1].topic });
+    const topics = { 'See|noun': 'Natur & Wetter', 'See|noun#f': 'Reisen & Urlaub' };
+    expect(topicOf({ term: 'See', rawPos: 'noun', mainKey: 'See|noun', article: 'f' }, topics)).toBe('Reisen & Urlaub');
+    expect(topicOf({ term: 'See', rawPos: 'noun' }, topics)).toBe('Natur & Wetter');
+  });
+});
+
 describe('levels', () => {
   it('maps ranks to CEFR bands', () => {
     expect([1, 600, 601, 1300, 2500, 4000, 6000, 8000, 8001].map(levelOf)).toEqual([
@@ -340,5 +529,20 @@ describe('generated output', () => {
     for (const t of ['Haus', 'gehen', 'gut', 'Wasser']) expect(terms).toContain(t);
     const ids = new Set(index.levels.flatMap((l: Any) => JSON.parse(readFileSync(new URL(`../../../public/levels/${l.code}.json`, import.meta.url), 'utf8')).words.map((w: Any) => w.id)));
     expect(ids.size).toBe(index.levels.reduce((n: number, l: Any) => n + l.words, 0));
+  });
+
+  it('has separate words for articles with different meanings', () => {
+    const all = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].flatMap(
+      (c) => JSON.parse(readFileSync(new URL(`../../../public/levels/${c}.json`, import.meta.url), 'utf8')).words,
+    );
+    const byId = new Map(all.map((w: Any) => [w.id, w]));
+    // Existing ids keep their article; the other article has an id of its own.
+    expect(byId.get('A2:See')).toMatchObject({ genders: ['m'], tr: { ru: 'озеро' } });
+    expect(byId.get('B2:See#f')).toMatchObject({ genders: ['f'], tr: { ru: 'море' } });
+    expect(byId.get('B1:Steuer')).toMatchObject({ genders: ['n'] });
+    expect(byId.get('B2:Steuer#f')).toMatchObject({ genders: ['f'], tr: { ru: 'налог' } });
+    expect(byId.get('B2:Gehalt#n')).toMatchObject({ genders: ['n'], plural: 'Gehälter', tr: { ru: 'зарплата' } });
+    // Gender variants and one-article homonyms stay one word.
+    for (const t of ['Teil', 'Liter', 'Joghurt', 'Bank']) expect(all.filter((w: Any) => w.term === t)).toHaveLength(1);
   });
 });

@@ -4,19 +4,28 @@
   import Meanings from '../Meanings.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import Skeleton from '../Skeleton.svelte';
+  import ArticleChoices from '../ArticleChoices.svelte';
   import { go } from '../../lib/router.svelte';
   import { online } from '../../lib/online.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { db } from '../../lib/db/schema';
-  import { lookupLocal } from '../../lib/dict/local';
+  import { articleVariants, lookupLocal } from '../../lib/dict/local';
+  import { saveCard } from '../../lib/db/repo';
   import type { LexEntry } from '../../lib/dict/types';
   import { lookupWord } from '../../lib/lookup/lookup';
-  import { displayPlural, displayVerbForms, speakableTerm } from '../../lib/german/articles';
+  import { ARTICLE, displayPlural, displayVerbForms, speakableTerm } from '../../lib/german/articles';
   import { setKnown, STATUS_LABELS } from '../../lib/progress';
-  import type { Card, LookupResult } from '../../lib/types';
+  import type { ArticleVariant, Card, Gender, LookupResult } from '../../lib/types';
   import type { Article } from '../../lib/reading/types';
   import type { CardRef } from '../../lib/reading/vocab';
-  import { addWordToArticle, articleSetName, fieldsFromEntry, fieldsFromLookup } from '../../lib/reading/store';
+  import {
+    addWordToArticle,
+    articleSetName,
+    buildCard,
+    ensureArticleSet,
+    fieldsFromEntry,
+    fieldsFromLookup,
+  } from '../../lib/reading/store';
   import { showToast } from '../../lib/ui/dialogs.svelte';
 
   /**
@@ -47,6 +56,8 @@
   } = $props();
 
   let local = $state<LexEntry | null>(null);
+  /** Every article of a noun whose articles differ in meaning (der See, die See); else [local]. */
+  let localArticles = $state<LexEntry[]>([]);
   let localDone = $state(false);
   let remote = $state<LookupResult | null>(null);
   let remoteState = $state<'idle' | 'loading' | 'done' | 'failed'>('idle');
@@ -62,16 +73,20 @@
     let cancelled = false;
     (async () => {
       let best: LexEntry | null = entry;
+      let variants: LexEntry[] = [];
       try {
         const hits = await lookupLocal(w);
         best = hits[0]?.entry ?? entry;
+        if (best) variants = await articleVariants(best);
       } catch {
         // keep the precomputed entry
       }
       if (cancelled) return;
       local = best;
+      localArticles = variants;
       localDone = true;
-      if ((!best || !best.tr[settings.lang]) && online.value) {
+      const untranslated = variants.length > 1 ? variants.some((v) => !v.tr[settings.lang]) : !best?.tr[settings.lang];
+      if ((!best || untranslated) && online.value) {
         remoteState = 'loading';
         try {
           remote = await lookupWord(best?.term ?? w, settings.lang, ctrl.signal);
@@ -124,6 +139,37 @@
   const lookingUp = $derived(!localDone || remoteState === 'loading');
   const sameAsWord = $derived(!!display && display.term.toLowerCase() === word.toLowerCase());
 
+  /**
+   * A noun whose articles differ in meaning: one row per article ("der See — озеро",
+   * "die See — море"), each added as its own card. Offline entries first, gaps from the lookup.
+   */
+  const articleRows = $derived.by((): ArticleVariant[] => {
+    const online = remote?.term === local?.term || !local ? (remote?.articles ?? []) : [];
+    if (localArticles.length > 1) {
+      return localArticles.map((e) => {
+        const r = online.find((a) => a.genders[0] === e.genders[0]);
+        return { genders: [...e.genders], plural: e.plural || r?.plural || '', translation: e.tr[lang] || r?.translation || '', examples: r?.examples ?? [] };
+      });
+    }
+    return online;
+  });
+
+  /** Genders of the user's cards for this lemma (to tell which article is in the set already). */
+  let cardGenders = $state(new Map<number, Gender[]>());
+  $effect(() => {
+    const ids = cards.map((c) => c.id);
+    if (!ids.length) {
+      cardGenders = new Map();
+      return;
+    }
+    void db.cards.bulkGet(ids).then((rows) => {
+      cardGenders = new Map(rows.filter((c) => !!c).map((c) => [c!.id!, c!.genders]));
+    });
+  });
+  /** A card in this set with no article, or this article, counts as this article. */
+  const hasArticle = (g: Gender, inThisSet: boolean) =>
+    cards.some((c) => (!inThisSet || c.setId === setId) && (cardGenders.get(c.id)?.length ? cardGenders.get(c.id)!.includes(g) : true));
+
   const inSet = $derived(!!setId && cards.some((c) => c.setId === setId));
   const status = $derived(cards[0]?.status);
   const isKnown = $derived(status === 'known' || status === 'learned');
@@ -159,10 +205,44 @@
     }
   }
 
+  /** Add one article ("die See") as its own card; a card of that article in the set is kept. */
+  async function addArticleCard(a: ArticleVariant): Promise<number | null> {
+    if (busy || !display) return null;
+    busy = true;
+    const g = a.genders[0];
+    const label = `${ARTICLE[g]} ${display.term}`;
+    try {
+      const setId = await ensureArticleSet(article);
+      const term = display.term.trim().toLowerCase();
+      const existing = (await db.cards.where('setId').equals(setId).toArray()).find(
+        (c) => c.term.toLowerCase() === term && (!c.genders.length || c.genders.includes(g)),
+      );
+      const fields: Partial<Card> = {
+        term: display.term,
+        pos: 'noun',
+        genders: [g],
+        plural: a.plural,
+        translation: a.translation,
+        examples: a.examples.map((e) => ({ ...e })),
+      };
+      const cardId = existing?.id ?? (await saveCard(buildCard(setId, fields, context)));
+      showToast(existing ? `${label} is already in «${setName}»` : `Added ${label} to «${setName}»`, {
+        actionLabel: 'Open set',
+        onAction: () => go(`/set/${setId}`),
+      });
+      return cardId;
+    } catch (e) {
+      showToast(`Couldn’t add the word: ${(e as Error).message}`);
+      return null;
+    } finally {
+      busy = false;
+    }
+  }
+
   async function markKnown() {
     let ids = cards.map((c) => c.id);
     if (!ids.length) {
-      const id = await add();
+      const id = articleRows.length > 1 ? await addArticleCard(articleRows[0]) : await add();
       if (id === null) return;
       ids = [id];
     }
@@ -184,7 +264,7 @@
     <div class="titles">
       {#if !sameAsWord || !display}<div class="as-written muted">{word}</div>{/if}
       {#if display}
-        <div class="lemma"><Term card={display} /></div>
+        <div class="lemma"><Term card={articleRows.length > 1 ? { ...display, genders: [] } : display} /></div>
       {:else if !lookingUp}
         <div class="lemma">{word}</div>
       {/if}
@@ -196,6 +276,18 @@
 
   {#if lookingUp && !info}
     <Skeleton lines={2} />
+  {:else if articleRows.length > 1 && display}
+    <div class="articles">
+      <ArticleChoices
+        term={display.term}
+        articles={articleRows}
+        trLang={lang}
+        onadd={(a) => void addArticleCard(a)}
+        isAdded={(a) => hasArticle(a.genders[0], true) && !!setId}
+        disabled={busy || lookingUp}
+      />
+      <div class="small muted" lang="en">Each article has its own meaning — add the one you need.</div>
+    </div>
   {:else}
     {#if forms}<div class="forms muted">{forms}</div>{/if}
     {#if translation}
@@ -222,7 +314,11 @@
   {/if}
 
   <div class="actions" lang="en">
-    {#if inSet}
+    {#if articleRows.length > 1}
+      {#if inSet}
+        <button class="btn btn-ghost btn-block" onclick={() => go(`/set/${setId}`)}>Open «{setName}»</button>
+      {/if}
+    {:else if inSet}
       <div class="row">
         <span class="in-set"><Icon name="check" size={18} /> In set</span>
         <button class="btn btn-ghost" onclick={() => go(`/set/${setId}`)}>Open set</button>
@@ -281,6 +377,11 @@
   }
   .missing {
     line-height: 1.4;
+  }
+  .articles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
   .status {
     display: flex;

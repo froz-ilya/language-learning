@@ -94,6 +94,19 @@ export interface Settings {
 
 export type ThemeSetting = 'auto' | 'light' | 'dark';
 
+/**
+ * One article of a noun whose articles have different meanings: "der See" (lake) and
+ * "die See" (sea) are two words. Words whose genders are variants of one meaning (der/das Teil)
+ * have no articles list.
+ */
+export interface ArticleVariant {
+  /** Exactly one gender. */
+  genders: Gender[];
+  plural: string;
+  translation: string;
+  examples: Example[];
+}
+
 /** What a dictionary lookup can fill into a card. */
 export interface LookupResult {
   term: string;
@@ -108,4 +121,10 @@ export interface LookupResult {
   source: 'local' | 'wiktionary' | 'compound' | 'google';
   /** Set when the typed word was an inflected form, e.g. "ging" → "gehen". */
   lemmaOf?: string;
+  /**
+   * Nouns whose articles differ in meaning: every article (2+, most common first). The result's
+   * own genders/plural/translation/examples are those of one of them (the typed article's, else
+   * the first), so callers that ignore this list get one consistent word.
+   */
+  articles?: ArticleVariant[];
 }

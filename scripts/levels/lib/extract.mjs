@@ -380,6 +380,61 @@ function mergeTranslations(a, b, lang) {
   return limitMeanings([x[0], y[0], ...x.slice(1), ...y.slice(1)]);
 }
 
+const hasTr = (r) => !!(r.tr.ru.length || r.tr.en.length);
+
+/**
+ * Do two entries mean the same thing? True when, in some language both translate, their first
+ * meanings share a word ("der Teil" / "das Teil": часть; "der/das Moment": момент). Undecidable
+ * (one has no translations) counts as the same.
+ */
+export function sameMeaning(a, b) {
+  if (!hasTr(a) || !hasTr(b)) return true;
+  let compared = false;
+  for (const lang of ['ru', 'en']) {
+    const x = a.tr[lang][0] ?? [];
+    const y = b.tr[lang][0] ?? [];
+    if (!x.length || !y.length) continue;
+    compared = true;
+    if (x.some((u) => y.some((v) => similarWord(u, v)))) return true;
+  }
+  return !compared;
+}
+
+/**
+ * Collect a word's noun entries by article (`list` is changed and returned). An entry joins the
+ * entry of its own gender (homonyms of one article stay one word: "die Bank" bench + bank), or
+ * an entry of another gender with the same meaning (gender variants: der/das Teil); an entry
+ * whose gender and meaning both differ starts a new article ("der See" lake / "die See" sea).
+ * The first entry is the main article (the one the merged record keeps).
+ */
+export function addArticle(list, rec) {
+  const g = rec.genders[0];
+  const own = g ? list.find((x) => x.genders[0] === g || !x.genders.length) : list[0];
+  if (own) {
+    const i = list.indexOf(own);
+    list[i] = mergeLemma(own, rec);
+    return list;
+  }
+  const like = list.find((x) => sameMeaning(x, rec));
+  if (like) list[list.indexOf(like)] = mergeLemma(like, rec);
+  else list.push(rec);
+  return list;
+}
+
+/** The fields of one article kept in dict.json (see buildDict). */
+export function articleRecord(rec) {
+  return {
+    genders: rec.genders,
+    plural: rec.plural,
+    tr: rec.tr,
+    examples: rec.examples,
+    forms: rec.forms,
+    offensive: rec.offensive,
+    senses: rec.senses,
+    trCount: rec.trCount,
+  };
+}
+
 /** Merge a later homonym entry (same word + pos) into the first one. */
 export function mergeLemma(a, b) {
   const uniq = (xs) => [...new Set(xs)];

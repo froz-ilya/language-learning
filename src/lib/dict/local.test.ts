@@ -97,6 +97,25 @@ describe('lookupLocal', () => {
     expect(hits.map((h) => `${h.entry.term}/${h.entry.pos}`)).toEqual(['sein/verb', 'sein/other']);
   });
 
+  it('keeps the articles of a noun whose articles differ in meaning apart (See, See#f)', async () => {
+    const hits = await local.lookupLocal('See');
+    expect(hits.map((h) => [h.entry.term, h.entry.genders, h.entry.tr.ru])).toEqual([
+      ['See', ['m'], 'озеро'],
+      ['See', ['f'], 'море'],
+    ]);
+    expect(hits[1].entry).toMatchObject({ plural: 'Seen', level: 'B2', rank: 2632 });
+    // Inflected forms reach both ("Seen" by the ending rules).
+    expect((await local.lookupLocal('Seen')).map((h) => h.entry.genders[0])).toEqual(['m', 'f']);
+    const [m, f] = hits.map((h) => h.entry);
+    expect((await local.articleVariants(f)).map((e) => e.genders[0])).toEqual(['m', 'f']);
+    expect((await local.articleVariants(m)).map((e) => e.genders[0])).toEqual(['m', 'f']);
+    // Other words have just themselves.
+    const [seele] = await local.lookupLocal('Seele');
+    expect(await local.articleVariants(seele.entry)).toEqual([seele.entry]);
+    const [tisch] = await local.lookupLocal('Tisch');
+    expect(await local.articleVariants(tisch.entry)).toEqual([tisch.entry]);
+  });
+
   it('strips articles and punctuation', async () => {
     expect(terms(await local.lookupLocal('der Tisch'))).toEqual(['Tisch']);
     expect(terms(await local.lookupLocal('  „Das Haus,“ '))).toEqual(['Haus']);

@@ -49,7 +49,27 @@ export function formatMeanings(meanings: string[][]): string {
   return joinMeanings(limitMeanings(meanings));
 }
 
-/** Meanings of two sources of one word (der/die See, homonym blocks): first meaning of each, then the rest. */
+/**
+ * Do two dictionary blocks mean the same thing? True when, in some language both translate,
+ * their first meanings share a word (der/das Teil: часть). Undecidable (one block has no
+ * translations) counts as the same, so such blocks are merged as before. Same rule as
+ * sameMeaning in scripts/levels/lib/extract.mjs.
+ */
+export function sameMeaning(a: Record<'ru' | 'en', string[][]>, b: Record<'ru' | 'en', string[][]>): boolean {
+  const has = (t: Record<'ru' | 'en', string[][]>) => t.ru.length > 0 || t.en.length > 0;
+  if (!has(a) || !has(b)) return true;
+  let compared = false;
+  for (const lang of ['ru', 'en'] as const) {
+    const x = a[lang][0] ?? [];
+    const y = b[lang][0] ?? [];
+    if (!x.length || !y.length) continue;
+    compared = true;
+    if (x.some((u) => y.some((v) => similarWord(u, v)))) return true;
+  }
+  return !compared;
+}
+
+/** Meanings of two sources of one word (homonym blocks of one article): first meaning of each, then the rest. */
 export function mergeMeanings(a: string[][], b: string[][]): string[][] {
   if (!a.length || !b.length) return a.length ? a : b;
   return limitMeanings([a[0], b[0], ...a.slice(1), ...b.slice(1)]);

@@ -1,7 +1,7 @@
 // @ts-nocheck
 // Stage 3: turn ranked lemma groups into level words (before translation and topics).
 import { parseMeanings } from './extract.mjs';
-import { groupTranslations } from './rank.mjs';
+import { articleKey, groupTranslations, tieRank } from './rank.mjs';
 
 export const BANDS = [
   ['A1', 600],
@@ -45,4 +45,51 @@ export function baseWords(ranked, lemmas, trOverrides = {}) {
       count: g.count,
     };
   });
+}
+
+/**
+ * Preset words for the other articles of split nouns ("die See" next to "der See"), placed by
+ * their estimated count (`counts` from articleCounts) without moving any ranked word: ties are
+ * allowed, so every existing rank — and so every level id — stays. Kept only with both a Russian
+ * and an English translation (hand-fixed ones in `trOverrides` under "See|noun#f"), not
+ * excluded and not offensive. Each word has `key` "See|noun#f", `mainKey` and `article` (gender).
+ */
+export function articleWords(ranked, lemmas, counts, trOverrides = {}, exclude = new Set()) {
+  const sorted = ranked.map((g) => g.count);
+  const out = [];
+  for (const g of ranked) {
+    for (const key of g.members) {
+      const rec = lemmas[key];
+      (counts.get(key) ?? []).forEach((c, i) => {
+        const a = rec.articles[i + 1];
+        const k = articleKey(key, c.gender);
+        if (!c.count || exclude.has(k) || a.offensive) return;
+        const tr = {
+          ru: trOverrides[k]?.ru ? parseMeanings(trOverrides[k].ru) : a.tr.ru,
+          en: trOverrides[k]?.en ? parseMeanings(trOverrides[k].en) : a.tr.en,
+        };
+        if (!tr.ru.length || !tr.en.length) return;
+        const rank = tieRank(sorted, c.count);
+        if (!levelOf(rank)) return;
+        out.push({
+          key: k,
+          mainKey: key,
+          article: c.gender,
+          rawPos: rec.rawPos,
+          term: rec.word,
+          pos: rec.pos,
+          genders: a.genders.slice(0, 1),
+          plural: a.plural,
+          praeteritum: '',
+          partizip2: '',
+          auxiliary: '',
+          tr,
+          example: a.examples[0] ?? '',
+          rank,
+          count: c.count,
+        });
+      });
+    }
+  }
+  return out.sort((a, b) => a.rank - b.rank || (a.key < b.key ? -1 : 1));
 }

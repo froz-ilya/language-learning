@@ -9,12 +9,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildDict } from './lib/dict.mjs';
+import { buildDict, DICT_FORMAT } from './lib/dict.mjs';
 import { formatMeanings } from './lib/extract.mjs';
-import { candidates, exclusionReason, lemmaCounts, parseFrequency, rankLemmas } from './lib/rank.mjs';
+import { articleCounts, candidates, exclusionReason, lemmaCounts, mainArticles, parseFrequency, rankLemmas } from './lib/rank.mjs';
 import { Translator } from './lib/google.mjs';
 import { buildLevels, topicOf } from './lib/levels.mjs';
-import { BANDS, baseWords, levelOf } from './lib/words.mjs';
+import { articleWords, BANDS, baseWords, levelOf } from './lib/words.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const CACHE = path.join(HERE, '.cache');
@@ -54,7 +54,11 @@ async function loadFrequency() {
 
 async function loadDict(freq) {
   const file = cachePath('dict.json');
-  if (fs.existsSync(file)) return readJson(file);
+  if (fs.existsSync(file)) {
+    const cached = readJson(file);
+    if (cached.format === DICT_FORMAT) return cached;
+    console.log(`dict.json is format ${cached.format ?? 1}, rebuilding as ${DICT_FORMAT}`);
+  }
   const dump = cachePath('raw-wiktextract-data.jsonl.gz');
   await download(DUMP_URL, dump);
   console.log('Indexing Wiktionary dump (a few minutes)…');
@@ -89,7 +93,13 @@ async function main() {
     console.log(`ranked.tsv: ${ranked.length}`);
     return;
   }
-  const words = baseWords(ranked, dict.lemmas, overrides.tr);
+  // Split nouns: the ranked word is the main article ("der See"); the other articles ("die See")
+  // are added at their own estimated rank without moving any other word.
+  const words = baseWords(ranked, mainArticles(dict.lemmas), overrides.tr);
+  const counts = articleCounts(r.freq, r.cands, dict.lemmas, r.totals, overrides.articleShare);
+  const added = articleWords(ranked, dict.lemmas, counts, overrides.tr, new Set(overrides.exclude));
+  console.log(`articles of split nouns: ${added.length} (${added.map((w) => `${w.key} #${w.rank}`).join(', ')})`);
+  words.push(...added);
   const miss = (l) => words.filter((w) => !w.tr[l].length).length;
   console.log(`words ${words.length}; missing ru ${miss('ru')}, en ${miss('en')}, examples ${words.filter((w) => !w.example).length}`);
   writeJson(cachePath('words-base.json'), words);
@@ -100,7 +110,8 @@ async function main() {
   const gt = new Translator(cachePath('google.json'), { offline: OFFLINE });
   const byLevel = (list) => BANDS.map(([code]) => list.filter((w) => levelOf(w.rank) === code));
   for (const lang of ['ru', 'en']) {
-    for (const missing of byLevel(words.filter((w) => !w.tr[lang].length))) {
+    // Added articles always have both languages (Google can't tell "der See" from "die See").
+    for (const missing of byLevel(words.filter((w) => !w.tr[lang].length && !w.mainKey))) {
       const got = await gt.lines(missing.map((w) => w.term), lang, 'word');
       missing.forEach((w, i) => {
         // An earlier run stored dictionary alternatives per word+pos; prefer those when present.

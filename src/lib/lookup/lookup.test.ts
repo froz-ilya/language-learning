@@ -26,6 +26,11 @@ const dict = vi.hoisted(() => ({ hits: new Map<string, LocalHit[]>(), prefix: []
 vi.mock('../dict/local', () => ({
   lookupLocal: async (word: string) => dict.hits.get(word) ?? [],
   prefixLocal: async () => dict.prefix,
+  // Same contract as the real one: every article of a split noun (most common first), else [entry].
+  articleVariants: async (entry: LexEntry) => {
+    const same = (dict.hits.get(entry.term) ?? []).map((h) => h.entry).filter((e) => e.term === entry.term && e.pos === 'noun');
+    return same.length > 1 && same.some((e) => e.genders[0] === entry.genders[0]) ? [...same].sort((a, b) => a.rank - b.rank) : [entry];
+  },
 }));
 
 import {
@@ -34,6 +39,7 @@ import {
   lookupWord,
   lookupWordWithSource,
   mergeIntoCard,
+  preferArticle,
   SourceUnavailableError,
   suggest,
   translateText,
@@ -325,7 +331,7 @@ describe('lookupWord', () => {
 
   it('ignores expired cache entries', async () => {
     const { fetch } = mockFetch();
-    mem.cache.set('v2:ru:Tisch', { key: 'v2:ru:Tisch', result: null, fetchedAt: Date.now() - 2 * 24 * 3600 * 1000 });
+    mem.cache.set('v3:ru:Tisch', { key: 'v3:ru:Tisch', result: null, fetchedAt: Date.now() - 2 * 24 * 3600 * 1000 });
     expect((await lookupWord('Tisch', 'ru'))!.term).toBe('Tisch');
     expect(fetch).toHaveBeenCalled();
   });
@@ -505,7 +511,7 @@ describe('offline dictionary', () => {
     expect(r.result!.examples.length).toBeGreaterThan(0);
     expect(r.result!.examples[0].tr).toBe(`TR(${r.result!.examples[0].de})`);
     expect(calls.wiki.map((p) => p.get('page'))).toEqual(['Haus']);
-    expect(mem.cache.get('v2:ru:Haus')).toMatchObject({ via: 'local' });
+    expect(mem.cache.get('v3:ru:Haus')).toMatchObject({ via: 'local' });
   });
 
   it('returns the local entry alone when Wiktionary is down', async () => {
@@ -535,6 +541,119 @@ describe('offline dictionary', () => {
     vi.stubGlobal('navigator', { onLine: false });
     mockFetch();
     expect((await lookupWord('die See', 'en'))!.translation).toBe('sea');
+  });
+});
+
+// ---------- Articles with different meanings ----------
+
+describe('articles with different meanings', () => {
+  const SEE_M = lex({ term: 'See', pos: 'noun', genders: ['m'], plural: 'Seen', rank: 1112, tr: { ru: 'озеро', en: 'lake' } });
+  const SEE_F = lex({ term: 'See', pos: 'noun', genders: ['f'], plural: 'Seen', rank: 2632, tr: { ru: 'море', en: 'sea' } });
+  const bothSees = () => dict.hits.set('See', [{ entry: SEE_M }, { entry: SEE_F }]);
+
+  it('gives every article of an offline entry its own translation', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    bothSees();
+    mockFetch();
+    const r = (await lookupWord('See', 'ru'))!;
+    expect(r).toMatchObject({ term: 'See', genders: ['m'], plural: 'Seen', translation: 'озеро' });
+    expect(r.articles).toEqual([
+      { genders: ['m'], plural: 'Seen', translation: 'озеро', examples: [] },
+      { genders: ['f'], plural: 'Seen', translation: 'море', examples: [] },
+    ]);
+    // A typed article picks its own meaning; the list stays the same.
+    const f = (await lookupWord('die See', 'ru'))!;
+    expect(f).toMatchObject({ genders: ['f'], translation: 'море' });
+    expect(f.articles).toEqual(r.articles);
+  });
+
+  it('adds each article’s own Wiktionary examples in one request, and caches the first article', async () => {
+    bothSees();
+    const { calls } = mockFetch();
+    const r = (await lookupWord('die See', 'ru'))!;
+    expect(r.genders).toEqual(['f']);
+    expect(r.articles!.map((a) => a.translation)).toEqual(['озеро', 'море']);
+    const [m, f] = r.articles!;
+    expect(m.examples[0]).toEqual({ de: 'Ein ausgetrockneter See hat kein Wasser mehr.', tr: 'TR(Ein ausgetrockneter See hat kein Wasser mehr.)' });
+    expect(f.examples.length).toBeGreaterThan(0);
+    expect(f.examples.some((e) => e.de.includes('ausgetrocknet'))).toBe(false);
+    expect(r.examples).toEqual(f.examples);
+    expect(calls.google).toHaveLength(1);
+    // The cached row holds der See (first article); "See" and "die See" both read it.
+    expect((mem.cache.get('v3:ru:See') as { result: LookupResult }).result.genders).toEqual(['m']);
+    expect((await lookupWord('See', 'ru'))!.translation).toBe('озеро');
+    expect((await lookupWord('die See', 'ru'))!.translation).toBe('море');
+    expect(calls.google).toHaveLength(1);
+  });
+
+  it('splits a Wiktionary-only noun by article and leaves gender variants merged', async () => {
+    mockFetch({ pages: { ...ALL_PAGES, Teil: fixture('Teil') } });
+    const see = (await lookupWord('See', 'en'))!;
+    expect(see).toMatchObject({ genders: ['m'], translation: 'lake' });
+    expect(see.articles!.map((a) => [a.genders, a.translation])).toEqual([
+      [['m'], 'lake'],
+      [['f'], 'sea'],
+    ]);
+    const teil = (await lookupWord('Teil', 'en'))!;
+    expect(teil.genders.sort()).toEqual(['m', 'n']);
+    expect(teil.articles).toBeUndefined();
+  });
+
+  it('asks for a missing translation with the article, so the articles stay apart', async () => {
+    vi.stubGlobal('navigator', { onLine: true });
+    dict.hits.set('See', [{ entry: SEE_M }, { entry: { ...SEE_F, tr: { ru: '', en: 'sea' } } }]);
+    const { calls } = mockFetch({ wiktionary: 'fail', google: (q) => [[[q === 'die See' ? 'море' : `TR(${q})`, q]], null, 'de'] });
+    const r = (await lookupWord('See', 'ru'))!;
+    expect(r.articles!.map((a) => a.translation)).toEqual(['озеро', 'море']);
+    expect(calls.google).toEqual(['die See']);
+  });
+
+  it('ignores lookups cached before the split (v2: one merged translation)', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    bothSees();
+    mockFetch();
+    const merged = { term: 'See', pos: 'noun', genders: ['m', 'f'], translation: 'озеро; море', examples: [] };
+    mem.cache.set('v2:ru:See', { key: 'v2:ru:See', result: merged, fetchedAt: Date.now() });
+    const r = (await lookupWord('See', 'ru'))!;
+    expect(r.genders).toEqual(['m']);
+    expect(r.translation).toBe('озеро');
+  });
+
+  it('fills a card with the meaning of its own article', () => {
+    const r: LookupResult = {
+      term: 'See',
+      pos: 'noun',
+      genders: ['m'],
+      plural: 'Seen',
+      praeteritum: '',
+      partizip2: '',
+      auxiliary: '',
+      translation: 'озеро',
+      examples: [],
+      source: 'wiktionary',
+      articles: [
+        { genders: ['m'], plural: 'Seen', translation: 'озеро', examples: [] },
+        { genders: ['f'], plural: '', translation: 'море', examples: [{ de: 'Auf hoher See.' }] },
+      ],
+    };
+    const f = mergeIntoCard(card({ term: 'See', pos: 'noun', genders: ['f'] }), r);
+    expect(f).toMatchObject({ genders: ['f'], translation: 'море', plural: '', examples: [{ de: 'Auf hoher See.' }] });
+    // No article yet: the first one; an old card with both genders keeps what it has.
+    expect(mergeIntoCard(card({ term: 'See' }), r)).toMatchObject({ genders: ['m'], translation: 'озеро' });
+    const old = mergeIntoCard(card({ term: 'See', pos: 'noun', genders: ['m', 'f'], translation: 'озеро; море' }), r);
+    expect(old).toMatchObject({ genders: ['m', 'f'], translation: 'озеро; море' });
+    expect(preferArticle(r, [])).toBe(r);
+    expect(preferArticle({ ...r, articles: undefined }, ['f']).translation).toBe('озеро');
+  });
+
+  it('suggests each article as its own row', async () => {
+    dict.prefix = [SEE_M, lex({ term: 'Seele', pos: 'noun', genders: ['f'], rank: 1500, tr: { ru: 'душа', en: 'soul' } }), SEE_F];
+    mockFetch();
+    expect(await suggest('See', 'ru')).toEqual([
+      { word: 'See', preview: 'озеро', genders: ['m'] },
+      { word: 'See', preview: 'море', genders: ['f'] },
+      { word: 'Seele', preview: 'душа' },
+    ]);
   });
 });
 

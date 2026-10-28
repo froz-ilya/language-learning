@@ -36,6 +36,7 @@
    */
   let {
     word,
+    written,
     entry = null,
     context = '',
     article,
@@ -43,8 +44,10 @@
     cards = [],
     onclose,
   }: {
-    /** The word as written in the text. */
+    /** The word to look up: as written in the text, or the joined verb of a split pair (anrufen). */
     word: string;
+    /** The text as it appears in the article when it isn't `word` ("rufe … an"). */
+    written?: string;
     /** Lemma from the reader's precomputed map (may be null). */
     entry?: LexEntry | null;
     /** The sentence it appears in (stored as the card's example). */
@@ -84,7 +87,8 @@
   const forms = $derived(formsOf(display));
   const translation = $derived(info?.translation?.trim() ?? '');
   const lookingUp = $derived(!lookup.localDone || remoteState === 'loading');
-  const sameAsWord = $derived(!!display && display.term.toLowerCase() === word.toLowerCase());
+  const shown = $derived(written ?? word);
+  const sameAsWord = $derived(!!display && display.term.toLowerCase() === shown.toLowerCase());
 
   /**
    * A noun whose articles differ in meaning: one row per article ("der See — озеро",
@@ -190,7 +194,7 @@
 <div class="word-sheet" lang="de">
   <div class="head">
     <div class="titles">
-      {#if !sameAsWord || !display}<div class="as-written muted">{word}</div>{/if}
+      {#if !sameAsWord || !display}<div class="as-written muted">{shown}</div>{/if}
       {#if display}
         <div class="lemma"><Term card={articleRows.length > 1 ? { ...display, genders: [] } : display} /></div>
       {:else if !lookingUp}

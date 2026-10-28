@@ -22,6 +22,7 @@
   import { headingText, isHeading, sentenceAt, tokenize, countWords, type Token } from '../lib/reading/text';
   import { comfortRank, estimateLevel, isFunctionWord, knownShare } from '../lib/reading/level';
   import { rankLookup } from '../lib/reading/rate';
+  import { splitVerbs, splitVerbText, type SplitVerb } from '../lib/reading/separable';
   import { cardsFor, lemmaMap, loadVocab, type CardRef } from '../lib/reading/vocab';
   import {
     articleIdFromParts,
@@ -105,8 +106,29 @@
     };
   });
 
+  /** Separable verbs split across a clause ("rufe … an" → anrufen), one map per paragraph; null until found. */
+  let splits = $state.raw<Map<number, SplitVerb>[] | null>(null);
+
+  $effect(() => {
+    const t = tokens;
+    splits = null;
+    if (!t.length) return;
+    let cancelled = false;
+    void splitVerbs(t)
+      .then((m) => !cancelled && (splits = m))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  /** The split verb a token belongs to (as the verb or as the particle). */
+  const splitAt = (p: number, t: number): SplitVerb | undefined => splits?.[p]?.get(t);
+
   const NO_LEMMAS = new Map<string, LexEntry | null>();
   const cardsOf = (w: string): CardRef[] => (vocab.value ? cardsFor(w, lemmas ?? NO_LEMMAS, vocab.value) : []);
+  /** Cards for a dictionary entry itself (a split verb's anrufen), not via the text's lemmas. */
+  const cardsOfEntry = (e: LexEntry): CardRef[] => vocab.value?.get(e.term.toLowerCase()) ?? [];
 
   /** Words up to this rank count as familiar (the user's level); rarer ones are highlighted as new. */
   const comfort = $derived(comfortRank(settings.focus));
@@ -129,6 +151,22 @@
     }
     return map;
   });
+
+  /** Classes for the tokens of split verbs, by paragraph and token index: coloured as the joined verb. */
+  const splitClasses = $derived.by(() => {
+    if (!splits || !vocab.value) return null;
+    return splits.map((m) => {
+      const out = new Map<number, string>();
+      for (const s of new Set(m.values())) {
+        const refs = cardsOfEntry(s.entry);
+        const cls = refs.length ? (refs[0].status === 'learning' ? 'l' : '') : isNewWord(s.entry, s.entry.term) ? 'u' : '';
+        out.set(s.verb, cls).set(s.particle, cls);
+      }
+      return out;
+    });
+  });
+
+  const classOf = (p: number, t: number, text: string) => splitClasses?.[p]?.get(t) ?? classes.get(text) ?? '';
 
   const share = $derived(vocab.value ? knownShare(allTokens, (w) => cardsOf(w)[0]?.status) : null);
 
@@ -167,8 +205,10 @@
     if (!lemmas || !vocab.value) return out;
     tokens.forEach((list, pi) => {
       let offset = 0;
-      for (const t of list) {
-        const e = t.word ? lemmas!.get(t.text) : null;
+      list.forEach((t, ti) => {
+        // A split verb counts once, as the joined verb at its verb token; its particle not at all.
+        const split = splitAt(pi, ti);
+        const e = split ? (split.verb === ti ? split.entry : null) : t.word ? lemmas!.get(t.text) : null;
         if (e && isNewWord(e, t.text)) {
           const key = e.term.toLowerCase();
           if (!out.has(key) && !vocab.value!.has(key)) {
@@ -176,7 +216,7 @@
           }
         }
         offset += t.text.length;
-      }
+      });
     });
     return out;
   });
@@ -184,8 +224,12 @@
   // ---------- Tapping a word ----------
 
   let sheetOpen = $state(false);
-  let sel = $state<{ p: number; t: number; word: string; context: string; key: number } | null>(null);
+  /** The tapped word; for a split verb, `word` is the joined verb and `pair` the two tokens. */
+  let sel = $state<{ p: number; t: number; word: string; pair: SplitVerb | null; context: string; key: number } | null>(null);
   let selKey = 0;
+
+  const isSel = (p: number, t: number) =>
+    sheetOpen && sel?.p === p && (sel.t === t || sel.pair?.verb === t || sel.pair?.particle === t);
 
   function onTap(e: MouseEvent) {
     const span = (e.target as Element | null)?.closest?.<HTMLElement>('[data-t]');
@@ -195,8 +239,12 @@
     const t = Number(span.dataset.t);
     const tok = tokens[p]?.[t];
     if (!tok?.word) return;
-    const offset = tokens[p].slice(0, t).reduce((n, x) => n + x.text.length, 0);
-    sel = { p, t, word: tok.text, context: sentenceAt(headingText(paragraphs[p]), offset), key: ++selKey };
+    const pair = splitAt(p, t) ?? null;
+    // The context is the verb's sentence, whichever half of a split verb was tapped.
+    const at = pair ? pair.verb : t;
+    const offset = tokens[p].slice(0, at).reduce((n, x) => n + x.text.length, 0);
+    const context = sentenceAt(headingText(paragraphs[p]), offset);
+    sel = { p, t, word: pair ? pair.entry.term : tok.text, pair, context, key: ++selKey };
     sheetOpen = true;
   }
 
@@ -374,9 +422,9 @@
     <article class="text-col text" lang="de" bind:this={textEl} onclick={onTap}>
       {#each tokens as list, pi (pi)}
         {#if isHeading(paragraphs[pi])}
-          <h2 class="para heading" data-p={pi}>{#each list as t, ti}{#if t.word}<span class="w {classes.get(t.text) ?? ''}" class:sel={sheetOpen && sel?.p === pi && sel?.t === ti} data-t={ti}>{t.text}</span>{:else}{t.text}{/if}{/each}</h2>
+          <h2 class="para heading" data-p={pi}>{#each list as t, ti}{#if t.word}<span class="w {classOf(pi, ti, t.text)}" class:sel={isSel(pi, ti)} data-t={ti}>{t.text}</span>{:else}{t.text}{/if}{/each}</h2>
         {:else}
-          <p class="para" data-p={pi}>{#each list as t, ti}{#if t.word}<span class="w {classes.get(t.text) ?? ''}" class:sel={sheetOpen && sel?.p === pi && sel?.t === ti} data-t={ti}>{t.text}</span>{:else}{t.text}{/if}{/each}<button
+          <p class="para" data-p={pi}>{#each list as t, ti}{#if t.word}<span class="w {classOf(pi, ti, t.text)}" class:sel={isSel(pi, ti)} data-t={ti}>{t.text}</span>{:else}{t.text}{/if}{/each}<button
               class="say"
               type="button"
               aria-label="Read paragraph aloud"
@@ -455,11 +503,12 @@
     {#key sel.key}
       <WordSheet
         word={sel.word}
-        entry={lemmas?.get(sel.word) ?? null}
+        written={sel.pair ? splitVerbText(tokens[sel.p], sel.pair) : undefined}
+        entry={sel.pair ? sel.pair.entry : (lemmas?.get(sel.word) ?? null)}
         context={sel.context}
         {article}
         {setId}
-        cards={cardsOf(sel.word)}
+        cards={sel.pair ? cardsOfEntry(sel.pair.entry) : cardsOf(sel.word)}
         onclose={() => (sheetOpen = false)}
       />
     {/key}

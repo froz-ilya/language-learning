@@ -108,18 +108,6 @@ export function estimateLevel(tokens: Token[], info: (word: string) => WordRank 
 }
 
 /**
- * Keep an estimate inside the source's level range (e.g. Klexikon A2–B1): subtitle-based
- * frequencies rate topic words (Wurzel, Samen) as rare, so encyclopedia texts would read too high.
- */
-export function clampLevel(level: LevelCode, range: LevelCode[]): LevelCode {
-  if (!range.length) return level;
-  const i = ORDER.indexOf(level);
-  const lo = ORDER.indexOf(range[0]);
-  const hi = ORDER.indexOf(range[range.length - 1]);
-  return ORDER[Math.min(hi, Math.max(lo, i))];
-}
-
-/**
  * Share (0…1) of the text's word tokens the user already knows: the word's lemma is a card
  * with status learned or known. `status(word)` gives that status (undefined when no card).
  */

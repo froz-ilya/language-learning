@@ -67,9 +67,12 @@
   const loading = $derived(sourceFeeds.some(({ f }) => !f || f.loading));
   const firstLoad = $derived(loading && items.length === 0);
   const errors = $derived(sourceFeeds.filter(({ f }) => f?.error));
-  const canLoadMore = $derived(sourceFeeds.some(({ f }) => f && !f.done && !f.error && f.items.length));
+  // A live source whose batch had nothing at this level still has a next batch.
+  const canLoadMore = $derived(sourceFeeds.some(({ f }) => f && !f.done && !f.error && f.cursor !== undefined));
   const allFailed = $derived(!loading && items.length === 0 && errors.length === sourceIds.length);
 
+  /** Reading time for list rows whose length is known (same pace as the reader). */
+  const minutesOf = (words: number | undefined) => (words ? `${Math.max(1, Math.round(words / 120))} min` : '');
   const ratio = (a: SavedArticle) => (a.paragraphs?.length ? Math.min(1, a.progress / a.paragraphs.length) : 0);
   const snippetOf = (a: SavedArticle) => firstSentence(a.paragraphs?.find((p) => !isHeading(p)) ?? '');
 
@@ -140,7 +143,11 @@
       </EmptyState>
     {:else if items.length === 0}
       <EmptyState icon="search" title="Nothing here yet" text="No articles for this level right now. Try another level or paste your own text.">
-        <button class="btn" onclick={refresh}>Refresh</button>
+        {#if canLoadMore}
+          <button class="btn" onclick={loadMore}>Load more</button>
+        {:else}
+          <button class="btn" onclick={refresh}>Refresh</button>
+        {/if}
       </EmptyState>
     {:else}
       <div class="list">
@@ -151,7 +158,8 @@
             source={a.source}
             title={row?.title ?? a.title}
             snippet={a.snippet}
-            level={row?.level || a.level || ''}
+            level={a.level || row?.level || ''}
+            meta={minutesOf(a.words)}
             progress={row ? ratio(row) : 0}
             read={!!row?.readAt}
           />

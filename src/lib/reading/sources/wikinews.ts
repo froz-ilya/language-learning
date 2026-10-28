@@ -1,7 +1,8 @@
 import type { Article, ArticleSummary, ReadingSourceInfo } from '../types';
-import { firstSentence, htmlToParagraphs, isHeading, stripTags } from '../text';
+import { extractToParagraphs, firstSentence, htmlToParagraphs, isHeading, stripTags } from '../text';
 import type { ListOptions, ListResult, Source } from './types';
 import { mwGet, parsePage, wikiUrl, type PagesResponse, type SearchResponse } from './mediawiki';
+import { keepLevel } from '../rate';
 
 const API = 'https://de.wikinews.org/w/api.php';
 const WIKI = 'https://de.wikinews.org/wiki/';
@@ -24,6 +25,14 @@ export function newsSnippet(title: string, extract: string | undefined): string 
   return text ? firstSentence(text) : undefined;
 }
 
+/** Intro paragraphs to rate: without the repeated title and the dateline. */
+export function newsText(title: string, extract: string | undefined): string[] {
+  const t = title.toLowerCase();
+  return extractToParagraphs(extract ?? '')
+    .filter((p) => p.toLowerCase() !== t)
+    .map((p) => p.replace(DATELINE, ''));
+}
+
 export function wikinewsSource(info: ReadingSourceInfo): Source {
   async function list(opts: ListOptions = {}): Promise<ListResult> {
     const query = opts.query?.trim();
@@ -42,7 +51,8 @@ export function wikinewsSource(info: ReadingSourceInfo): Source {
       const next = data.continue?.sroffset;
       return { items, cursor: next !== undefined ? String(next) : undefined };
     }
-    // Newest published articles, with a teaser from the intro (one request).
+    // Newest published articles with their intro (one request): a teaser, and the text the
+    // level is rated from. With a level, only the articles at that level are returned.
     const data = await mwGet<PagesResponse>(
       API,
       {
@@ -57,7 +67,6 @@ export function wikinewsSource(info: ReadingSourceInfo): Source {
         prop: 'extracts',
         exintro: 1,
         explaintext: 1,
-        exsentences: 3,
         exlimit: 20,
       },
       opts.signal,
@@ -66,14 +75,15 @@ export function wikinewsSource(info: ReadingSourceInfo): Source {
     // Generator results lose the category order (they come by page id); newer pages have
     // higher ids, which is close enough to "newest first".
     pages.sort((a, b) => (b.pageid ?? 0) - (a.pageid ?? 0));
-    const items: ArticleSummary[] = pages
-      .filter((p) => !p.missing)
-      .map((p) => ({
-        id: `wikinews:${p.title}`,
-        source: 'wikinews',
-        title: p.title,
-        snippet: newsSnippet(p.title, p.extract),
-      }));
+    const items = await keepLevel<ArticleSummary>(
+      pages
+        .filter((p) => !p.missing)
+        .map((p) => ({
+          item: { id: `wikinews:${p.title}`, source: 'wikinews', title: p.title, snippet: newsSnippet(p.title, p.extract) },
+          paragraphs: newsText(p.title, p.extract),
+        })),
+      opts.level,
+    );
     return { items, cursor: data.continue?.gcmcontinue };
   }
 

@@ -34,11 +34,12 @@ const STOP_SECTIONS = new Set([
   'bilder',
 ]);
 
-const isStopHeading = (text: string) => STOP_SECTIONS.has(text.trim().replace(/[:.]$/, '').toLowerCase());
+export const isStopHeading = (text: string) => STOP_SECTIONS.has(text.trim().replace(/[:.]$/, '').toLowerCase());
 
 export const countWords = (text: string) => (text.match(/\p{L}[\p{L}\p{M}'’-]*/gu) ?? []).length;
 
-function cleanText(s: string): string {
+/** Whitespace, footnote markers, edit links and leaked image markup cleaned out of a text run. */
+export function cleanText(s: string): string {
   return s
     // Broken image markup that leaked into the text ("[[Datei:x.jpg|mini|caption]]", sometimes
     // unclosed until the end of the line).
@@ -227,7 +228,7 @@ class Collector implements Sink {
 }
 
 /** Drop headings with no text under them (before the next heading of any level, or at the end). */
-function tidy(paras: string[]): string[] {
+export function tidy(paras: string[]): string[] {
   const out: string[] = [];
   for (const p of paras) {
     if (isHeading(p) && out.length && isHeading(out[out.length - 1])) out.pop();

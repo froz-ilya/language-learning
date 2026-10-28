@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { averageSentenceLength, clampLevel, estimateLevel, isFunctionWord, knownShare, type WordRank } from './level';
+import { averageSentenceLength, estimateLevel, isFunctionWord, knownShare, type WordRank } from './level';
 import { tokenize } from './text';
 import type { WordStatus } from '../progress';
 
@@ -73,13 +73,6 @@ describe('estimateLevel', () => {
 });
 
 describe('helpers', () => {
-  it('clampLevel keeps an estimate inside the source range', () => {
-    expect(clampLevel('C1', ['A2', 'B1'])).toBe('B1');
-    expect(clampLevel('A1', ['B1', 'C2'])).toBe('B1');
-    expect(clampLevel('B2', ['A2', 'B1', 'B2', 'C1'])).toBe('B2');
-    expect(clampLevel('C2', [])).toBe('C2');
-  });
-
   it('isFunctionWord: pos other and rank < 150', () => {
     expect(isFunctionWord({ rank: 3, pos: 'other' })).toBe(true);
     expect(isFunctionWord({ rank: 300, pos: 'other' })).toBe(false);

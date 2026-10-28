@@ -69,6 +69,13 @@
     else check();
   }
 
+  /** haben/sein picked: continue in Partizip II (it goes with the auxiliary), else an empty Präteritum. */
+  function pickAux(a: Auxiliary) {
+    aux = a;
+    if (askP2 && !p2.trim()) p2Input?.focus();
+    else if (askPrae && !prae.trim()) praeInput?.focus();
+  }
+
   function enterFromPrae(e: KeyboardEvent) {
     if (e.key === 'Enter' && !checked && askP2) {
       e.preventDefault();
@@ -145,7 +152,7 @@
             class:active={aux === a}
             disabled={!!checked}
             onpointerdown={(e) => e.preventDefault()}
-            onclick={() => (aux = a)}>{a}</button
+            onclick={() => pickAux(a)}>{a}</button
           >
         {/each}
       </div>

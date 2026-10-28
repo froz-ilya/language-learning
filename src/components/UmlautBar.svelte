@@ -1,7 +1,8 @@
 <script lang="ts">
   /**
    * Buttons for ä ö ü ß (+ capitals with shift) that insert into the given input
-   * at the cursor without losing focus (keeps the iOS keyboard open).
+   * at the cursor without losing focus (keeps the iOS keyboard open). A tap also puts the
+   * cursor back into the input when it wasn't focused (focus() inside the tap opens the keyboard on iOS).
    */
   let {
     input,
@@ -11,11 +12,21 @@
   let upper = $state(false);
   const letters = $derived(upper ? ['Ä', 'Ö', 'Ü', 'ẞ'] : ['ä', 'ö', 'ü', 'ß']);
 
+  function refocus() {
+    if (input && document.activeElement !== input) input.focus({ preventScroll: true });
+  }
+
+  function toggleUpper() {
+    upper = !upper;
+    refocus();
+  }
+
   function insert(ch: string) {
     if (!input) return;
     const start = input.selectionStart ?? input.value.length;
     const end = input.selectionEnd ?? input.value.length;
     input.value = input.value.slice(0, start) + ch + input.value.slice(end);
+    refocus();
     input.setSelectionRange(start + ch.length, start + ch.length);
     input.dispatchEvent(new Event('input', { bubbles: true }));
     oninsert?.(input.value);
@@ -24,7 +35,7 @@
 </script>
 
 <div class="bar">
-  <button type="button" class:active={upper} onpointerdown={(e) => e.preventDefault()} onclick={() => (upper = !upper)}>⇧</button>
+  <button type="button" class:active={upper} onpointerdown={(e) => e.preventDefault()} onclick={toggleUpper}>⇧</button>
   {#each letters as ch}
     <button type="button" onpointerdown={(e) => e.preventDefault()} onclick={() => insert(ch)}>{ch}</button>
   {/each}

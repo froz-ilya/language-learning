@@ -33,14 +33,14 @@ export const rankLookup =
   (lemmas: Map<string, LexEntry | null>) =>
   (word: string): WordRank | null => {
     const e = lemmas.get(word);
-    return e ? { rank: e.rank, pos: e.pos } : null;
+    return e ? { rank: e.rank, pos: e.pos, lemma: e.term } : null;
   };
 
 /** Estimated level of paragraphs of text (null when too short or the dictionary isn't available). */
-export async function rateParagraphs(paragraphs: string[]): Promise<LevelCode | null> {
+export async function rateParagraphs(paragraphs: string[], title?: string): Promise<LevelCode | null> {
   const tokens = paragraphTokens(paragraphs);
   const lemmas = await lemmaMap(tokens);
-  return estimateLevel(tokens.flat(), rankLookup(lemmas));
+  return estimateLevel(tokens.flat(), rankLookup(lemmas), { title });
 }
 
 /**
@@ -48,11 +48,11 @@ export async function rateParagraphs(paragraphs: string[]): Promise<LevelCode | 
  * `level`, keep only the items at that level (unratable ones are dropped too). Every kept item
  * gets its `level`. For live sources whose lists can't be pre-rated (Wikinews, Wikipedia).
  */
-export async function keepLevel<T extends { level?: LevelCode }>(
+export async function keepLevel<T extends { level?: LevelCode; title: string }>(
   rows: { item: T; paragraphs: string[] }[],
   level?: LevelCode,
 ): Promise<T[]> {
-  const levels = await Promise.all(rows.map((r) => rateParagraphs(r.paragraphs).catch(() => null)));
+  const levels = await Promise.all(rows.map((r) => rateParagraphs(r.paragraphs, r.item.title).catch(() => null)));
   const out: T[] = [];
   rows.forEach(({ item }, i) => {
     const l = levels[i];

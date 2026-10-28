@@ -33,10 +33,12 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('source registry', () => {
   it('maps levels to sources', () => {
-    expect(sourcesForLevel('A1').map((s) => s.id)).toEqual(['miniklexikon']);
-    expect(sourcesForLevel('A2').map((s) => s.id)).toEqual(['miniklexikon', 'klexikon']);
-    expect(sourcesForLevel('B2').map((s) => s.id)).toEqual(['miniklexikon', 'klexikon', 'gutenberg', 'wikinews']);
-    expect(sourcesForLevel('C2').map((s) => s.id)).toEqual(['miniklexikon', 'klexikon', 'gutenberg', 'wikinews', 'wikipedia']);
+    const ids = (l: Parameters<typeof sourcesForLevel>[0]) => sourcesForLevel(l).map((s) => s.id);
+    // MiniKlexikon/Klexikon levels come from the catalog (klexikon-levels.json, see catalog.test.ts).
+    expect(ids('A1')).toContain('miniklexikon');
+    expect(ids('A2')).toEqual(['miniklexikon', 'klexikon']);
+    expect(ids('B2')).toEqual(['miniklexikon', 'klexikon', 'gutenberg', 'wikinews', 'wikipedia']);
+    expect(ids('C2')).toEqual(['gutenberg', 'wikipedia']);
     expect(READING_SOURCES.every((s) => s.id === 'paste' || s.license)).toBe(true);
   });
 

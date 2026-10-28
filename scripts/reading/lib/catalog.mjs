@@ -8,18 +8,20 @@ export const CATALOG_VERSION = 1;
 export const MIN_WORDS = 40;
 const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const SKIP_TITLES = new Set(['Hauptseite']);
+/** Navigation pages in the main namespace: link lists, not texts. */
+const SKIP_TITLE_RE = /^(?:Artikelübersicht\b|(?:Mini)?Klexikon:)/;
 
 /**
  * One catalog row for a page, or null when it can't be rated.
  * `shared` = { wikitextToParagraphs, rateParagraphs, countWords, isHeading } (the app's modules).
  */
 export async function rateArticle(page, shared) {
-  if (SKIP_TITLES.has(page.title)) return null;
+  if (SKIP_TITLES.has(page.title) || SKIP_TITLE_RE.test(page.title)) return null;
   const paragraphs = shared.wikitextToParagraphs(page.wikitext);
   const body = paragraphs.filter((p) => !shared.isHeading(p));
   const words = body.reduce((n, p) => n + shared.countWords(p), 0);
   if (words < MIN_WORDS) return null;
-  const level = await shared.rateParagraphs(paragraphs);
+  const level = await shared.rateParagraphs(paragraphs, page.title);
   if (!level) return null;
   return { title: page.title, level, words };
 }
@@ -49,4 +51,16 @@ export async function buildCatalog(pagesBySource, shared, { generated = '' } = {
     sources[id] = sorted;
   }
   return { version: CATALOG_VERSION, generated, license: 'CC BY-SA 4.0', sources };
+}
+
+/** A source is listed at a level when the catalog has at least this many articles there. */
+export const MIN_PER_LEVEL = 20;
+
+/** { [sourceId]: levels with ≥MIN_PER_LEVEL articles } (src/lib/reading/sources/klexikon-levels.json). */
+export function catalogLevels(catalog) {
+  const out = {};
+  for (const [id, byLevel] of Object.entries(catalog.sources)) {
+    out[id] = LEVEL_ORDER.filter((l) => (byLevel[l]?.length ?? 0) >= MIN_PER_LEVEL);
+  }
+  return out;
 }

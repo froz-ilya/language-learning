@@ -129,6 +129,18 @@ describe('committed public/reading/klexikon.json', () => {
     }
   });
 
+  it('is calibrated: easy-language MiniKlexikon mostly A1–A2, children’s Klexikon mostly A2–B1', () => {
+    const share = (id: 'miniklexikon' | 'klexikon', levels: string[]) => {
+      const byLevel = data.sources[id]!;
+      const total = Object.values(byLevel).reduce((n, rows) => n + rows!.length, 0);
+      return levels.reduce((n, l) => n + (byLevel[l as LevelCode]?.length ?? 0), 0) / total;
+    };
+    expect(share('miniklexikon', ['A1', 'A2'])).toBeGreaterThan(0.7);
+    expect(share('miniklexikon', ['B2', 'C1', 'C2'])).toBeLessThan(0.05);
+    expect(share('klexikon', ['A2', 'B1'])).toBeGreaterThan(0.75);
+    expect(share('klexikon', ['C1', 'C2'])).toBeLessThan(0.02);
+  });
+
   it('the sources are listed at exactly the levels where the catalog has ≥20 articles', () => {
     for (const id of ['miniklexikon', 'klexikon'] as const) {
       const withArticles = Object.entries(data.sources[id]!)
@@ -223,7 +235,7 @@ const fixtureJson = (name: string) => JSON.parse(fs.readFileSync(path.join(FIXTU
 async function firstRatedLevel(): Promise<LevelCode> {
   const { newsText } = await import('./sources/wikinews');
   const p = fixtureJson('wikinews-intros.json').query.pages[0];
-  return (await rateParagraphs(newsText(p.title, p.extract)))!;
+  return (await rateParagraphs(newsText(p.title, p.extract), p.title))!;
 }
 
 describe('live lists are filtered by level per batch', () => {
@@ -231,7 +243,7 @@ describe('live lists are filtered by level per batch', () => {
     const { newsText } = await import('./sources/wikinews');
     const calls = serve({}, () => fixtureJson('wikinews-intros.json'));
     const pages = fixtureJson('wikinews-intros.json').query.pages as { title: string; extract: string }[];
-    const levels = await Promise.all(pages.map((p) => rateParagraphs(newsText(p.title, p.extract))));
+    const levels = await Promise.all(pages.map((p) => rateParagraphs(newsText(p.title, p.extract), p.title)));
     expect(new Set(levels).size).toBeGreaterThan(1); // the fixture mixes levels
     for (const level of new Set(levels)) {
       calls.length = 0;

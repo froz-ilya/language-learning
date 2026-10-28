@@ -147,7 +147,7 @@
   const estimated = $derived.by(() => {
     if (listedLevel) return listedLevel;
     if (listedLevel === undefined || !lemmas || !allTokens.length) return null;
-    return estimateLevel(allTokens, rankLookup(lemmas));
+    return estimateLevel(allTokens, rankLookup(lemmas), { title: article?.title });
   });
   const level = $derived(row.value?.level || estimated || '');
 

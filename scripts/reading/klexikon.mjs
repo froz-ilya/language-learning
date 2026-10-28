@@ -13,12 +13,14 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { downloadAll } from './lib/mwdump.mjs';
 import { loadShared } from './lib/shared.mjs';
-import { buildCatalog } from './lib/catalog.mjs';
+import { buildCatalog, catalogLevels } from './lib/catalog.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
 const CACHE = path.join(HERE, '.cache/klexikon');
 const OUT = path.join(ROOT, 'public/reading/klexikon.json');
+/** Levels each source is listed at on the Read tab (imported by src/lib/reading/sources/index.ts). */
+const LEVELS_OUT = path.join(ROOT, 'src/lib/reading/sources/klexikon-levels.json');
 const OFFLINE = process.argv.includes('--offline');
 
 const SITES = [
@@ -40,12 +42,15 @@ async function main() {
   const json = JSON.stringify(catalog);
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, json);
+  const levels = catalogLevels(catalog);
+  fs.writeFileSync(LEVELS_OUT, `${JSON.stringify(levels, null, 2)}\n`);
 
   for (const [id, byLevel] of Object.entries(catalog.sources)) {
     const counts = Object.entries(byLevel).map(([l, list]) => `${l} ${list.length}`).join(', ');
     const total = Object.values(byLevel).reduce((n, l) => n + l.length, 0);
     console.log(`${id}: ${total} of ${pages[id].length} articles rated (${counts})`);
   }
+  console.log(`Read tab levels: ${Object.entries(levels).map(([id, l]) => `${id} ${l.join(' ')}`).join(' · ')}`);
   const gz = zlib.gzipSync(json).length;
   console.log(`${(json.length / 1024).toFixed(0)} KB raw, ${(gz / 1024).toFixed(0)} KB gzip → ${path.relative(ROOT, OUT)}`);
   if (json.length > 300 * 1024) throw new Error('klexikon.json is over 300 KB');

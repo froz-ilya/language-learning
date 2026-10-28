@@ -8,27 +8,28 @@ import { wikinewsSource } from './wikinews';
 import { wikipediaSource } from './wikipedia';
 import { gutenbergSource, GUTENBERG_LICENSE, loadGutenberg } from './gutenberg';
 import { SourceError } from './mediawiki';
+import CATALOG_LEVELS from './klexikon-levels.json';
 
 export type { ListOptions, ListResult } from './types';
 export { SourceError } from './mediawiki';
 
 /**
  * Levels: where each source has articles. MiniKlexikon/Klexikon: the levels of the bundled
- * catalog with at least 20 articles (checked by a test against public/reading/klexikon.json).
+ * catalog with at least 20 articles (klexikon-levels.json, written by the catalog build).
  * Wikinews/Wikipedia: where their intros usually rate (lists are filtered per batch).
  */
 export const READING_SOURCES: ReadingSourceInfo[] = [
   {
     id: 'miniklexikon',
     name: 'MiniKlexikon',
-    levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
+    levels: CATALOG_LEVELS.miniklexikon as LevelCode[],
     license: 'CC BY-SA 4.0',
     homepage: 'https://miniklexikon.zum.de/',
   },
   {
     id: 'klexikon',
     name: 'Klexikon',
-    levels: ['A2', 'B1', 'B2', 'C1', 'C2'],
+    levels: CATALOG_LEVELS.klexikon as LevelCode[],
     license: 'CC BY-SA 4.0',
     homepage: 'https://klexikon.zum.de/',
   },
@@ -42,14 +43,14 @@ export const READING_SOURCES: ReadingSourceInfo[] = [
   {
     id: 'wikinews',
     name: 'Wikinews',
-    levels: ['B2', 'C1', 'C2'],
+    levels: ['B2', 'C1'],
     license: 'CC BY 2.5',
     homepage: 'https://de.wikinews.org/',
   },
   {
     id: 'wikipedia',
     name: 'Wikipedia',
-    levels: ['C1', 'C2'],
+    levels: ['B2', 'C1', 'C2'],
     license: 'CC BY-SA 4.0',
     homepage: 'https://de.wikipedia.org/',
   },

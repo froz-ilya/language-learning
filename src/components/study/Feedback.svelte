@@ -6,6 +6,7 @@
   import { displayTerm, speakableTerm } from '../../lib/german/articles';
   import Term from '../Term.svelte';
   import SpeakButton from '../SpeakButton.svelte';
+  import Examples from './Examples.svelte';
   import NoteHint from './NoteHint.svelte';
 
   /** Result panel for typed answers (Write, Listen). */
@@ -62,6 +63,7 @@
     <div class="small muted">You wrote: <s>{given}</s></div>
   {/if}
   {#if verdict !== 'correct'}<NoteHint notes={card.notes} />{/if}
+  <Examples {card} />
 </div>
 
 <style>

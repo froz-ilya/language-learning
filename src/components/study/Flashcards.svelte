@@ -7,6 +7,7 @@
   import Meanings from '../Meanings.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import Term from '../Term.svelte';
+  import Examples from './Examples.svelte';
   import NoteHint from './NoteHint.svelte';
   import SwipeCard, { type SwipeDir } from './SwipeCard.svelte';
 
@@ -20,7 +21,6 @@
   const germanFront = $derived(item.dir === 'de-x');
   const plural = $derived(displayPlural(card));
   const verbForms = $derived(displayVerbForms(card));
-  const examples = $derived(card.examples.filter((e) => e.de.trim()).slice(0, 2));
 
   let flipped = $state(false);
 
@@ -110,19 +110,7 @@
             </div>
           {/if}
           <NoteHint notes={card.notes} />
-          {#if examples.length}
-            <div class="examples">
-              {#each examples as ex}
-                <div class="example">
-                  <div class="row">
-                    <div class="ex-de" lang="de">{ex.de}</div>
-                    <SpeakButton text={ex.de} size={18} />
-                  </div>
-                  {#if ex.tr}<div class="muted small">{ex.tr}</div>{/if}
-                </div>
-              {/each}
-            </div>
-          {/if}
+          <div class="ex-wrap"><Examples {card} /></div>
         </div>
       </div>
     </div>
@@ -221,23 +209,8 @@
       flex-direction: column;
       gap: 2px;
     }
-    .examples {
+    .ex-wrap {
       width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin-top: 6px;
-      text-align: left;
-      border-top: 1px solid var(--hairline);
-      padding-top: 12px;
-    }
-    .example .row {
-      justify-content: space-between;
-    }
-    .ex-de {
-      font-family: var(--font-read);
-      font-size: 17px;
-      font-style: italic;
     }
     .grades {
       display: grid;

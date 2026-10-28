@@ -7,6 +7,7 @@
   import { choiceOptions } from '../../lib/study/quiz';
   import { feedbackFx } from '../../lib/study/fx';
   import type { Card } from '../../lib/types';
+  import Examples from './Examples.svelte';
   import ResultIcon from './ResultIcon.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import Term from '../Term.svelte';
@@ -19,6 +20,7 @@
   const options = $derived(choiceOptions(item.card, pool, answerGerman ? displayTerm : (c) => c.translation, 4));
 
   let picked = $state<number | null>(null);
+  const hasExamples = $derived(card.examples.some((e) => e.de.trim()));
   const isRight = (o: Card) => o === card;
 
   $effect(() => {
@@ -79,11 +81,17 @@
   </div>
 
   {#if picked !== null}
+    {#if hasExamples}<div class="card ex-card"><Examples {card} /></div>{/if}
     <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>Continue</button>
   {/if}
 </div>
 
 <style>
+  .ex-card :global(.examples) {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
   .prompt {
     text-align: center;
     padding: 30px 18px;

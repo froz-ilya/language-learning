@@ -9,6 +9,7 @@
   import type { Auxiliary } from '../../lib/types';
   import SpeakButton from '../SpeakButton.svelte';
   import UmlautBar from '../UmlautBar.svelte';
+  import Examples from './Examples.svelte';
   import ResultIcon from './ResultIcon.svelte';
 
   /**
@@ -178,6 +179,7 @@
         <div class="forms" lang="de">{card.term} – {displayVerbForms(card)}</div>
         <SpeakButton text={fullForms} />
       </div>
+      <Examples {card} />
     </div>
     <button type="submit" class="btn btn-primary btn-lg btn-block">Continue</button>
   {:else}

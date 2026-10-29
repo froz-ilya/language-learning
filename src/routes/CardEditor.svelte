@@ -24,7 +24,8 @@
   import { rememberQuickAddSet } from '../lib/share';
   import { findDuplicate, quickAddDuplicate } from '../lib/search/addToSet';
   import { takeKeyboard } from '../lib/ui/keyboard';
-  import type { ArticleVariant, Card, Gender, LookupResult, Pos } from '../lib/types';
+  import { arrangeExamples, examplePool, phrasesToAdd } from '../lib/lookup/examplePool';
+  import type { ArticleVariant, Card, Example, Gender, LookupResult, Pos } from '../lib/types';
 
   /*
    * New word  → "Quick add": type → dictionary preview → ✓ Add (keyboard stays up for the next
@@ -55,7 +56,9 @@
   /** Has a dictionary lookup filled this card (or was it already filled before editing)? */
   let filled = isNew ? false : true;
   /** Values the last lookup put into free-text fields; a re-lookup only replaces untouched ones. */
-  let auto = { translation: '', examples: '' };
+  let auto = $state({ translation: '', examples: '' });
+  /** The card's examples are still the ones the lookup put in (not edited by hand). */
+  const examplesAuto = $derived(JSON.stringify(card.examples) === auto.examples);
 
   let germanEl = $state<HTMLInputElement>();
   let notesEl = $state<HTMLTextAreaElement>();
@@ -143,6 +146,7 @@
   /** A new word is being typed: drop what the previous lookup filled in (quick add only). */
   function forgetLookup() {
     lookupCtrl?.abort();
+    clearLookupExamples();
     lookupState = 'idle';
     lemmaNote = '';
     via = null;
@@ -303,6 +307,7 @@
     }
     stopSuggest();
     clearMeanings();
+    clearLookupExamples();
     lookupCtrl?.abort();
     const ctrl = new AbortController();
     lookupCtrl = ctrl;
@@ -358,11 +363,8 @@
       auto.translation = r.translation;
       offerMeanings();
     }
-    const examplesNow = JSON.stringify(card.examples);
-    if (r.examples.length && (!card.examples.length || examplesNow === auto.examples)) {
-      card.examples = r.examples.map((e) => ({ de: e.de, tr: e.tr ?? '' }));
-      auto.examples = JSON.stringify(card.examples);
-    }
+    lookupEx = { byMeaning: r.meaningExamples ?? [], examples: r.examples, phrases: r.phrases ?? [] };
+    if (!card.examples.length || examplesAuto) fillExamples();
   }
 
   /**
@@ -381,10 +383,14 @@
       clearMeanings();
       offerMeanings();
     }
-    const examplesNow = JSON.stringify(card.examples);
-    if (!card.examples.some((e) => e.de.trim()) || examplesNow === auto.examples) {
-      card.examples = a.examples.map((e) => ({ de: e.de, tr: e.tr ?? '' }));
-      auto.examples = JSON.stringify(card.examples);
+    // The article's own examples; the word's set phrases stay.
+    lookupEx = { byMeaning: a.meaningExamples ?? [], examples: a.examples, phrases: lookupEx.phrases };
+    if (!card.examples.some((e) => e.de.trim()) || examplesAuto) {
+      if (isNew) fillExamples();
+      else {
+        card.examples = a.examples.map((e) => ({ de: e.de, tr: e.tr ?? '' }));
+        auto.examples = JSON.stringify(card.examples);
+      }
     }
   }
 
@@ -433,6 +439,45 @@
     card.translation = meaningValue;
     // Still the dictionary's text: a re-lookup or the next word may replace it.
     if (wasAuto) auto.translation = card.translation;
+    // The example follows the meanings kept (unless the examples were edited by hand).
+    if (isNew && examplesAuto) fillExamples();
+  }
+
+  // ---------- Examples (new words) ----------
+
+  type LookupExamples = { byMeaning: Example[][]; examples: Example[]; phrases: Example[] };
+  const NO_EXAMPLES: LookupExamples = { byMeaning: [], examples: [], phrases: [] };
+  /**
+   * The last lookup's examples: per meaning (aligned with the meaning chips; empty when the source
+   * has no numbered meanings), its default ones, and set phrases with translations.
+   */
+  let lookupEx = $state.raw<LookupExamples>(NO_EXAMPLES);
+  /** Candidate examples, best first: picked meanings', other meanings', then the rest. */
+  const pool = $derived(examplePool(lookupEx.byMeaning, showMeanings ? meaningPicked : [], lookupEx.examples));
+  /** Index in `pool` of the example shown in the preview (the card's first). */
+  let exampleShown = 0;
+  /** Bumped when the shown example is swapped, to fade the new one in. */
+  let exampleSwap = $state(0);
+  const canCycle = $derived(isNew && examplesAuto && pool.length > 1);
+  /** Set phrases the card gets on save, after its sentence examples (see save). */
+  const phrases = $derived(isNew && examplesAuto ? phrasesToAdd(card.examples, lookupEx.phrases) : []);
+
+  function clearLookupExamples() {
+    lookupEx = NO_EXAMPLES;
+    exampleShown = 0;
+  }
+
+  /** The card gets the pool's examples, pool[shown] first; they stay the lookup's (auto). */
+  function fillExamples(shown = 0) {
+    const was = card.examples[0]?.de;
+    exampleShown = shown;
+    card.examples = arrangeExamples(pool, shown);
+    auto.examples = JSON.stringify(card.examples);
+    if (card.examples[0]?.de !== was) exampleSwap++;
+  }
+
+  function anotherExample() {
+    if (pool.length > 1) fillExamples((exampleShown + 1) % pool.length);
   }
 
   // ---------- Form helpers ----------
@@ -505,6 +550,8 @@
       c.auxiliary = '';
     }
     c.examples = c.examples.map((e) => ({ de: e.de.trim(), tr: (e.tr ?? '').trim() }));
+    // The lookup's set phrases go after its sentences (not when the examples were edited by hand).
+    if (isNew && examplesAuto) c.examples.push(...phrasesToAdd(c.examples, lookupEx.phrases));
     c.needsFill = !filled && detailsMissing(c) ? 1 : 0;
     // The full form's Add and a second Return go through here too: never a second card for a word.
     const dup = duplicateOf(c);
@@ -540,6 +587,7 @@
     filled = false;
     auto = { translation: '', examples: '' };
     clearMeanings();
+    clearLookupExamples();
     lookupState = 'idle';
     lemmaNote = '';
     via = null;
@@ -749,9 +797,28 @@
             {#if showMeanings && !showDetails}{@render meaningChips()}{/if}
             {#if firstExample}
               <div class="p-ex">
-                <div lang="de">{firstExample.de}</div>
-                {#if firstExample.tr}<div class="muted">{firstExample.tr}</div>{/if}
+                {#key exampleSwap}
+                  <div in:fade={{ duration: dur(180) }}>
+                    <div lang="de">{firstExample.de}</div>
+                    {#if firstExample.tr}<div class="muted" lang={settings.lang}>{firstExample.tr}</div>{/if}
+                  </div>
+                {/key}
+                {#if canCycle}
+                  <button type="button" class="another" onpointerdown={keepFocus} onclick={anotherExample}>
+                    <Icon name="refresh" size={14} /> Another example
+                  </button>
+                {/if}
               </div>
+            {/if}
+            {#if phrases.length}
+              <ul class="p-phrases" aria-label="Phrases">
+                {#each phrases as p}
+                  <li>
+                    <span class="ph-de" lang="de">{p.de}</span>
+                    {#if p.tr}<span class="muted">— <span lang={settings.lang}>{p.tr}</span></span>{/if}
+                  </li>
+                {/each}
+              </ul>
             {/if}
             {#if lemmaNote || via}
               <div class="row">
@@ -1083,6 +1150,8 @@
     overflow-wrap: break-word;
   }
   .p-ex {
+    display: flex;
+    flex-direction: column;
     margin-top: 6px;
     padding: 10px 12px;
     border-radius: var(--radius-sm);
@@ -1091,6 +1160,41 @@
     font-family: var(--font-read);
     font-style: italic;
     font-size: 16px;
+  }
+  .another {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-end;
+    gap: 5px;
+    min-height: 34px;
+    margin: 4px -6px -6px auto;
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-style: normal;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+  .another:active {
+    background: var(--accent-soft);
+  }
+  .p-phrases {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 2px 0 0;
+    padding: 0 2px;
+    list-style: none;
+    font-size: 15px;
+    overflow-wrap: break-word;
+  }
+  .ph-de {
+    font-weight: 700;
   }
   .note {
     display: flex;

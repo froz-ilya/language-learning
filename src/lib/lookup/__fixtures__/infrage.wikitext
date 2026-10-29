@@ -1,0 +1,42 @@
+== infrage ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Adverb|Deutsch}} ===
+
+{{Alternative Schreibweisen}}
+:[[in Frage]]
+
+{{Worttrennung}}
+:in·fra·ge
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ɪnˈfʁaːɡə}}
+:{{Hörbeispiele}} {{Audio|De-infrage.ogg}}
+:{{Reime}} {{Reim|aːɡə|Deutsch}}
+
+{{Bedeutungen}}
+:[1] so, dass man darüber [[nachdenken]] sollte
+
+{{Gegenwörter}}
+:[1] [[außer Frage]]
+
+{{Beispiele}}
+:[1] Das kommt überhaupt nicht ''infrage.''
+:[1] Ich stelle das Ergebnis ''infrage.''
+
+{{Charakteristische Wortkombinationen}}
+:[1] ''infrage'' kommen, [[infrage stellen|''infrage'' stellen]], stehen
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=so, dass man darüber nachdenken sollte|Ü-Liste=
+*{{en}}: {{Ü|en|contemplable}}, {{Ü|en|eligible}}, {{Ü|en|in question}}
+*{{fr}}: {{Ü|fr|en question}} ''(stellen / stehen)'', {{Ü|fr|en ligne de compte}} ''(kommen)''
+*{{it}}: {{Ü|it|}}
+*{{no}}: {{Ü|no|komme på tale}}
+*{{sv}}: {{Ü|sv|i fråga}}
+}}
+
+{{Referenzen}}
+:[1] {{Ref-Duden|infrage}}
+:[1] {{Ref-UniLeipzig|infrage}}
+:[1] {{Ref-FreeDictionary|infrage}}
+
+{{Ähnlichkeiten 1|Anagramme=[[Grafien]]}}

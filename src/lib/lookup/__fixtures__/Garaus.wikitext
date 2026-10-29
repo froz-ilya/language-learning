@@ -1,0 +1,70 @@
+== Garaus ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Substantiv|Deutsch}}, {{m}} ===
+
+{{Deutsch Substantiv Übersicht
+|Genus=m
+|Nominativ Singular=Garaus
+|Nominativ Plural=Garaus
+|Genitiv Singular=Garaus
+|Genitiv Plural=Garaus
+|Dativ Singular=Garaus
+|Dativ Plural=Garaus
+|Akkusativ Singular=Garaus
+|Akkusativ Plural=Garaus
+}}
+
+{{Anmerkung}}
+:In älteren Texten (etwa 15.–18. Jahrhundert) auch "das Garaus". "Garaus" kommt in der Bedeutung [1] offenbar nur im Nominativ und Akkusativ Singular vor. Die Pflanze (Bedeutung [2]) muss auch in anderen Kasus vorkommen, zeigt aber laut ''Duden. Deutsches Universalwörterbuch'' (2007) keine Endungen.
+
+{{Worttrennung}}
+:Ga·r·aus, {{Pl.}} Ga·r·aus
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ˈɡaːɐ̯ʔaʊ̯s}}
+:{{Hörbeispiele}} {{Audio|De-Garaus.ogg}}
+
+{{Bedeutungen}}
+:[1] ''in der Wendung:'' jemandem den Garaus machen – [[ermorden]], [[töten]], [[umbringen]]
+:[2] [[krautartig]]e [[Pflanze]] mit [[Rand]], [[gezähnt]]en Blättern und weißen Blüten
+
+{{Herkunft}}
+:[1] entstanden aus dem Ruf: „Gar aus!“ – „Völlig aus!“, mit dem seit dem 15. Jahrhundert in Süddeutschland die Polizeistunde eingeleitet wurde<ref>{{Lit-Kluge: Etymologisches Wörterbuch|A=24}}, Stichwort: „Garaus“, Seite 330.</ref>
+:[2] die als Halbschmarotzer lebende Pflanze wurde wahrscheinlich so benannt, weil sie den Gräsern der Umgebung durch Entzug anorganischer Salze ''den Garaus macht''
+
+{{Oberbegriffe}}
+:[2] [[Pflanze]]
+
+{{Beispiele}}
+:[1] Wer macht wem den ''Garaus?'' Ihm wurde der ''Garaus'' gemacht.
+:[1] „Nach dem mühsam erkämpften Sieg machten die Römer dann dem mittelitalischen Föderalismus den ''Garaus.''“<ref>{{Literatur | Autor=Martin Jehne | Titel=Die Römische Republik | TitelErg=Von der Gründung bis Caesar | Auflage=2. | Verlag=C.H. Beck | Ort=München | Jahr=2008 | ISBN=978-3406508622 }}, Seite 21.</ref>
+:[1] „Wie die meisten, die mit ihm auf dem Ku'damm promenieren, weiß der achtundzwanzigjährige Paul Falkenberg von den großen politischen Auseinandersetzungen, die der ersten deutschen Demokratie den ''Garaus'' zu machen drohen, nur aus zweiter Hand.“<ref>{{Literatur|Titel=Reise in die Verlorengegangenheit. Auf den Spuren deutscher Emigranten (1933–1940)|Autor=Gundolf S. Freyermuth|Verlag=Deutscher Taschenbuch Verlag|Ort=München|Jahr=1993}}, Seite 71. {{#isbn:3-423-30345-X}}.</ref>
+:[1] „Wir vermuten, daß Napoleon aus Frankreich eine Hexe hatte kommen lassen, die Walewska den ''Garaus'' machte.“<ref>{{Literatur|Autor=Radek Knapp|Titel=Gebrauchsanweisung für Polen|Auflage=5.|Verlag=Piper|Ort= München, Zürich |Jahr=2011}}, Seite 107&nbsp;f. {{#isbn:978-3-492-27536-1}}.</ref>
+:[1] „Von einem späteren Zwischenspiel abgesehen, machte der Tonfilm Alf Bertini als Musiker ein für allemal den ''Garaus'', unwiderruflich und schrecklich endgültig.“<ref>{{Literatur | Autor= Ralph Giordano | Titel= Die Bertinis | TitelErg= Roman | Auflage= 22 | Verlag= Fischer Taschenbuch Verlag| Ort= Frankfurt/M. |Jahr= 2008| Seiten= 87. | ISBN= 978-3-596-25961-8 }} </ref>
+:[1] „Landwirte wollen [mit Neonicotinoiden] Schädlinge wie Läusen den ''Garaus'' machen.“<ref>{{Per-Deutsche Welle | Online=https://p.dw.com/p/2wQBS | Autor=Kerstin Schweizer | Titel=Was hilft den Bienen wirklich? | TitelErg= | Tag=20 | Monat=04 | Jahr=2018 | Zugriff=2019-05-23 | Kommentar= }}</ref> ''[Anmerkung: es heißt 'jemandem den Garaus machen', jemandem ist Dativ, korrekt wäre also 'Schädlinge'''n'''' gewesen]''
+:[2] {{Beispiele fehlen}}
+
+{{Redewendungen}}
+:[1] [[jemandem den Garaus machen|jemandem den ''Garaus'' machen]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=in der Wendung: jemandem den Garaus machen – ermorden, töten, umbringen|Ü-Liste=
+*{{en}}: {{Ü|en|}}
+*{{fr}}: {{Ü|fr|}}
+*{{it}}: {{Ü|it|}}
+*{{pl}}: {{Ü|pl|zakończyć}}, {{Ü|pl|położyć kres}}
+*{{sv}}: ''jemandem den Garaus machen:'' {{Ü|sv|ta kål på någon}}
+*{{cs}}: {{Ü|cs|zakroutit krkem}}, {{Ü|cs|poslat na věčnost}}, {{Ü|cs|zkrouhnout}}
+}}
+
+{{Ü-Tabelle|2|G=krautartige Pflanze mit Rand, gezähnten Blättern und weißen Blüten|Ü-Liste=
+*{{en}}: {{Ü|en|}}
+*{{fr}}: {{Ü|fr|}}
+}}
+
+{{Referenzen}}
+:[1] {{Ref-DWDS}}
+:[*] {{Ref-UniLeipzig}}
+:[1] {{Ref-FreeDictionary}}
+:[1, 2] {{Ref-Duden}}
+
+{{Quellen}}

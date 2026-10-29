@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Card, LookupResult } from '../types';
 import type { LexEntry, LocalHit } from '../dict/types';
+import type { WikiEntry, WikiSense } from './wiktionary';
 
 // In-memory stand-ins for IndexedDB (node has none).
 const mem = vi.hoisted(() => ({
@@ -44,6 +45,20 @@ vi.mock('../dict/local', () => ({
   },
 }));
 
+// Parsed pages as they are, unless a test gives a page's senses/phrases by hand (wiki.edit).
+const wiki = vi.hoisted(() => ({ edit: new Map<string, (e: WikiEntry) => WikiEntry>() }));
+vi.mock('./wiktionary', async (importOriginal) => {
+  const real = await importOriginal<typeof import('./wiktionary')>();
+  return {
+    ...real,
+    parseEntry(title: string, wikitext: string) {
+      const e = real.parseEntry(title, wikitext);
+      const edit = e && wiki.edit.get(e.title);
+      return edit ? edit(e) : e;
+    },
+  };
+});
+
 import {
   fillCards,
   fillTiming,
@@ -56,6 +71,7 @@ import {
   translateText,
 } from './lookup';
 import { isCooling, resetProviders } from '../sources/chain';
+import { matchSenses, meaningSentences } from './meanings';
 
 // ---------- Fetch mock ----------
 
@@ -206,6 +222,7 @@ beforeEach(() => {
   mem.transactions = 0;
   dict.hits.clear();
   dict.prefix = [];
+  wiki.edit.clear();
   vi.stubGlobal('localStorage', memoryStorage());
   resetProviders();
 });
@@ -367,7 +384,7 @@ describe('lookupWord', () => {
 
   it('ignores expired cache entries', async () => {
     const { fetch } = mockFetch();
-    mem.cache.set('v3:ru:Tisch', { key: 'v3:ru:Tisch', result: null, fetchedAt: Date.now() - 2 * 24 * 3600 * 1000 });
+    mem.cache.set('v4:ru:Tisch', { key: 'v4:ru:Tisch', result: null, fetchedAt: Date.now() - 2 * 24 * 3600 * 1000 });
     expect((await lookupWord('Tisch', 'ru'))!.term).toBe('Tisch');
     expect(fetch).toHaveBeenCalled();
   });
@@ -547,7 +564,7 @@ describe('offline dictionary', () => {
     expect(r.result!.examples.length).toBeGreaterThan(0);
     expect(r.result!.examples[0].tr).toBe(`TR(${r.result!.examples[0].de})`);
     expect(calls.wiki.map((p) => p.get('page'))).toEqual(['Haus']);
-    expect(mem.cache.get('v3:ru:Haus')).toMatchObject({ via: 'local' });
+    expect(mem.cache.get('v4:ru:Haus')).toMatchObject({ via: 'local' });
   });
 
   it('returns the local entry alone when Wiktionary is down', async () => {
@@ -616,7 +633,7 @@ describe('articles with different meanings', () => {
     expect(r.examples).toEqual(f.examples);
     expect(calls.google).toHaveLength(1);
     // The cached row holds der See (first article); "See" and "die See" both read it.
-    expect((mem.cache.get('v3:ru:See') as { result: LookupResult }).result.genders).toEqual(['m']);
+    expect((mem.cache.get('v4:ru:See') as { result: LookupResult }).result.genders).toEqual(['m']);
     expect((await lookupWord('See', 'ru'))!.translation).toBe('озеро');
     expect((await lookupWord('die See', 'ru'))!.translation).toBe('море');
     expect(calls.google).toHaveLength(1);
@@ -1050,7 +1067,7 @@ describe('fillCards', () => {
     expect(calls.google).toHaveLength(1);
     expect(calls.google[0].split('\n')).not.toContain('Tisch');
     // The Tisch result lacks its translation, so it isn't cached; Haus is.
-    expect([...mem.cache.keys()]).toEqual(['v3:ru:Haus']);
+    expect([...mem.cache.keys()]).toEqual(['v4:ru:Haus']);
   });
 
   it('continues with the pages a response left out (size limit)', async () => {
@@ -1076,5 +1093,174 @@ describe('fillCards', () => {
     expect(saved[0]).toMatchObject({ translation: 'моё', notes: 'edited', starred: 0, genders: ['n'], plural: 'Häuser', needsFill: 0 });
     expect(mem.cards.has(gehen.id!)).toBe(false);
     expect(mem.transactions).toBe(3);
+  });
+});
+
+// ---------- Examples by meaning ----------
+
+const sense = (n: number, ru: string[], en: string[], examples: string[] = []): WikiSense => ({ n, translations: { ru, en }, examples });
+
+describe('matchSenses', () => {
+  const FOLGE = [
+    sense(1, ['последствие', 'результат'], ['consequence'], ['Das hat Folgen.']),
+    sense(2, ['череда', 'ряд'], ['order'], ['In rascher Folge.']),
+    sense(3, ['серия', 'эпизод'], ['episode'], ['Die letzte Folge.']),
+  ];
+
+  it('matches a single meaning to the sense with its words (infrage)', () => {
+    const s = [sense(1, ['под вопросом'], ['in question'], ['Das Projekt steht infrage.'])];
+    expect(matchSenses('под вопросом', s, 'ru')).toEqual([s]);
+    // A page with one sense is that sense even when no word is shared.
+    expect(matchSenses('сомнительно', s, 'ru')).toEqual([s]);
+  });
+
+  it('matches each meaning to its own sense, whatever their order', () => {
+    expect(matchSenses('последствие; эпизод; ряд', FOLGE, 'ru')).toEqual([[FOLGE[0]], [FOLGE[2]], [FOLGE[1]]]);
+    expect(matchSenses('consequence; episode', FOLGE, 'en')).toEqual([[FOLGE[0]], [FOLGE[2]]]);
+  });
+
+  it('gives an unmatched meaning no sense rather than another meaning’s', () => {
+    expect(matchSenses('последствие; что-то другое', FOLGE, 'ru')).toEqual([[FOLGE[0]], []]);
+    // Several senses and nothing shared: nothing at all.
+    expect(matchSenses('что-то', FOLGE, 'ru')).toEqual([[]]);
+  });
+
+  it('ranks senses by shared words, then page order; whole-word parts count', () => {
+    const s = [sense(1, ['письменный стол'], []), sense(2, ['стол', 'столик'], []), sense(3, ['стол'], [])];
+    expect(matchSenses('стол, столик', s, 'ru')).toEqual([[s[1], s[0], s[2]]]);
+  });
+
+  it('tries the other language only when it has as many meanings', () => {
+    const s = [sense(1, [], ['house']), sense(2, [], ['home'])];
+    expect(matchSenses('здание; жилище', s, 'ru', 'house; home')).toEqual([[s[0]], [s[1]]]);
+    expect(matchSenses('здание; жилище', s, 'ru', 'house')).toEqual([[], []]);
+    expect(matchSenses('здание', [sense(1, ['дом'], ['house']), sense(2, [], ['home'])], 'ru', 'house')).toEqual([
+      [expect.objectContaining({ n: 1 })],
+    ]);
+  });
+});
+
+describe('meaningSentences', () => {
+  it('hands out examples a round at a time, each sentence once, within the totals', () => {
+    const a = sense(1, [], [], ['A1', 'A2', 'A3']);
+    const b = sense(2, [], [], ['A1', 'B1', 'B2']);
+    const c = sense(3, [], [], ['C1']);
+    expect(meaningSentences([[a], [b], [c]], 2, 6)).toEqual([['A1', 'A2'], ['B1', 'B2'], ['C1']]);
+    expect(meaningSentences([[a], [b], [c]], 2, 4)).toEqual([['A1', 'A2'], ['B1'], ['C1']]);
+    // A meaning with several senses takes their examples in rank order; [] stays [].
+    expect(meaningSentences([[c, a], []], 2, 6)).toEqual([['C1', 'A1'], []]);
+  });
+});
+
+describe('examples by meaning', () => {
+  const TR = (de: string) => ({ de, tr: `TR(${de})` });
+  /** Tisch with numbered senses: 1 стол/table, 2 письменный стол, 3 застолье/meal; an idiom and a collocation. */
+  const tischSenses = (e: WikiEntry): WikiEntry => ({
+    ...e,
+    translations: { ru: [['стол'], ['застолье']], en: [['table'], ['meal']] },
+    examples: ['Der erste Satz der Seite.', 'Der zweite Satz der Seite.'],
+    senses: [
+      sense(1, ['стол'], ['table'], ['Der Tisch ist gedeckt.', 'Stell die Vase auf den Tisch.', 'Ein runder Tisch.']),
+      sense(2, ['письменный стол'], ['desk'], ['Er sitzt am Tisch und schreibt.']),
+      sense(3, ['застолье'], ['meal'], ['Nach Tisch ruhen wir.']),
+    ],
+    phrases: [{ de: 'reinen Tisch machen', note: 'etwas klären' }, { de: 'am Tisch sitzen' }],
+  });
+
+  it('gives each meaning examples of its own sense, and translates idioms\' explanations in the same request', async () => {
+    wiki.edit.set('Tisch', tischSenses);
+    const { calls } = mockFetch();
+    const r = (await lookupWord('Tisch', 'ru'))!;
+    expect(r.translation).toBe('стол; застолье');
+    expect(r.meaningExamples).toEqual([
+      [TR('Der Tisch ist gedeckt.'), TR('Stell die Vase auf den Tisch.')],
+      [TR('Nach Tisch ruhen wir.')],
+    ]);
+    // The card's examples: the first meaning's first, at most 3.
+    expect(r.examples).toEqual([TR('Der Tisch ist gedeckt.'), TR('Stell die Vase auf den Tisch.'), TR('Nach Tisch ruhen wir.')]);
+    // An idiom gets its explanation's translation; a collocation is never translated word by word.
+    expect(r.phrases).toEqual([{ de: 'reinen Tisch machen', tr: 'TR(etwas klären)' }, { de: 'am Tisch sitzen' }]);
+    expect(calls.google).toEqual([
+      ['Der Tisch ist gedeckt.', 'Stell die Vase auf den Tisch.', 'Nach Tisch ruhen wir.', 'etwas klären'].join('\n'),
+    ]);
+    // Cached with its new fields.
+    expect((mem.cache.get('v4:ru:Tisch') as { result: LookupResult }).result).toEqual(r);
+  });
+
+  it('falls back to the page’s first examples when no meaning matches a sense', async () => {
+    wiki.edit.set('Tisch', (e) => ({ ...tischSenses(e), translations: { ru: [['мебель']], en: [['furniture']] } }));
+    mockFetch();
+    const r = (await lookupWord('Tisch', 'ru'))!;
+    expect(r.meaningExamples).toEqual([[]]);
+    expect(r.examples).toEqual([TR('Der erste Satz der Seite.'), TR('Der zweite Satz der Seite.')]);
+  });
+
+  it('works as before for a page without numbered senses', async () => {
+    wiki.edit.set('Tisch', (e) => ({ ...e, examples: ['Eins.', 'Zwei.', 'Drei.', 'Vier.'], senses: undefined, phrases: undefined }));
+    const { calls } = mockFetch();
+    const r = (await lookupWord('Tisch', 'ru'))!;
+    expect(r.examples).toEqual([TR('Eins.'), TR('Zwei.'), TR('Drei.')]);
+    expect(r).not.toHaveProperty('meaningExamples');
+    expect(r).not.toHaveProperty('phrases');
+    expect(calls.google).toEqual(['Eins.\nZwei.\nDrei.']);
+  });
+
+  it('matches an offline entry through its other language when its own words differ', async () => {
+    dict.hits.set('Haus', [{ entry: lex({ ...HAUS_LEX, tr: { ru: 'здание; жилище', en: 'house; home' } }) }]);
+    wiki.edit.set('Haus', (e) => ({
+      ...e,
+      senses: [sense(1, ['дом'], ['house'], ['Das Haus ist alt.']), sense(2, ['дом'], ['home'], ['Ich gehe nach Hause.'])],
+    }));
+    mockFetch();
+    const r = (await lookupWordWithSource('Haus', 'ru')).result!;
+    expect(r.translation).toBe('здание; жилище');
+    expect(r.meaningExamples).toEqual([[TR('Das Haus ist alt.')], [TR('Ich gehe nach Hause.')]]);
+  });
+
+  it('chooses each article’s examples from its own senses', async () => {
+    const SEE_M = lex({ term: 'See', pos: 'noun', genders: ['m'], plural: 'Seen', rank: 1112, tr: { ru: 'озеро', en: 'lake' } });
+    const SEE_F = lex({ term: 'See', pos: 'noun', genders: ['f'], plural: 'Seen', rank: 2632, tr: { ru: 'море', en: 'sea' } });
+    dict.hits.set('See', [{ entry: SEE_M }, { entry: SEE_F }]);
+    wiki.edit.set('See', (e) => {
+      const [m, f] = e.articles!;
+      return {
+        ...e,
+        phrases: [{ de: 'in See stechen', note: 'losfahren' }],
+        articles: [
+          { ...m, senses: [sense(1, ['озеро'], ['lake'], ['Der See ist tief.', 'Wir baden im See.', 'Am See.'])] },
+          { ...f, senses: [sense(1, ['волна'], ['wave'], ['Hohe See.']), sense(2, ['море'], ['sea'], ['Die See ist rau.'])] },
+        ],
+      };
+    });
+    const { calls } = mockFetch();
+    const r = (await lookupWord('die See', 'ru'))!;
+    const [m, f] = r.articles!;
+    expect(m.meaningExamples).toEqual([[TR('Der See ist tief.'), TR('Wir baden im See.')]]);
+    expect(f.meaningExamples).toEqual([[TR('Die See ist rau.')]]);
+    expect(r).toMatchObject({ genders: ['f'], translation: 'море', examples: [TR('Die See ist rau.')], meaningExamples: f.meaningExamples });
+    expect(r.phrases).toEqual([{ de: 'in See stechen', tr: 'TR(losfahren)' }]);
+    expect(calls.google).toHaveLength(1);
+    // The cached row is der See; "See" reads it with der See's examples.
+    const see = (await lookupWord('See', 'ru'))!;
+    expect(see).toMatchObject({ genders: ['m'], examples: m.examples, meaningExamples: m.meaningExamples });
+    expect(calls.google).toHaveLength(1);
+  });
+
+  it('fills cards with the same examples as one lookup per card, in one translation request', async () => {
+    wiki.edit.set('Tisch', tischSenses);
+    wiki.edit.set('Haus', (e) => ({ ...e, senses: [sense(1, ['дом'], ['house'], ['Das Haus ist alt.'])], phrases: [{ de: 'zu Hause', note: 'daheim' }] }));
+    mockFetch();
+    const expected = await perCard(storedTerms('Tisch', 'Haus'));
+    const expectedCache = cacheRows();
+    mem.cache.clear();
+    mem.saved.length = 0;
+    const { calls } = mockFetch();
+    expect(await fillCards(storedTerms('Tisch', 'Haus'), 'ru')).toEqual({ filled: 2, notFound: 0, failed: 0 });
+    expect((mem.saved as Card[]).map((c) => ({ ...c, id: 0 }))).toEqual(expected.map((c) => ({ ...c, id: 0 })));
+    expect(cacheRows()).toEqual(expectedCache);
+    expect(calls.google).toHaveLength(1);
+    // Tisch: 3 examples + 1 idiom explanation; Haus: 1 example + 1 explanation.
+    expect(calls.google[0].split('\n')).toHaveLength(4 + 2);
+    expect((mem.saved as Card[])[0].examples[0]).toEqual(TR('Der Tisch ist gedeckt.'));
   });
 });

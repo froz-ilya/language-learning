@@ -20,6 +20,8 @@ const V2 = {
   cards: '++id, setId, term, starred, needsFill, pos, known, presetId',
 };
 const V3 = { ...V2, articles: 'id, source, savedAt, readAt' };
+/** v4 changed no tables (it only cleared lookupCache). */
+const V4 = V3;
 
 function oldDb(version: number, stores: Record<string, string>) {
   const d = new Dexie('deutsch');
@@ -105,7 +107,7 @@ describe('upgrading the database', () => {
     // Tables added later exist; the stale lookup cache is cleared.
     expect(await db.articles.count()).toBe(0);
     expect(await db.lookupCache.count()).toBe(0);
-    expect(db.verno).toBe(4);
+    expect(db.verno).toBe(5);
   });
 
   it('keeps v1 settings and adds defaults for settings added later', async () => {
@@ -146,6 +148,36 @@ describe('upgrading the database', () => {
     expect(await db.cards.where('presetId').equals('A1:Tisch').first()).toMatchObject({ known: 1 });
     expect(await db.articles.get('klexikon:Hund')).toMatchObject({ setId: 1, savedAt: 5 });
     expect(await db.lookupCache.count()).toBe(0);
+  });
+
+  it('opens a v4 database: drops cached lookups of the old shape, keeps the words', async () => {
+    const d = oldDb(4, V4);
+    await d.table('folders').add({ name: 'A1 · Beginner', level: 'A1', createdAt: 1 });
+    await d.table('sets').add({ name: 'Essen', folderId: 1, level: 'A1', topic: 'Essen', createdAt: 1 });
+    await d.table('cards').add({ ...v1Card, known: 0, presetId: 'A1:Tisch' });
+    await d.table('reviews').put({ cardId: 1, due: fsrs.due.getTime(), fsrs, mistakes: 2, lastWrong: 0 });
+    // A lookup as v4 cached it (key "v3:…", examples without meaningExamples/phrases).
+    const result = {
+      term: 'Tisch',
+      pos: 'noun',
+      genders: ['m'],
+      plural: 'Tische',
+      praeteritum: '',
+      partizip2: '',
+      auxiliary: '',
+      translation: 'стол',
+      examples: [{ de: 'Der Tisch ist groß.', tr: 'Стол большой.' }],
+      source: 'wiktionary',
+    };
+    await d.table('lookupCache').put({ key: 'v3:ru:Tisch', result, fetchedAt: Date.now(), via: 'de.wiktionary' });
+    d.close();
+
+    const { db } = await import('./schema');
+    expect(db.verno).toBe(5);
+    expect(await db.lookupCache.count()).toBe(0);
+    expect(await db.cards.get(1)).toMatchObject({ ...v1Card, known: 0, presetId: 'A1:Tisch' });
+    expect(await db.sets.get(1)).toMatchObject({ name: 'Essen', level: 'A1' });
+    expect((await db.reviews.get(1))?.fsrs.due).toBeInstanceOf(Date);
   });
 
   it('upgraded words still work with today’s logic', async () => {

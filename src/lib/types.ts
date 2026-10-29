@@ -105,6 +105,8 @@ export interface ArticleVariant {
   plural: string;
   translation: string;
   examples: Example[];
+  /** Examples per meaning of `translation`, as on LookupResult. */
+  meaningExamples?: Example[][];
 }
 
 /** What a dictionary lookup can fill into a card. */
@@ -117,7 +119,16 @@ export interface LookupResult {
   partizip2: string;
   auxiliary: Auxiliary;
   translation: string;
+  /** The examples a card gets: the first meaning's first (see meaningExamples). */
   examples: Example[];
+  /**
+   * Examples per meaning of `translation`, in the order of splitMeanings(translation):
+   * meaningExamples[i] illustrates meaning i ([] when none matched it). Absent when the source
+   * has no numbered meanings.
+   */
+  meaningExamples?: Example[][];
+  /** Set phrases with the word and their translations ("infrage stellen" — "ставить под сомнение"). */
+  phrases?: Example[];
   source: 'local' | 'wiktionary' | 'compound' | 'google';
   /** Set when the typed word was an inflected form, e.g. "ging" → "gehen". */
   lemmaOf?: string;

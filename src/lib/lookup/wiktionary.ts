@@ -4,12 +4,34 @@ import { mergeMeanings, pickMeanings, sameMeaning, type SenseTranslations } from
 
 const API = 'https://de.wiktionary.org/w/api.php';
 
+/** One numbered meaning of a page ("[2]" under {{Bedeutungen}}) with what the page ties to it. */
+export interface WikiSense {
+  /** Sense number on the page (1, 2, …). */
+  n: number;
+  /** Translations of this sense per language, page order. */
+  translations: Record<Lang, string[]>;
+  /** Example sentences marked with this sense ("[2] Er …"), page order, markup stripped. */
+  examples: string[];
+}
+
+/**
+ * A set phrase and, for an idiom, the page's plain German explanation of it ("durch die Bank" –
+ * "ohne Ausnahme"). Idioms are translated through the explanation: translating the phrase itself
+ * word by word goes wrong ("через банк").
+ */
+export interface WikiPhrase {
+  de: string;
+  note?: string;
+}
+
 /** One article of a noun whose articles differ in meaning (see WikiEntry.articles). */
 export interface WikiArticle {
   genders: Gender[];
   plural: string;
   translations: Record<Lang, string[][]>;
   examples: string[];
+  /** Numbered senses, as on WikiEntry. */
+  senses?: WikiSense[];
 }
 
 export interface WikiEntry {
@@ -26,6 +48,10 @@ export interface WikiEntry {
    */
   translations: Record<Lang, string[][]>;
   examples: string[];
+  /** Numbered senses in page order; absent or [] when the page numbers none (then use `examples`). */
+  senses?: WikiSense[];
+  /** Set phrases with the word ("infrage stellen", "durch die Bank"), at most 3. */
+  phrases?: WikiPhrase[];
   /** For inflected forms ("ging", "Häuser"): the dictionary form. */
   lemma?: string;
   /**
@@ -257,18 +283,184 @@ export function stripMarkup(s: string): string {
   return out.replace(/\s+/g, ' ').trim();
 }
 
-/** Short, self-made example sentences first; long literary quotes with references are skipped. */
-function parseExamples(body: string): string[] {
+/**
+ * Sense numbers of a marker's inside: "1" → [1], "1, 2" → [1, 2], "1–3" → [1, 2, 3],
+ * "2a" → [2] (sub-senses belong to their sense), "*" → [].
+ */
+export function markerNumbers(inner: string): number[] {
+  const out: number[] = [];
+  for (const part of inner.split(',')) {
+    const range = part.match(/(\d+)[a-z]?\s*[–—-]\s*(\d+)/);
+    const nums = range ? [Number(range[1]), Number(range[2])] : [Number(part.match(/\d+/)?.[0] ?? 0)];
+    // Ranges are short ("1–3"); a typo like "1–300" is not unrolled.
+    for (let n = nums[0]; n && n <= nums[nums.length - 1] && n < nums[0] + 30; n++) if (!out.includes(n)) out.push(n);
+  }
+  return out;
+}
+
+/** Example lines under {{Beispiele}}: the senses they are marked with, cleaned text, and whether they quote a source. */
+function exampleLines(body: string): { senses: number[]; quoted: boolean; text: string }[] {
   const m = body.match(/\{\{Beispiele\}\}\n([\s\S]*?)(?:\n\n|\n\{\{|$)/);
   if (!m) return [];
-  const all = m[1]
+  return m[1]
     .split('\n')
     .filter((l) => l.startsWith(':'))
-    .map((l) => ({ quoted: /<ref|„/.test(l), text: stripMarkup(l.replace(/^:+\s*(\[[^\]]*\])?\s*/, '')) }))
-    .filter((e) => e.text.length > 3 && e.text.length <= 140);
-  const own = all.filter((e) => !e.quoted).map((e) => e.text);
-  const quotes = all.filter((e) => e.quoted).map((e) => e.text.replace(/^„|“$/g, ''));
-  return [...new Set([...own, ...quotes])].slice(0, 3);
+    .map((l) => {
+      const marker = l.match(/^:+\s*\[([^\]]*)\]/);
+      return { senses: marker ? markerNumbers(marker[1]) : [], quoted: /<ref|„/.test(l), text: stripMarkup(l.replace(/^:+\s*(\[[^\]]*\])?\s*/, '')) };
+    })
+    .filter((e) => e.text.length > 3 && e.text.length <= 140)
+    .map((e) => (e.quoted ? { ...e, text: e.text.replace(/^„|“$/g, '') } : e));
+}
+
+/** Short, self-made example sentences first; long literary quotes with references last. */
+function pickExamples(lines: { quoted: boolean; text: string }[], max = 3): string[] {
+  const own = lines.filter((e) => !e.quoted).map((e) => e.text);
+  const quotes = lines.filter((e) => e.quoted).map((e) => e.text);
+  return [...new Set([...own, ...quotes])].slice(0, max);
+}
+
+/** Example sentences of the block, whatever sense they illustrate (see pickExamples). */
+function parseExamples(body: string): string[] {
+  return pickExamples(exampleLines(body));
+}
+
+/** The lines of the {{Bedeutungen}} section (sense lines ":[2] …" and label lines "*{{K|…}}"). */
+function meaningLines(body: string): string[] {
+  const m = body.match(/\{\{Bedeutungen\}\}\n([\s\S]*?)(?:\n\n|\n\{\{(?!K\|)|$)/);
+  return (m?.[1] ?? '').split('\n');
+}
+
+/** Sense numbers under {{Bedeutungen}} in page order (":[2a]" counts as 2). */
+function senseNumbers(body: string): number[] {
+  const out: number[] = [];
+  for (const line of meaningLines(body)) {
+    const d = line.match(/^:\s*\[(\d+)[a-z]?\]/);
+    if (d && !out.includes(Number(d[1]))) out.push(Number(d[1]));
+  }
+  return out;
+}
+
+/**
+ * Numbered senses of a block with their own translations and examples: an example marked
+ * "[1, 2]" belongs to both. Senses the page ties nothing to are left out. `offset` is added to
+ * the sense numbers (see blockEntry).
+ */
+function parseSenses(body: string, offset = 0): WikiSense[] {
+  const numbers = senseNumbers(body);
+  if (!numbers.length) return [];
+  const words = { en: parseSenseTranslations(body, 'en'), ru: parseSenseTranslations(body, 'ru') };
+  const lines = exampleLines(body);
+  const out: WikiSense[] = [];
+  for (const n of numbers) {
+    const translations = { en: [], ru: [] } as Record<Lang, string[]>;
+    for (const lang of ['en', 'ru'] as const) {
+      const w = words[lang].find((s) => s.n === n)?.words ?? [];
+      // Plain words before labelled ones ("''umgangssprachlich:'' серия").
+      const sorted = [...w.filter((x) => !x.labelled), ...w.filter((x) => x.labelled)].map((x) => x.word);
+      translations[lang] = [...new Set(sorted)];
+    }
+    const examples = pickExamples(lines.filter((e) => e.senses.includes(n)));
+    if (examples.length || translations.en.length || translations.ru.length) {
+      out.push({ n: n + offset, translations, examples });
+    }
+  }
+  return out;
+}
+
+/** Longest set phrase kept (WikiEntry.phrases). */
+const MAX_PHRASE = 60;
+
+/** Lines (":…") of a "{{Name}}" section of the block. */
+function sectionLines(body: string, name: string): string[] {
+  const m = body.match(new RegExp(`\\{\\{${name}\\}\\}\\n([\\s\\S]*?)(?:\\n\\n|\\n\\{\\{|$)`));
+  return (m?.[1] ?? '').split('\n').filter((l) => l.startsWith(':'));
+}
+
+/** Index of the first " – " (or " - ", " — ") outside links and templates: where an explanation starts. */
+function explanationStart(line: string): number {
+  const masked = line.replace(/\[\[[^\]]*\]\]|\{\{[^{}]*\}\}/g, (s) => '_'.repeat(s.length));
+  const i = masked.search(/\s[–—-]\s/);
+  return i < 0 ? line.length : i;
+}
+
+/** Longest explanation kept for an idiom (WikiPhrase.note). */
+const MAX_NOTE = 120;
+
+/** An explanation after " – " as plain text ("– ohne Ausnahme" → "ohne Ausnahme"), or undefined. */
+function cleanNote(s: string): string | undefined {
+  const n = stripMarkup(s)
+    .replace(/^\s*[–—-]\s*/, '')
+    .replace(/\[[^\]]*\]\s*/g, '')
+    .replace(/[\s.…:,;]+$/, '')
+    .trim();
+  return n.length >= 3 && n.length <= MAX_NOTE ? n : undefined;
+}
+
+/** A phrase candidate as plain text, or '' when it isn't one ("abreißen", "zu Haus/Hause"). */
+function cleanPhrase(s: string, word: string): string {
+  let p = stripMarkup(s);
+  for (let i = 0; i < 3; i++) p = p.replace(/\s*\([^()]*\)/g, '');
+  p = p
+    .replace(/[\s.…:,;]+$/, '')
+    .replace(/^[‚„“"'«»]+|[‘“”"'«»]+$/g, '')
+    .trim();
+  const ok = p.length <= MAX_PHRASE && p.includes(' ') && !p.includes('/') && p.toLowerCase().includes(word.toLowerCase());
+  return ok ? p : '';
+}
+
+/**
+ * Wording of a definition that says the word occurs only in set phrases, followed by them:
+ * "''in der Wendung:'' jemandem den Garaus machen – töten", "nur in den Wendungen ‚x‘, ‚y‘".
+ */
+const ONLY_IN_PHRASES =
+  /(?:^|\s)in (?:der|den|einer|festen|feststehenden|folgenden)(?: festen| feststehenden)? (?:Wendung|Redewendung|Verbindung|Wortverbindung|Fügung|Kombination)(?:en)?(?:\s*(?::|(?=[‚„“"«]))\s*)(.*)$/i;
+
+/** Phrases from a definition like "nur in der Wendung: …" (see ONLY_IN_PHRASES). */
+function definitionPhrases(body: string, word: string): WikiPhrase[] {
+  const out: WikiPhrase[] = [];
+  for (const line of meaningLines(body)) {
+    if (!/^:\s*\[\d+[a-z]?\]/.test(line)) continue;
+    const m = stripMarkup(line.replace(/^:\s*\[[^\]]*\]\s*/, '')).match(ONLY_IN_PHRASES);
+    if (!m) continue;
+    const at = explanationStart(m[1]);
+    const tail = m[1].slice(0, at);
+    const note = cleanNote(m[1].slice(at));
+    const quoted = [...tail.matchAll(/[‚„“"«]([^‘“”"»]+)[‘“”"»]/g)].map((q) => q[1]);
+    for (const p of quoted.length ? quoted : tail.split(/[,;]|\s(?:oder|und)\s/)) {
+      const c = cleanPhrase(p, word);
+      if (c) out.push(note ? { de: c, note } : { de: c });
+    }
+  }
+  return out;
+}
+
+/**
+ * Set phrases with the word: the ones a definition says it occurs in, then
+ * {{Charakteristische Wortkombinationen}} ("zur ''Folge'' haben"), then {{Redewendungen}}
+ * ("[[auf den Tisch hauen|…]] – Erklärung"). Lines are lists split at top-level "," and ";";
+ * sense markers, explanations after " – " and parentheses are dropped, and so is the rest of a
+ * line after a usage label ("{{ugs.}}:", "''euphemistisch:''"). Only short phrases that contain
+ * the word are kept. An idiom's explanation is kept as its `note` (collocations have none).
+ */
+function parsePhrases(body: string, word: string): WikiPhrase[] {
+  const out = definitionPhrases(body, word);
+  for (const name of ['Charakteristische Wortkombinationen', 'Redewendungen']) {
+    for (const line of sectionLines(body, name)) {
+      const text = line.replace(/^:+\s*/, '');
+      const at = explanationStart(text);
+      const note = name === 'Redewendungen' ? cleanNote(text.slice(at)) : undefined;
+      for (const seg of lineSegments(text.slice(0, at))) {
+        if (/^\[[^[\]]*\]$/.test(seg)) continue; // sense marker
+        // "''euphemistisch:'' x", "{{ugs.}}'':'' x": labelled from here on.
+        if (/^(?:''[^']*:\s*''|\{\{[^{}]*\}\}(?:<ref[^>]*\/>)*\s*'':''|[^\s[{']+:)/.test(seg)) break;
+        // "[[a|a]]/[[b|b]]": alternatives of one phrase, the first is enough.
+        const c = cleanPhrase(seg.replace(/\]\]\s*\/\s*\[\[[\s\S]*$/, ']]'), word);
+        if (c) out.push(note ? { de: c, note } : { de: c });
+      }
+    }
+  }
+  return out;
 }
 
 /** Usage labels that make a sense second-rate (colloquial, dated, regional, jargon, figurative, …). */
@@ -278,8 +470,7 @@ const MARGINAL_LABEL =
 /** Sense numbers (never 1) whose definition carries a usage label: ":[3] {{K|ugs.}} …". */
 function marginalSenses(body: string): Set<number> {
   const out = new Set<number>();
-  const m = body.match(/\{\{Bedeutungen\}\}\n([\s\S]*?)(?:\n\n|\n\{\{(?!K\|)|$)/);
-  for (const line of (m?.[1] ?? '').split('\n')) {
+  for (const line of meaningLines(body)) {
     const d = line.match(/^:\[(\d+)\]\s*((?:\{\{[^{}]*\}\}\s*|''[^']*''\s*)*)/);
     if (d && Number(d[1]) !== 1 && MARGINAL_LABEL.test(d[2])) out.add(Number(d[1]));
   }
@@ -495,13 +686,27 @@ export function parseEntry(title: string, wikitext: string): WikiEntry | null {
     }
     const parts = groups.map((x) => blockEntry(title, pos, x.bodies, x.headers));
     if (parts.length < 2) return parts[0];
-    const articles = parts.map(({ genders, plural, translations, examples }) => ({ genders, plural, translations, examples }));
+    // Each article keeps its own senses; the entry's senses and phrases are the first article's.
+    const articles = parts.map(({ genders, plural, translations, examples, senses }) => ({
+      genders,
+      plural,
+      translations,
+      examples,
+      ...(senses ? { senses } : {}),
+    }));
     return { ...parts[0], articles };
   }
   return blockEntry(title, pos, same.map((b) => b.body), same.map((b) => b.header));
 }
 
-/** One entry from blocks of one part of speech (merged: genders, first forms, meanings, examples). */
+/** Sense numbers of the i-th merged block start at i × SENSE_OFFSET + 1 (see blockEntry). */
+const SENSE_OFFSET = 100;
+
+/**
+ * One entry from blocks of one part of speech (merged: genders, first forms, meanings,
+ * examples, senses, phrases). Every block numbers its senses from [1], so the senses of later
+ * blocks are offset to keep them apart: "die Bank" bench [1]–[6], then bank [1]–[2] → 101, 102.
+ */
 function blockEntry(title: string, pos: Pos, bodies: string[], headers: string[]): WikiEntry {
   const entry: WikiEntry = {
     title,
@@ -514,6 +719,8 @@ function blockEntry(title: string, pos: Pos, bodies: string[], headers: string[]
     translations: { en: [], ru: [] },
     examples: [],
   };
+  const senses: WikiSense[] = [];
+  const phrases: WikiPhrase[] = [];
 
   bodies.forEach((body, i) => {
     const b = { body, header: headers[i] ?? '' };
@@ -545,6 +752,10 @@ function blockEntry(title: string, pos: Pos, bodies: string[], headers: string[]
     for (const ex of parseExamples(b.body)) {
       if (entry.examples.length < 3 && !entry.examples.includes(ex)) entry.examples.push(ex);
     }
+    senses.push(...parseSenses(b.body, i * SENSE_OFFSET));
+    for (const p of parsePhrases(b.body, title)) if (!phrases.some((x) => x.de === p.de)) phrases.push(p);
   });
+  if (senses.length) entry.senses = senses;
+  if (phrases.length) entry.phrases = phrases.slice(0, 3);
   return entry;
 }

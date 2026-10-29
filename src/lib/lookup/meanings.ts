@@ -4,6 +4,7 @@
  * (Folge → "последствие; череда, ряд; эпизод"). The offline build (scripts/levels/lib/extract.mjs)
  * uses the same rules.
  */
+import type { Lang } from '../types';
 import { joinMeanings, splitMeanings } from '../german/meanings';
 
 export const MAX_MEANINGS = 3;
@@ -134,4 +135,59 @@ export function pickMeanings(senses: SenseTranslations[], marginal: Set<number> 
     }
   }
   return meanings;
+}
+
+/** What sense matching needs of a page's numbered sense (WikiSense in ./wiktionary). */
+export interface SenseLike {
+  translations: Record<Lang, string[]>;
+  examples: string[];
+}
+
+/**
+ * The page senses each meaning of a translation stands for, best first: the senses whose
+ * translations into `lang` share a word with the meaning (similarWord; most shared words first,
+ * then page order). A meaning no sense shares a word with is tried through `other`, the word's
+ * translation into the other language, but only when that has as many meanings (so its meaning i
+ * is this one). When nothing matched at all, a page with a single sense is the first meaning's
+ * sense; otherwise an unmatched meaning gets [] — no example beats one of another meaning.
+ * Entry i belongs to splitMeanings(translation)[i].
+ */
+export function matchSenses<S extends SenseLike>(translation: string, senses: S[], lang: Lang, other = ''): S[][] {
+  const meanings = splitMeanings(translation);
+  const alt = splitMeanings(other);
+  const otherLang: Lang = lang === 'ru' ? 'en' : 'ru';
+  const matching = (words: string[], l: Lang) =>
+    senses
+      .map((s, i) => ({ s, i, k: words.filter((w) => (s.translations[l] ?? []).some((t) => similarWord(w, t))).length }))
+      .filter((x) => x.k > 0)
+      .sort((a, b) => b.k - a.k || a.i - b.i)
+      .map((x) => x.s);
+  const out = meanings.map((m, i) => {
+    const direct = matching(m, lang);
+    return direct.length || alt.length !== meanings.length ? direct : matching(alt[i], otherLang);
+  });
+  if (senses.length === 1 && out.length && out.every((x) => !x.length)) out[0] = [senses[0]];
+  return out;
+}
+
+/**
+ * Example sentences per meaning from its matched senses (see matchSenses): up to `per` each and
+ * `total` in all, handed out a round at a time (every meaning's first example before any second
+ * one). A sentence goes to the first meaning that takes it.
+ */
+export function meaningSentences(matched: SenseLike[][], per: number, total: number): string[][] {
+  const out = matched.map((): string[] => []);
+  const used = new Set<string>();
+  let left = total;
+  for (let round = 0; round < per && left > 0; round++) {
+    matched.forEach((senses, i) => {
+      if (left <= 0 || out[i].length > round) return;
+      const next = senses.flatMap((s) => s.examples).find((ex) => !used.has(ex));
+      if (next === undefined) return;
+      used.add(next);
+      out[i].push(next);
+      left--;
+    });
+  }
+  return out;
 }

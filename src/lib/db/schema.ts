@@ -57,6 +57,11 @@ export class AppDB extends Dexie {
     this.version(4)
       .stores({})
       .upgrade((tx) => tx.table('lookupCache').clear());
+    // v5: lookup results now choose examples per meaning and carry set phrases (cache keys
+    // "v4:…"); drop the "v3:…" rows, which would never be read again. Only a cache, as in v4.
+    this.version(5)
+      .stores({})
+      .upgrade((tx) => tx.table('lookupCache').clear());
   }
 }
 

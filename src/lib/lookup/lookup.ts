@@ -5,8 +5,8 @@ import { ARTICLE } from '../german/articles';
 import { db } from '../db/schema';
 import { saveCard } from '../db/repo';
 import { parseGermanInput, type ParsedTerm } from '../german/parseTerm';
-import type { WikiArticle, WikiEntry } from './wiktionary';
-import { formatMeanings, previewOf } from './meanings';
+import type { WikiArticle, WikiEntry, WikiPhrase } from './wiktionary';
+import { formatMeanings, matchSenses, meaningSentences, previewOf } from './meanings';
 import { googlePos, googleTranslate, isAbortError, type DictEntry, type GoogleResult } from './google';
 import { isCooling, runChainDetailed, type Provider, type ProviderId } from '../sources/chain';
 import { localPrefix, localWord } from '../sources/providers/local';
@@ -46,9 +46,10 @@ export class SourceUnavailableError extends Error {
 
 /**
  * Bump when the shape of cached results changes (v2: translations grouped by meaning; v3: nouns
- * whose articles differ in meaning come as `articles`, no longer merged into one translation).
+ * whose articles differ in meaning come as `articles`, no longer merged into one translation;
+ * v4: examples chosen per meaning (`meaningExamples`) and set `phrases`).
  */
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const DAY = 24 * 60 * 60 * 1000;
 const FOUND_TTL = 30 * DAY;
 const NOT_FOUND_TTL = DAY;
@@ -60,6 +61,8 @@ const ENRICH_TIMEOUT_MS = 3000;
 const capitalise = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const lowerFirst = (s: string) => (s.length > 1 && /\p{Lu}/u.test(s[1]) ? s : s ? s[0].toLowerCase() + s.slice(1) : s);
 const unique = (xs: string[]) => [...new Set(xs.map((x) => x.trim()).filter(Boolean))];
+
+const OTHER_LANG: Record<Lang, Lang> = { ru: 'en', en: 'ru' };
 
 const POS_LABEL: Record<Pos, string> = { noun: 'noun', verb: 'verb', adj: 'adjective', other: '' };
 
@@ -246,7 +249,11 @@ interface Resolved {
  * words in one request, then finishes each word.
  */
 interface Plan {
-  /** Sentences to translate: one list (≤ 3), or one list per article (≤ 2 each). */
+  /**
+   * Sentences to translate (≤ MAX_SENTENCES examples + MAX_PHRASES phrases): a list per meaning
+   * and one of fallback examples (see Sentences), for each article when the noun has articles;
+   * then the phrases.
+   */
   lists: string[][];
   /** The lookup with the lists' translated examples; `ok` is false when translating failed. */
   finish(examples: Example[][], ok: boolean): Resolved;
@@ -302,9 +309,23 @@ function wikiArticle(wiki: WikiEntry | null, gender: Gender | undefined): WikiAr
   return wiki.articles.find((a) => !!gender && a.genders.includes(gender)) ?? null;
 }
 
+const copyExample = (e: Example): Example => ({ ...e });
+
+/** A result's examples, from one of its articles or its own translated sentences (copied). */
+type ExampleFields = Pick<ArticleVariant, 'examples' | 'meaningExamples'>;
+
+/** Set a result's examples (and meaningExamples, which it then has exactly when `x` has them). */
+function putExamples(r: LookupResult, x: ExampleFields): void {
+  r.examples = x.examples.map(copyExample);
+  if (x.meaningExamples) r.meaningExamples = x.meaningExamples.map((l) => l.map(copyExample));
+  else delete r.meaningExamples;
+}
+
 /** The result as one of its articles: that article's genders, plural, translation and examples. */
 function withArticle(r: LookupResult, a: ArticleVariant): LookupResult {
-  return { ...r, genders: [...a.genders], plural: a.plural, translation: a.translation, examples: a.examples.map((e) => ({ ...e })) };
+  const out: LookupResult = { ...r, genders: [...a.genders], plural: a.plural, translation: a.translation };
+  putExamples(out, a);
+  return out;
 }
 
 /**
@@ -317,12 +338,84 @@ export function preferArticle(r: LookupResult, genders: Gender[]): LookupResult 
   return a ? withArticle(r, a) : r;
 }
 
+// ---------- Example sentences by meaning ----------
+
+/** Examples per meaning, taken from the Wiktionary sense the meaning matches. */
+const PER_MEANING = 2;
+/** Examples a card gets. */
+const MAX_EXAMPLES = 3;
+/** Example sentences of one word to translate, at most (fillCards sends many words per request). */
+const MAX_SENTENCES = 6;
+const MAX_PHRASES = 3;
+
+/** The part of a Wiktionary page examples come from: an entry, or one article of it. */
+type Page = Pick<WikiArticle, 'examples' | 'senses'>;
+
+/** Example sentences of one translation (a result's or an article's), chosen before translating. */
+interface Sentences {
+  /** Per meaning of the translation, from its sense (see matchSenses); null when the page numbers no senses. */
+  meanings: string[][] | null;
+  /** The page's first examples, used when no meaning has one of its own. */
+  fallback: string[];
+}
+
+/**
+ * Examples for a translation: each meaning's from the sense it matches, up to PER_MEANING each
+ * and `total` in all; when none matched (or the page numbers no senses), the page's first
+ * `fallback` examples as before. `other` is the word's translation into the other language.
+ */
+function sentencesFor(translation: string, page: Page | null, other: string, lang: Lang, total = MAX_SENTENCES, fallback = MAX_EXAMPLES): Sentences {
+  const senses = page?.senses ?? [];
+  const matched = senses.length ? matchSenses(translation, senses, lang, other) : [];
+  const meanings = matched.length ? meaningSentences(matched, PER_MEANING, total) : null;
+  const own = meanings?.some((m) => m.length) ?? false;
+  return { meanings, fallback: own ? [] : (page?.examples ?? []).slice(0, fallback) };
+}
+
+/** The lists Sentences add to a plan: one per meaning, then the fallback. */
+const sentenceLists = (s: Sentences): string[][] => [...(s.meanings ?? []), s.fallback];
+
+/** Reads a plan's translated lists back in the order they were added. */
+type ListReader = (n: number) => Example[][];
+function listReader(lists: Example[][]): ListReader {
+  let at = 0;
+  return (n) => lists.slice(at, (at += n));
+}
+
+/** Translated Sentences: the card's examples (first meaning's first, ≤ MAX_EXAMPLES) and meaningExamples. */
+function readSentences(s: Sentences, read: ListReader): ExampleFields {
+  const meaningExamples = s.meanings ? read(s.meanings.length) : undefined;
+  const [fallback = []] = read(1);
+  const examples = [...(meaningExamples ?? []).flat(), ...fallback].slice(0, MAX_EXAMPLES).map(copyExample);
+  return meaningExamples ? { examples, meaningExamples } : { examples };
+}
+
+/** Set phrases of a page ("infrage stellen", "durch die Bank"). */
+const phrasesOf = (entry: WikiEntry | null): WikiPhrase[] => (entry?.phrases ?? []).slice(0, MAX_PHRASES);
+
+/**
+ * What is translated of the phrases, as the plan's last list: only idioms' explanations
+ * ("ohne Ausnahme" → "без исключения"). A phrase translated on its own comes out word by word
+ * ("durch die Bank" → "через банк"), so a phrase without an explanation stays untranslated.
+ */
+const phraseList = (phrases: WikiPhrase[]): string[] => phrases.flatMap((p) => (p.note ? [p.note] : []));
+
+/** The phrases with their explanations' translations (`notes`, in phraseList order). */
+function putPhrases(r: LookupResult, phrases: WikiPhrase[], notes: Example[] | undefined): void {
+  if (!phrases.length) return;
+  let i = 0;
+  r.phrases = phrases.map((p) => {
+    const tr = p.note ? notes?.[i++]?.tr : undefined;
+    return tr ? { de: p.de, tr } : { de: p.de };
+  });
+}
+
 /** An article as a card would get it (one gender). */
 interface ArticleDraft {
   gender: Gender;
   plural: string;
   translation: string;
-  examples: string[];
+  sentences: Sentences;
 }
 
 /**
@@ -333,7 +426,10 @@ interface ArticleDraft {
  */
 async function articleDrafts(local: LexEntry[], wiki: WikiEntry | null, ctx: Ctx): Promise<{ drafts: ArticleDraft[]; ok: boolean }> {
   const { lang } = ctx;
-  const drafts: ArticleDraft[] = [];
+  const o = OTHER_LANG[lang];
+  /** A draft before its examples are chosen; `other` is its translation into the other language. */
+  type Pending = Omit<ArticleDraft, 'sentences'> & { page: Page | null; other: string };
+  const drafts: Pending[] = [];
   for (const x of local) {
     const g = x.genders[0];
     const w = wikiArticle(wiki, g);
@@ -341,14 +437,15 @@ async function articleDrafts(local: LexEntry[], wiki: WikiEntry | null, ctx: Ctx
       gender: g,
       plural: x.plural || w?.plural || '',
       translation: (x.tr[lang] ?? '').trim() || (w ? formatMeanings(w.translations[lang]) : ''),
-      examples: w?.examples ?? [],
+      page: w,
+      other: (x.tr[o] ?? '').trim() || (w ? formatMeanings(w.translations[o]) : ''),
     });
   }
   for (const a of wiki?.articles ?? []) {
     const g = a.genders[0];
     if (!g || drafts.some((d) => d.gender === g)) continue;
     if (drafts.length && (!a.translations.ru.length || !a.translations.en.length)) continue;
-    drafts.push({ gender: g, plural: a.plural, translation: formatMeanings(a.translations[lang]), examples: a.examples });
+    drafts.push({ gender: g, plural: a.plural, translation: formatMeanings(a.translations[lang]), page: a, other: formatMeanings(a.translations[o]) });
   }
   if (drafts.length < 2) return { drafts: [], ok: true };
   let ok = true;
@@ -359,15 +456,20 @@ async function articleDrafts(local: LexEntry[], wiki: WikiEntry | null, ctx: Ctx
     d.translation = stripArticle(t.text);
     ok &&= t.ok;
   }
-  return { drafts, ok };
+  // Up to 2 examples per article without senses, as before; MAX_SENTENCES shared out with them.
+  const total = Math.max(1, Math.floor(MAX_SENTENCES / drafts.length));
+  return {
+    drafts: drafts.map(({ page, other, ...d }) => ({ ...d, sentences: sentencesFor(d.translation, page, other, lang, total, 2) })),
+    ok,
+  };
 }
 
-/** Example sentences to translate for article drafts: up to 2 each. */
-const draftLists = (drafts: ArticleDraft[]) => drafts.map((d) => d.examples.slice(0, 2));
+/** Example sentences to translate for article drafts, article by article. */
+const draftLists = (drafts: ArticleDraft[]) => drafts.flatMap((d) => sentenceLists(d.sentences));
 
 /** Article drafts with their translated examples, as the result's `articles`. */
-const draftArticles = (drafts: ArticleDraft[], examples: Example[][]): ArticleVariant[] =>
-  drafts.map((d, i) => ({ genders: [d.gender], plural: d.plural, translation: d.translation, examples: examples[i] }));
+const draftArticles = (drafts: ArticleDraft[], read: ListReader): ArticleVariant[] =>
+  drafts.map((d) => ({ genders: [d.gender], plural: d.plural, translation: d.translation, ...readSentences(d.sentences, read) }));
 
 /** Wiktionary's entry for an offline-dictionary hit; ok is false when it failed, was cooling or offline. */
 interface LocalWiki {
@@ -426,20 +528,27 @@ async function planLocal(hit: LocalHit, wikiStep: LocalWiki, parsed: ParsedTerm,
     if (hit.form && hit.form !== e.term) result.lemmaOf = hit.form;
     return { result, via: 'local', complete: complete && ok, detailsMissing: false };
   };
+  const phrases = phrasesOf(same);
   if (mine) {
     return {
-      lists: draftLists(split.drafts),
+      lists: [...draftLists(split.drafts), phraseList(phrases)],
       finish(examples, ok) {
-        result.articles = draftArticles(split.drafts, examples);
-        result.examples = result.articles.find((a) => a.genders[0] === gender)!.examples.map((x) => ({ ...x }));
+        const read = listReader(examples);
+        result.articles = draftArticles(split.drafts, read);
+        putExamples(result, result.articles.find((a) => a.genders[0] === gender)!);
+        putPhrases(result, phrases, read(1)[0]);
         return done(ok);
       },
     };
   }
+  const other = (e.tr[OTHER_LANG[lang]] ?? '').trim() || (own ? formatMeanings(own.translations[OTHER_LANG[lang]]) : '');
+  const sentences = sentencesFor(translation, own, other, lang);
   return {
-    lists: [(own?.examples ?? []).slice(0, 3)],
+    lists: [...sentenceLists(sentences), phraseList(phrases)],
     finish(examples, ok) {
-      result.examples = examples[0];
+      const read = listReader(examples);
+      putExamples(result, readSentences(sentences, read));
+      putPhrases(result, phrases, read(1)[0]);
       return done(ok);
     },
   };
@@ -479,8 +588,9 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
   }
   const split = entry.pos === 'noun' && entry.articles ? await articleDrafts([], entry, ctx) : null;
   if (split) complete &&= split.ok;
+  const phrases = phrasesOf(entry);
 
-  const build = (examples: Example[], articles: ArticleVariant[] | undefined, ok: boolean): Resolved => {
+  const build = (own: ExampleFields, articles: ArticleVariant[] | undefined, phraseExamples: Example[] | undefined, ok: boolean): Resolved => {
     const result: LookupResult = {
       term: entry.title,
       pos: entry.pos,
@@ -490,23 +600,34 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
       partizip2: entry.partizip2 || (entry.pos === 'verb' ? (parsed.partizip2 ?? '') : ''),
       auxiliary: entry.auxiliary || (entry.pos === 'verb' ? (parsed.auxiliary ?? '') : ''),
       translation: articles && !translation ? articles[0].translation : translation,
-      examples,
+      examples: [],
       source: 'wiktionary',
     };
+    putExamples(result, own);
+    putPhrases(result, phrases, phraseExamples);
     if (articles) result.articles = articles;
     if (lemmaOf) result.lemmaOf = lemmaOf;
     return done(result, complete && ok);
   };
-  if (split) {
+  if (split?.drafts.length) {
+    const drafts = split.drafts;
     return {
-      lists: draftLists(split.drafts),
+      lists: [...draftLists(drafts), phraseList(phrases)],
       finish(examples, ok) {
-        const articles = split.drafts.length ? draftArticles(split.drafts, examples) : undefined;
-        return build(articles?.[0].examples ?? [], articles, ok);
+        const read = listReader(examples);
+        const articles = draftArticles(drafts, read);
+        return build(articles[0], articles, read(1)[0], ok);
       },
     };
   }
-  return { lists: [entry.examples.slice(0, 3)], finish: (examples, ok) => build(examples[0], undefined, ok) };
+  const sentences = sentencesFor(translation, entry, formatMeanings(entry.translations[OTHER_LANG[ctx.lang]]), ctx.lang);
+  return {
+    lists: [...sentenceLists(sentences), phraseList(phrases)],
+    finish(examples, ok) {
+      const read = listReader(examples);
+      return build(readSentences(sentences, read), undefined, read(1)[0], ok);
+    },
+  };
 }
 
 /** What the word-details step found. */

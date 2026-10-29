@@ -21,6 +21,7 @@
   import { displayPlural, displayVerbForms, speakableTerm } from '../lib/german/articles';
   import { cancelFill, fillJob, fillSet } from '../lib/fill/runner.svelte';
   import { chooseAction, confirmAction, promptText, showToast, undoToast, type ActionItem } from '../lib/ui/dialogs.svelte';
+  import { primeKeyboard } from '../lib/ui/keyboard';
   import type { Card } from '../lib/types';
 
   const id = Number(route.parts[1]);
@@ -85,6 +86,12 @@
   }
 
   // ---------- Word actions ----------
+
+  /** Open "Add word" with the keyboard already up (it has to be opened during the tap). */
+  function addWord() {
+    primeKeyboard();
+    go('/card/new', { set: id });
+  }
 
   async function removeWord(c: Card) {
     undoToast(`Deleted “${c.term}”`, await deleteCard(c.id!));
@@ -189,7 +196,7 @@
     <Header {title} {subtitle} {backTo}>
       {#snippet actions()}
         {#if set}
-          <button class="icon-btn" aria-label="Add word" onclick={() => go('/card/new', { set: id })}><Icon name="plus" /></button>
+          <button class="icon-btn" aria-label="Add word" onclick={addWord}><Icon name="plus" /></button>
           <button class="icon-btn" aria-label="Set actions" onclick={menu}><Icon name="more" /></button>
         {/if}
       {/snippet}
@@ -214,7 +221,7 @@
           </button>
           <div class="row">
             <button class="btn grow" onclick={() => go(`/modes/set/${id}`)}><Icon name="cards" size={20} /> More ways</button>
-            <button class="btn grow" onclick={() => go('/card/new', { set: id })}><Icon name="plus" size={20} /> Add word</button>
+            <button class="btn grow" onclick={addWord}><Icon name="plus" size={20} /> Add word</button>
           </div>
         {/if}
 
@@ -239,7 +246,7 @@
       {#if !cards.length}
         <div class="section">
           <EmptyState icon="plus" title="No words yet" text="Add your first word — we’ll fill in the article, plural and translation for you.">
-            <button class="btn btn-primary btn-lg btn-block" onclick={() => go('/card/new', { set: id })}><Icon name="plus" /> Add a word</button>
+            <button class="btn btn-primary btn-lg btn-block" onclick={addWord}><Icon name="plus" /> Add a word</button>
             <button class="btn btn-block" onclick={() => go('/import', { set: id })}><Icon name="import" /> Import a list</button>
           </EmptyState>
         </div>

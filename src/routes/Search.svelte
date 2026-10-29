@@ -24,6 +24,7 @@
   import { addWordToSet, type SetChoice } from '../lib/search/addToSet';
   import { emptyGroups, MIN_QUERY, rowLabel, searchWords, type SearchGroups, type SearchRow } from '../lib/search/results';
   import type { WordFields } from '../lib/search/wordInfo';
+  import { takeKeyboard } from '../lib/ui/keyboard';
 
   /**
    * Quick word search (#/search): type German (any form, with or without an article), English
@@ -211,7 +212,7 @@
   };
 
   onMount(() => {
-    inputEl?.focus();
+    takeKeyboard(inputEl);
     return () => stopSearch();
   });
 </script>

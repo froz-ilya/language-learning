@@ -5,6 +5,7 @@
   import Skeleton from '../components/Skeleton.svelte';
   import { createSet, focusInfo, quickAddWord, stagger } from '../components/library/actions';
   import { go, switchTab } from '../lib/router.svelte';
+  import { primeKeyboard } from '../lib/ui/keyboard';
   import { db } from '../lib/db/schema';
   import type { SavedArticle } from '../lib/reading/types';
   import { live } from '../lib/live.svelte';
@@ -101,6 +102,12 @@
     if (newToday) parts.push(`${newToday} new`);
     return parts.join(' · ');
   }
+
+  /** Search, with the keyboard already up (see lib/ui/keyboard). */
+  function openSearch() {
+    primeKeyboard();
+    go('/search');
+  }
 </script>
 
 <div class="page">
@@ -111,7 +118,7 @@
       <div class="gruss" lang="de">{gruss}!</div>
     </div>
     <div class="top-actions" class:two={counts && !firstLaunch}>
-      <button class="add-btn" aria-label="Search for a word" onclick={() => go('/search')}><Icon name="search" size={22} /></button>
+      <button class="add-btn" aria-label="Search for a word" onclick={openSearch}><Icon name="search" size={22} /></button>
       {#if counts && !firstLaunch}
         <button class="add-btn" aria-label="Add a word" onclick={quickAddWord}><Icon name="plus" size={24} /></button>
       {/if}

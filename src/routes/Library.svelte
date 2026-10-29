@@ -8,6 +8,7 @@
   import EmptyState from '../components/library/EmptyState.svelte';
   import { afterSheet, createFolder, createSet, plural, removeSet, stagger, sumProgress } from '../components/library/actions';
   import { go } from '../lib/router.svelte';
+  import { primeKeyboard } from '../lib/ui/keyboard';
   import { live } from '../lib/live.svelte';
   import { dur } from '../lib/motion';
   import { db } from '../lib/db/schema';
@@ -44,12 +45,18 @@
       { label: 'Import words', icon: 'import', run: () => go('/import') },
     ]);
   }
+
+  /** Search, with the keyboard already up (see lib/ui/keyboard). */
+  function openSearch() {
+    primeKeyboard();
+    go('/search');
+  }
 </script>
 
 <div class="page">
   <Header title="Library">
     {#snippet actions()}
-      <button class="icon-btn" aria-label="Search for a word" onclick={() => go('/search')}><Icon name="search" /></button>
+      <button class="icon-btn" aria-label="Search for a word" onclick={openSearch}><Icon name="search" /></button>
       <button class="icon-btn" aria-label="Import" onclick={() => go('/import')}><Icon name="import" /></button>
       <button class="icon-btn plus" aria-label="Add" onclick={addMenu}><Icon name="plus" /></button>
     {/snippet}

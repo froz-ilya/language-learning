@@ -3,6 +3,7 @@ import { dur } from '../../lib/motion';
 import { db } from '../../lib/db/schema';
 import { addFolder, addSet, cardsInFolder, cardsInSet, deleteSet, levelFolder, type Snapshot } from '../../lib/db/repo';
 import { chooseAction, promptText, ui, undoToast } from '../../lib/ui/dialogs.svelte';
+import { primeKeyboard, releaseKeyboard } from '../../lib/ui/keyboard';
 import { emptyProgress, progressFor, setKnown, type Progress } from '../../lib/progress';
 import { fetchLevelIndex } from '../../lib/levels/install';
 import { LEVEL_TITLES, LEVELS, type LevelCode, type LevelIndex } from '../../lib/levels/types';
@@ -77,6 +78,8 @@ export async function removeSet(set: Pick<WordSet, 'id' | 'name'>): Promise<void
  * when there are several, and a fresh "My words" set when there are none.
  */
 export async function quickAddWord(): Promise<void> {
+  // Before the first await, while still inside the tap: the editor takes the keyboard over.
+  primeKeyboard();
   const sets = (await db.sets.toArray()).filter((s) => !s.level).sort((a, b) => b.createdAt - a.createdAt);
   if (!sets.length) {
     go('/card/new', { set: await addSet('My words') });
@@ -86,8 +89,17 @@ export async function quickAddWord(): Promise<void> {
     go('/card/new', { set: sets[0].id! });
     return;
   }
+  // A picker comes first: no keyboard under the sheet; picking a set (a tap again) primes it anew.
+  releaseKeyboard();
   await chooseAction('Add a word to…', [
-    ...sets.map((s) => ({ label: s.name, icon: 'cards' as const, run: () => go('/card/new', { set: s.id! }) })),
+    ...sets.map((s) => ({
+      label: s.name,
+      icon: 'cards' as const,
+      run: () => {
+        primeKeyboard();
+        go('/card/new', { set: s.id! });
+      },
+    })),
     {
       label: 'New set…',
       icon: 'plus' as const,

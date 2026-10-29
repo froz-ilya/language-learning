@@ -2,8 +2,8 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../db/schema';
 import { addSet, emptyCard, saveCard } from '../db/repo';
-import type { Folder, WordSet } from '../types';
-import { addWordToSet, findDuplicate, isSameWord, orderSetChoices, ownedCards } from './addToSet';
+import type { Folder, Gender, Pos, WordSet } from '../types';
+import { addWordToSet, findDuplicate, isSameWord, orderSetChoices, ownedCards, quickAddDuplicate } from './addToSet';
 
 beforeEach(async () => {
   await db.delete();
@@ -35,6 +35,31 @@ describe('isSameWord', () => {
     expect(findDuplicate(cards, { term: 'See', genders: ['f'] })).toBeUndefined();
     expect(findDuplicate(cards, { term: 'see', genders: ['m'] })?.id).toBe(1);
     expect(findDuplicate(cards, { term: 'Gehen' })?.id).toBe(2);
+  });
+
+  it('quickAddDuplicate: typed articles, whole terms only, split nouns until an article is picked', () => {
+    const cards = [
+      { id: 1, term: 'See', genders: ['m' as const] },
+      { id: 2, term: 'Haus', genders: ['n' as const] },
+      { id: 3, term: 'gehen', genders: [] },
+    ];
+    const word = (term: string, pos: Pos = 'other', genders: Gender[] = []) => ({ term, pos, genders });
+    // Typed text before the lookup: the whole term, with a typed article.
+    expect(quickAddDuplicate(cards, word('Haus'))?.id).toBe(2);
+    expect(quickAddDuplicate(cards, word('Hau'))).toBeUndefined();
+    expect(quickAddDuplicate(cards, word('Häuser'))).toBeUndefined();
+    expect(quickAddDuplicate(cards, word('  '))).toBeUndefined();
+    expect(quickAddDuplicate(cards, word('der See'))?.id).toBe(1);
+    expect(quickAddDuplicate(cards, word('die See'))).toBeUndefined();
+    expect(quickAddDuplicate(cards, word('gehen, ging, ist gegangen'))?.id).toBe(3);
+    // Grammar from the lookup; the article only counts for nouns.
+    expect(quickAddDuplicate(cards, word('See', 'noun', ['f']))).toBeUndefined();
+    expect(quickAddDuplicate(cards, word('See', 'verb', ['f']))?.id).toBe(1);
+    // der See / die See from the lookup: no duplicate until one article is picked.
+    expect(quickAddDuplicate(cards, word('See', 'noun', ['m', 'f']), 2)).toBeUndefined();
+    expect(quickAddDuplicate(cards, word('See', 'noun', []), 2)).toBeUndefined();
+    expect(quickAddDuplicate(cards, word('See', 'noun', ['m']), 2)?.id).toBe(1);
+    expect(quickAddDuplicate(cards, word('See', 'noun', ['f']), 2)).toBeUndefined();
   });
 });
 

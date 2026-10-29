@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { fade, fly, slide } from 'svelte/transition';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
@@ -8,7 +8,7 @@
   import UmlautBar from '../components/UmlautBar.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import ArticleChoices from '../components/ArticleChoices.svelte';
-  import { back, route } from '../lib/router.svelte';
+  import { back, go, route } from '../lib/router.svelte';
   import { dur } from '../lib/motion';
   import { online } from '../lib/online.svelte';
   import { settings } from '../lib/settings.svelte';
@@ -22,6 +22,8 @@
   import { PROVIDER_LABELS, type ProviderId } from '../lib/sources/chain';
   import { showToast, undoToast } from '../lib/ui/dialogs.svelte';
   import { rememberQuickAddSet } from '../lib/share';
+  import { findDuplicate, quickAddDuplicate } from '../lib/search/addToSet';
+  import { takeKeyboard } from '../lib/ui/keyboard';
   import type { ArticleVariant, Card, Gender, LookupResult, Pos } from '../lib/types';
 
   /*
@@ -41,7 +43,14 @@
   let setName = $state('');
   let status = $state<WordStatus>('new');
   let showDetails = $state(!isNew);
-  let addedCount = $state(0);
+
+  /** A card of this set, as far as the duplicate check and its "Open" need it. */
+  type SetCard = Pick<Card, 'id' | 'term' | 'pos' | 'genders'>;
+  /** Words added since this screen opened, newest first (quick add only; gone when leaving). */
+  type AddedWord = SetCard & { id: number; translation: string };
+  /** The set's cards (quick add): a word the set has already gets "Open" instead of Add. */
+  let setCards = $state.raw<SetCard[]>([]);
+  let added = $state.raw<AddedWord[]>([]);
 
   /** Has a dictionary lookup filled this card (or was it already filled before editing)? */
   let filled = isNew ? false : true;
@@ -68,12 +77,26 @@
       loaded = true;
       loadSetName();
     });
-  } else loadSetName();
+  } else {
+    loadSetName();
+    loadSetCards();
+  }
 
   async function loadSetName() {
     if (!card.setId) return;
     const set = await db.sets.get(card.setId);
     setName = set ? set.topic || set.name : '';
+  }
+
+  async function loadSetCards() {
+    if (!card.setId) return;
+    const cards = await db.cards.where('setId').equals(card.setId).toArray();
+    const loadedIds = new Set(cards.map((c) => c.id));
+    // Words added while this was loading are kept.
+    setCards = [
+      ...cards.map((c) => ({ id: c.id, term: c.term, pos: c.pos, genders: c.genders ?? [] })),
+      ...setCards.filter((c) => !loadedIds.has(c.id)),
+    ];
   }
 
   const backTo = $derived(card.setId ? `/set/${card.setId}` : '/');
@@ -257,6 +280,18 @@
   /** Article picked from a suggestion row, asked for in the next lookup. */
   let wantGender: Gender | null = null;
   const pickedArticle = $derived(card.pos === 'noun' && card.genders.length === 1 ? card.genders[0] : null);
+
+  /**
+   * The set's card for this word, if it has one (new words only): same term, ignoring case, and
+   * the same article when both have one (der See ≠ die See). See quickAddDuplicate.
+   */
+  function duplicateOf(c: Pick<Card, 'term' | 'pos' | 'genders'>): SetCard | undefined {
+    return isNew ? quickAddDuplicate(setCards, c, articles.length) : undefined;
+  }
+
+  const duplicate = $derived(lookupState === 'loading' ? undefined : duplicateOf(card));
+  /** ArticleChoices: an article the set has already gets a check instead of its "+". */
+  const articleInSet = (a: ArticleVariant) => !!findDuplicate(setCards, { term: card.term, genders: a.genders });
 
   async function runLookup() {
     applyParsed();
@@ -447,16 +482,17 @@
     return false;
   }
 
-  async function save(): Promise<boolean> {
+  /** Saves the card; returns its id, or 0 when it couldn't be saved (`error` says why). */
+  async function save(): Promise<number> {
     applyParsed();
     if (!card.term.trim()) {
       error = 'Enter the German word.';
       germanEl?.focus();
-      return false;
+      return 0;
     }
     if (!card.setId) {
       error = 'No set selected for this word.';
-      return false;
+      return 0;
     }
     const c = $state.snapshot(card) as Card;
     if (c.pos !== 'noun') {
@@ -470,20 +506,34 @@
     }
     c.examples = c.examples.map((e) => ({ de: e.de.trim(), tr: (e.tr ?? '').trim() }));
     c.needsFill = !filled && detailsMissing(c) ? 1 : 0;
-    await saveCard(c);
-    if (isNew) rememberQuickAddSet(c.setId); // shared words (Share.svelte) go to the same set
-    return true;
+    // The full form's Add and a second Return go through here too: never a second card for a word.
+    const dup = duplicateOf(c);
+    if (dup) {
+      error = `“${dup.term}” is already in this set.`;
+      return 0;
+    }
+    const id = await saveCard(c);
+    if (isNew) {
+      rememberQuickAddSet(c.setId); // shared words (Share.svelte) go to the same set
+      setCards = [...setCards, { id, term: c.term.trim(), pos: c.pos, genders: c.genders }];
+    }
+    return id;
   }
 
   async function saveAndClose() {
     if (await save()) back(backTo);
   }
 
-  /** Save, say so, and get ready for the next word — keeping the keyboard up. */
+  /** Save, list it under "Added", and get ready for the next word — keeping the keyboard up. */
   async function quickAdd() {
     germanEl?.focus(); // inside the tap, so iOS keeps the keyboard open
-    const label = articles.length > 1 ? displayTerm(card) : card.term.trim();
-    if (!(await save())) return;
+    const id = await save();
+    if (!id) return;
+    const word = $state.snapshot(card) as Card;
+    added = [
+      { id, term: word.term.trim(), pos: word.pos, genders: word.pos === 'noun' ? word.genders : [], translation: word.translation.trim() },
+      ...added,
+    ];
     lookupCtrl?.abort();
     stopSuggest();
     card = emptyCard(card.setId);
@@ -496,8 +546,6 @@
     articles = [];
     lastLookedUp = '';
     showDetails = false;
-    addedCount++;
-    showToast(`Added “${label}”`);
     await tick();
     germanEl?.focus();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -523,6 +571,11 @@
   const keepFocus = (e: PointerEvent) => {
     if (focused) e.preventDefault();
   };
+
+  // A new word: the field is ready to type into (keyboard opened by the tap, see lib/ui/keyboard).
+  onMount(() => {
+    if (isNew) takeKeyboard(germanEl);
+  });
 
   if (givenTerm) void runLookup();
 </script>
@@ -680,6 +733,7 @@
                   trLang={settings.lang}
                   onpick={chooseArticle}
                   onadd={(a) => void addArticle(a)}
+                  isAdded={articleInSet}
                   onpointerdown={keepFocus}
                 />
                 <div class="small muted">Each article has its own meaning — tap one, or add it with +</div>
@@ -721,15 +775,29 @@
           </div>
         {:else if !card.term.trim()}
           <div class="hint-card small muted" in:fade={{ duration: dur(150) }}>
-            {#if addedCount}
-              <strong class="good">{addedCount} {addedCount === 1 ? 'word' : 'words'} added.</strong> Next one?
+            {#if added.length}
+              Next word?
             {:else}
               Type a German word — the article, plural, translation and an example are filled in for you.
             {/if}
           </div>
         {/if}
 
-        {#if !showDetails && lookupState !== 'loading' && card.term.trim()}
+        {#if duplicate}
+          <div class="stack quick-actions" in:fade={{ duration: dur(150) }}>
+            <div class="card note dup">
+              <Icon name="check" size={20} />
+              <div class="grow">“<span lang="de"><Term card={duplicate} /></span>” is already in this set</div>
+              <button type="button" class="btn small-btn" onclick={() => go(`/card/${duplicate.id}`)}>Open</button>
+            </div>
+            {#if lookupState === 'idle' && !showDetails}
+              <!-- Only the typed text matched: the dictionary may know another article (die See). -->
+              <button type="button" class="btn btn-ghost btn-block" onpointerdown={keepFocus} onclick={runLookup}>
+                <Icon name="search" size={18} /> Look up
+              </button>
+            {/if}
+          </div>
+        {:else if !showDetails && lookupState !== 'loading' && card.term.trim()}
           <div class="stack quick-actions" in:fade={{ duration: dur(150) }}>
             {#if lookupState === 'idle'}
               <button type="button" class="btn btn-primary btn-lg btn-block" onpointerdown={keepFocus} onclick={runLookup}>
@@ -904,6 +972,21 @@
           </div>
         </form>
       {/if}
+
+      <!-- ---------- Added on this screen (new words) ---------- -->
+      {#if isNew && added.length}
+        <section class="added" transition:slide={{ duration: dur(200) }}>
+          <h2 class="section-title">Added <span>{added.length}</span></h2>
+          <div class="list" role="list">
+            {#each added as w (w.id)}
+              <div class="list-item" role="listitem" in:slide={{ duration: dur(220) }}>
+                <span class="title" lang="de"><Term card={w} /></span>
+                {#if w.translation}<span class="sub ellipsis" lang={settings.lang}>{w.translation}</span>{/if}
+              </div>
+            {/each}
+          </div>
+        </section>
+      {/if}
     </div>
   {/if}
 </div>
@@ -959,11 +1042,13 @@
   .ellipsis {
     flex: 1;
     min-width: 0;
-    text-align: right;
-    color: var(--text-2);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .suggestions .ellipsis {
+    text-align: right;
+    color: var(--text-2);
   }
 
   /* ---------- Quick add ---------- */
@@ -1016,6 +1101,32 @@
     color: var(--muted);
     flex-shrink: 0;
     margin-top: 1px;
+  }
+  .dup {
+    align-items: center;
+  }
+  .dup > :global(svg) {
+    color: var(--good);
+    margin-top: 0;
+  }
+  .dup .grow {
+    overflow-wrap: anywhere;
+  }
+  .added .list-item {
+    min-height: 48px;
+    padding: 8px 16px;
+    cursor: default;
+  }
+  .added .list-item:active {
+    background: none;
+  }
+  .added .title {
+    flex-shrink: 0;
+    max-width: 60%;
+    overflow-wrap: anywhere;
+  }
+  .added .ellipsis {
+    text-align: right;
   }
   .hint-card {
     padding: 4px 6px;

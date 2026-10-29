@@ -3,6 +3,7 @@
 import { db } from '../db/schema';
 import { saveCard } from '../db/repo';
 import { buildCard } from '../reading/store';
+import { parseGermanInput } from '../german/parseTerm';
 import { reviewsFor, statusOf, type WordStatus } from '../progress';
 import type { Card, Folder, Gender, WordSet } from '../types';
 import type { WordFields } from './wordInfo';
@@ -19,6 +20,26 @@ export function isSameWord(card: Pick<Card, 'term' | 'genders'>, term: string, g
 
 export function findDuplicate<C extends Pick<Card, 'term' | 'genders'>>(cards: C[], fields: WordFields): C | undefined {
   return cards.find((c) => isSameWord(c, fields.term, fields.genders ?? []));
+}
+
+/**
+ * The set's card for a word being typed on the add screen (CardEditor): a typed "der Tisch"
+ * counts as Tisch, m; only the whole term matches, never a prefix. While a noun's articles
+ * differ in meaning (`articleCount` > 1, der See / die See) and none is picked yet, nothing is a
+ * duplicate: the user may want the other article.
+ */
+export function quickAddDuplicate<C extends Pick<Card, 'term' | 'genders'>>(
+  cards: C[],
+  word: Pick<Card, 'term' | 'pos' | 'genders'>,
+  articleCount = 0,
+): C | undefined {
+  const p = parseGermanInput(word.term);
+  const term = p.term || word.term.trim();
+  if (!term) return undefined;
+  const pos = p.pos ?? word.pos;
+  const genders = p.genders.length ? p.genders : word.genders;
+  if (articleCount > 1 && !(pos === 'noun' && genders.length === 1)) return undefined;
+  return findDuplicate(cards, { term, genders: pos === 'noun' ? genders : [] });
 }
 
 /**

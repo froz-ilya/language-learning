@@ -62,6 +62,12 @@ export class AppDB extends Dexie {
     this.version(5)
       .stores({})
       .upgrade((tx) => tx.table('lookupCache').clear());
+    // v6: lookups know reflexive verbs ("sich treffen", a verb's `reflexive` reading) and
+    // prepositions (`preps`; cache keys "v5:…"); drop the "v4:…" rows. Only a cache, as in v4.
+    // Cards may now carry `preps`: optional, absent on older cards, so they need no upgrade.
+    this.version(6)
+      .stores({})
+      .upgrade((tx) => tx.table('lookupCache').clear());
   }
 }
 

@@ -8,12 +8,16 @@ import { reviewsFor, statusOf, type WordStatus } from '../progress';
 import type { Card, Folder, Gender, WordSet } from '../types';
 import type { WordFields } from './wordInfo';
 
+/** "Sich  Treffen " → "sich treffen": the term as words are compared. */
+const termKey = (term: string) => term.trim().replace(/\s+/g, ' ').toLowerCase();
+
 /**
  * A card with this term (case-insensitive) and the same article: a card with no article, or
  * looked-up fields with no article, count as the same word; "der See" and "die See" don't.
+ * A reflexive verb is its own word: "sich treffen" is not "treffen".
  */
 export function isSameWord(card: Pick<Card, 'term' | 'genders'>, term: string, genders: Gender[] = []): boolean {
-  if (card.term.trim().toLowerCase() !== term.trim().toLowerCase()) return false;
+  if (termKey(card.term) !== termKey(term)) return false;
   if (!genders.length || !card.genders?.length) return true;
   return card.genders.some((g) => genders.includes(g));
 }

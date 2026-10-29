@@ -6,8 +6,11 @@
 // dict.json and raw-wiktextract-data.jsonl.gz; scripts/levels/overrides.json; public/levels/*.json
 // (levels and, for preset words, translations Wiktionary lacks; no translation requests are made).
 // Output: public/dict/index.json + one piece per group of 2-letter prefixes. A piece is
-//   { lemmas: { [id]: [rank, tags, ru, en, a?, b?] }, forms: { [formLower]: id[] } }
+//   { lemmas: { [id]: [rank, tags, ru, en, a?, b?, c?, d?, p?] }, forms: { [formLower]: id[] } }
 // (compact entries, decoded to LexEntry by src/lib/dict/local.ts; see encodeEntry in lib.mjs).
+// Verbs carry reflexive data from the dump's senses (reflexive.mjs): sich treffen / sich beeilen,
+// the reflexive meanings' translations and prepositions with their case. It is left out of the
+// size budget, so it never changes which lemmas and forms are kept.
 // Ids: the term ("Haus"), term#pos for a rarer homograph ("sein#other"), and id#gender for
 // another article of a noun whose articles differ in meaning ("See" = der See, "See#f" = die See).
 import fs from 'node:fs';
@@ -32,6 +35,7 @@ import {
 } from '../levels/lib/rank.mjs';
 import { DICT_FORMAT } from '../levels/lib/dict.mjs';
 import { baseWords } from '../levels/lib/words.mjs';
+import { reflexiveFields, reflexiveOf } from './reflexive.mjs';
 import {
   encodeEntry,
   expandForm,
@@ -266,7 +270,10 @@ function toEntries(groups, levels, presetTr) {
   console.log(`translations filled from public/levels: ${filled}`);
 }
 
-/** Step 3: stream the dump once for forms tables and form-of entries of the selected lemmas. */
+/**
+ * Step 3: stream the dump once for forms tables and form-of entries of the selected lemmas, and
+ * the reflexive data of the verbs (id → reflexiveOf of each of its entries).
+ */
 async function collectForms(groups, dict) {
   const idOfKey = new Map();
   for (const g of groups) for (const k of g.members) idOfKey.set(k, g.lid);
@@ -285,6 +292,8 @@ async function collectForms(groups, dict) {
   const pendingForms = []; // [form, key, imperative]
   const byWord = keysByWord(dict.lemmas);
   const forms = new Map(); // form → Set(id)
+  const verbIds = new Set(groups.filter((g) => g.entry.pos === 'verb').map((g) => g.lid));
+  const reflexive = new Map(); // id → reflexiveOf(entry)[]
   const imperative = new Map();
   const separable = new Map(); // "rief" → anrufen, … (from "rief an")
   const add = (map, form, id) => {
@@ -323,6 +332,10 @@ async function collectForms(groups, dict) {
     const id = articleIds.get(key)?.get(rec.genders[0]) ?? idOfKey.get(key);
     // Pronoun/article paradigms list other words ("ich" lists "wir"): only content words map forms.
     if (!id || ['pron', 'det', 'article', 'num'].includes(rec.rawPos)) continue;
+    if (rec.rawPos === 'verb' && verbIds.has(id)) {
+      if (!reflexive.has(id)) reflexive.set(id, []);
+      reflexive.get(id).push(reflexiveOf(entry));
+    }
     const fs_ = formsOfEntry(entry);
     for (const f of fs_.forms) add(forms, f, id);
     for (const f of fs_.separable) add(separable, f, id);
@@ -355,7 +368,21 @@ async function collectForms(groups, dict) {
     if (extra.length) forms.set(f, new Set([...own, ...extra]));
   }
   console.log(`  ${n} lines, ${forms.size} forms`);
-  return forms;
+  return { forms, reflexive };
+}
+
+/** Step 3b: reflexive, trRefl and preps of the verbs (from collectForms). */
+function addReflexive(groups, reflexive) {
+  const count = { also: 0, only: 0, trRefl: 0, preps: 0 };
+  for (const g of groups) {
+    if (g.entry.pos !== 'verb') continue;
+    const f = reflexiveFields(reflexive.get(g.lid) ?? [], g.entry.tr);
+    Object.assign(g.entry, f);
+    if (f.reflexive) count[f.reflexive]++;
+    if (f.trRefl) count.trRefl++;
+    if (f.preps) count.preps++;
+  }
+  console.log(`  reflexive verbs: ${count.also} also, ${count.only} only; ${count.trRefl} with reflexive translations, ${count.preps} with prepositions`);
 }
 
 const sizeOf = (v) => Buffer.byteLength(JSON.stringify(v));
@@ -393,7 +420,8 @@ function layout(groups, rawForms, count, n) {
   // Most valuable first: corpus frequency, then the rank of the lemma.
   forms.sort((a, b) => b.count - a.count || a.best - b.best || (a.form < b.form ? -1 : 1));
   for (const f of forms) f.bytes = sizeOf(f.form) + sizeOf(f.ids) + 2;
-  const lemmaBytes = kept.reduce((s, g) => s + sizeOf(g.lid) + sizeOf(encodeEntry(g.entry)) + 2, 0);
+  // Without the reflexive data: it comes on top of the budget (see the header).
+  const lemmaBytes = kept.reduce((s, g) => s + sizeOf(g.lid) + sizeOf(encodeEntry(g.entry, { reflexive: false })) + 2, 0);
   return {
     kept,
     forms,
@@ -435,7 +463,8 @@ async function main() {
   toEntries(groups, levels, presetTranslations());
 
   console.log('Reading forms from the Wiktionary dump…');
-  const rawForms = await collectForms(groups, dict);
+  const { forms: rawForms, reflexive } = await collectForms(groups, dict);
+  addReflexive(groups, reflexive);
   const { kept, forms } = fit(groups, rawForms, new Map(freq));
 
   // Step 4: pieces by the first two letters of normalizeKey; small neighbours share a file.
@@ -444,14 +473,21 @@ async function main() {
     if (!pieces.has(p)) pieces.set(p, { lemmas: {}, forms: {} });
     return pieces.get(p);
   };
-  for (const g of kept) piece(prefixOf(g.entry.term)).lemmas[g.lid] = encodeEntry(g.entry);
+  // Pieces are split and grouped by their size without the reflexive data, as the budget.
+  const extraBytes = new Map();
+  for (const g of kept) {
+    const e = encodeEntry(g.entry);
+    piece(prefixOf(g.entry.term)).lemmas[g.lid] = e;
+    extraBytes.set(g.lid, sizeOf(e) - sizeOf(encodeEntry(g.entry, { reflexive: false })));
+  }
+  const baseSize = (x) => sizeOf(x) - Object.keys(x.lemmas).reduce((s, id) => s + extraBytes.get(id), 0);
   for (const f of [...forms].sort((a, b) => (a.form < b.form ? -1 : 1))) piece(prefixOf(f.form)).forms[f.form] = f.ids;
   // Big prefixes ("sc", "ge", "ve") are split by their next letter ("sch", then "scha", …), at
   // most to 4 letters; the shorter key keeps the shorter words. The runtime takes the longest
   // key in the index that the word starts with (pieceFile in lib.mjs).
   for (let len = 3; len <= 4; len++) {
     for (const [p, x] of [...pieces]) {
-      if (p.length !== len - 1 || sizeOf(x) <= MAX_PIECE) continue;
+      if (p.length !== len - 1 || baseSize(x) <= MAX_PIECE) continue;
       const rest = { lemmas: {}, forms: {} };
       pieces.set(p, rest);
       const sub = (w) => {
@@ -464,7 +500,7 @@ async function main() {
       for (const [f, ids] of Object.entries(x.forms)) sub(f).forms[f] = ids;
     }
   }
-  const files = groupPieces(new Map([...pieces].map(([p, x]) => [p, sizeOf(x)])), { min: MIN_PIECE });
+  const files = groupPieces(new Map([...pieces].map(([p, x]) => [p, baseSize(x)])), { min: MIN_PIECE });
 
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(OUT, { recursive: true });
@@ -497,7 +533,8 @@ async function main() {
   const top = kept.filter((g) => g.rank <= 8000);
   const pctRu = (list) => ((100 * list.filter((g) => g.entry.tr.ru).length) / list.length).toFixed(1);
   console.log(`RU coverage: ${pctRu(kept)}% overall, ${pctRu(top)}% of the top 8000`);
-  console.log(`Files ${files.length} pieces + index.json (${kb(Buffer.byteLength(indexText))}), total ${kb(bytes)} (budget ${kb(MAX_BYTES)})`);
+  const extra = [...extraBytes.values()].reduce((s, b) => s + b, 0);
+  console.log(`Files ${files.length} pieces + index.json (${kb(Buffer.byteLength(indexText))}), total ${kb(bytes)} (budget ${kb(MAX_BYTES)} + reflexive data ${kb(extra)})`);
   const pct = (q) => fileSizes[Math.min(fileSizes.length - 1, Math.floor(q * fileSizes.length))];
   console.log(`Piece sizes: min ${pct(0)[0]} ${kb(pct(0)[1])}, median ${kb(pct(0.5)[1])}, 90% ${kb(pct(0.9)[1])}, max ${pct(1)[0]} ${kb(pct(1)[1])}`);
   console.log('\nLookups (lemma, else forms map, else ending rules):');
@@ -509,8 +546,9 @@ async function main() {
     const term = id.split('#')[0];
     const e = load(term).lemmas[id];
     if (!e) return `${id} (?)`;
-    const gram = e.slice(4).map((s) => expandForm(term, s));
-    return `${id} #${e[0]} [${e[1]}] ru: ${e[2] || '–'} | en: ${e[3] || '–'}${gram.length ? ` | ${gram.join(', ')}` : ''}`;
+    const gram = e.slice(4, 6).map((s) => expandForm(term, s));
+    const refl = e.slice(6).some(Boolean) ? ` | sich: ${e[6] || '–'} / ${e[7] || '–'}${e[8] ? ` | ${e[8]}` : ''}` : '';
+    return `${id} #${e[0]} [${e[1]}] ru: ${e[2] || '–'} | en: ${e[3] || '–'}${gram.length ? ` | ${gram.join(', ')}` : ''}${refl}`;
   };
   for (const w of ['ging', 'Häuser', 'rief', 'schöneren', 'war', 'Hausschlüssel', 'Tisch', 'Tische', 'Ging', 'See', 'Gehälter', 'Steuern', 'Kiefer', 'Leitern', 'Band', 'Tor', 'Schilder', 'Teil', 'Liter', 'Joghurt', 'Bank']) {
     const p = load(w);
@@ -526,6 +564,8 @@ async function main() {
     } else if (!lemmaIds.length) how = 'form';
     console.log(`  ${w} (${ids.length ? how : '—'})${ids.map((id) => `\n      ${show(id)}`).join('')}`);
   }
+  console.log('\nReflexive verbs (tags r = also, R = only; sich: trRefl ru / en, prepositions):');
+  for (const w of ['treffen', 'freuen', 'beeilen', 'interessieren', 'erinnern', 'warten', 'kümmern']) console.log(`  ${show(w)}`);
 }
 
 main().catch((e) => {

@@ -11,6 +11,7 @@
   import UmlautBar from '../UmlautBar.svelte';
   import Examples from './Examples.svelte';
   import ResultIcon from './ResultIcon.svelte';
+  import Preps from './Preps.svelte';
 
   /**
    * Verb forms: Präteritum, Partizip II and haben/sein. Fields the card has empty are skipped.
@@ -179,6 +180,7 @@
         <div class="forms" lang="de">{card.term} – {displayVerbForms(card)}</div>
         <SpeakButton text={fullForms} />
       </div>
+      <Preps preps={card.preps} />
       <Examples {card} />
     </div>
     <button type="submit" class="btn btn-primary btn-lg btn-block">Continue</button>

@@ -1,12 +1,13 @@
-import type { ArticleVariant, Card, Example, Gender, Lang, LookupResult, Pos } from '../types';
+import type { ArticleVariant, Card, Example, Gender, Lang, LookupResult, Pos, ReflexiveReading } from '../types';
 import type { LexEntry, LocalHit } from '../dict/types';
 import { articleVariants } from '../dict/local';
 import { ARTICLE } from '../german/articles';
 import { db } from '../db/schema';
 import { saveCard } from '../db/repo';
 import { parseGermanInput, type ParsedTerm } from '../german/parseTerm';
+import { baseOfReflexive, withSich } from '../german/reflexive';
 import type { WikiArticle, WikiEntry, WikiPhrase } from './wiktionary';
-import { formatMeanings, matchSenses, meaningSentences, previewOf } from './meanings';
+import { formatMeanings, formatPreps, matchSenses, meaningSentences, previewOf } from './meanings';
 import { googlePos, googleTranslate, isAbortError, type DictEntry, type GoogleResult } from './google';
 import { isCooling, runChainDetailed, type Provider, type ProviderId } from '../sources/chain';
 import { localPrefix, localWord } from '../sources/providers/local';
@@ -47,9 +48,10 @@ export class SourceUnavailableError extends Error {
 /**
  * Bump when the shape of cached results changes (v2: translations grouped by meaning; v3: nouns
  * whose articles differ in meaning come as `articles`, no longer merged into one translation;
- * v4: examples chosen per meaning (`meaningExamples`) and set `phrases`).
+ * v4: examples chosen per meaning (`meaningExamples`) and set `phrases`; v5: reflexive verbs —
+ * "sich …" lookups, the `reflexive` reading of a verb, `preps`).
  */
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const DAY = 24 * 60 * 60 * 1000;
 const FOUND_TTL = 30 * DAY;
 const NOT_FOUND_TTL = DAY;
@@ -191,6 +193,10 @@ const LOCAL_DETAILS: Provider<ParsedTerm, Details> = {
 
 /** Word details: offline dictionary → de.wiktionary (entry, lemma redirect, compound fallback). */
 const DETAIL_PROVIDERS: Provider<ParsedTerm, Details>[] = [LOCAL_DETAILS, deWiktionaryDetails];
+
+/** What the dictionaries are asked for: a reflexive verb's verb ("sich treffen" → treffen). */
+const detailQuery = (parsed: ParsedTerm): ParsedTerm =>
+  parsed.reflexive ? { ...parsed, term: baseOfReflexive(parsed.term), pos: parsed.pos ?? 'verb' } : parsed;
 
 // ---------- Cache (IndexedDB; failures are ignored so lookups still work without it) ----------
 
@@ -410,6 +416,98 @@ function putPhrases(r: LookupResult, phrases: WikiPhrase[], notes: Example[] | u
   });
 }
 
+// ---------- Reflexive verbs ----------
+
+/** Example sentences of a verb's reflexive reading next to its other meanings (result.reflexive), at most. */
+const REFL_SENTENCES = 3;
+
+/** "sich" as a word: the examples of a reflexive reading on a page that marks no sense reflexive. */
+const SICH_WORD = /(?<!\p{L})sich(?!\p{L})/iu;
+
+/**
+ * Which reading of a verb a lookup gives: `main` is the result itself ('refl' for input with
+ * "sich" and for reflexive-only verbs: term "sich …"); `extra` adds the reflexive reading as
+ * result.reflexive (treffen → sich treffen). `kind` is the offline dictionary's or else the page's.
+ */
+interface Readings {
+  main: 'plain' | 'refl';
+  extra: boolean;
+  kind: 'also' | 'only' | undefined;
+}
+
+function readingsOf(parsed: ParsedTerm, pos: Pos, kind: 'also' | 'only' | undefined): Readings {
+  const verbLike = pos === 'verb' || pos === 'other';
+  if (!verbLike) return { main: 'plain', extra: false, kind: undefined };
+  const k = pos === 'verb' ? kind : undefined;
+  const main = parsed.reflexive || k === 'only' ? 'refl' : 'plain';
+  return { main, extra: main === 'plain' && k === 'also', kind: k };
+}
+
+/**
+ * The part of a page one reading of a verb stands for: the reflexive senses and their examples,
+ * or the other senses and the page's examples without the reflexive senses' ones. A reflexive
+ * reading on a page that marks no sense reflexive gets the page's examples with "sich"; a
+ * plain reading of a page without reflexive senses is the page.
+ */
+function readingPage(page: Page | null, reflexive: boolean): Page | null {
+  const all = page?.senses ?? [];
+  const senses = all.filter((s) => !!s.reflexive === reflexive);
+  if (reflexive) {
+    const own = unique(senses.flatMap((s) => s.examples));
+    return { senses, examples: own.length ? own : (page?.examples ?? []).filter((x) => SICH_WORD.test(x)) };
+  }
+  if (!page || senses.length === all.length) return page;
+  const theirs = new Set(all.filter((s) => s.reflexive).flatMap((s) => s.examples));
+  const examples = page.examples.filter((x) => !theirs.has(x));
+  return { senses, examples: examples.length ? examples : unique(senses.flatMap((s) => s.examples)).slice(0, MAX_EXAMPLES) };
+}
+
+/**
+ * Prepositions of the senses a translation stands for (see matchSenses), as Card.preps. When
+ * none matched, `all` takes every sense of the page (a reading's few reflexive senses); a
+ * plain reading then gets none rather than a marginal sense's ("auf etwas gehen").
+ */
+function sensePreps(translation: string, page: Page | null, other: string, lang: Lang, all: boolean): string {
+  const senses = page?.senses ?? [];
+  if (!senses.length) return '';
+  const matched = translation ? matchSenses(translation, senses, lang, other).flat() : [];
+  return formatPreps((matched.length ? matched : all ? senses : []).flatMap((s) => s.preps ?? []));
+}
+
+/** A verb's reflexive reading (result.reflexive) up to its examples' translations. */
+interface ReflexiveDraft {
+  /** From a dictionary; '' when it is asked for with the examples (`ask`). */
+  translation: string;
+  /** ["sich treffen"] when no dictionary translates the reflexive verb: translated in the plan's request. */
+  ask: string[];
+  sentences: Sentences;
+  preps: string;
+}
+
+function reflexiveDraft(term: string, translation: string, other: string, page: Page | null, preps: string, lang: Lang): ReflexiveDraft {
+  const own = readingPage(page, true);
+  return {
+    translation,
+    ask: translation ? [] : [withSich(term)],
+    sentences: sentencesFor(translation, own, other, lang, REFL_SENTENCES, REFL_SENTENCES),
+    preps: preps || sensePreps(translation, own, other, lang, true),
+  };
+}
+
+/** The lists a reflexive reading adds to a plan: its examples, then what is asked of its translation. */
+const reflexiveLists = (d: ReflexiveDraft | null): string[][] => (d ? [...sentenceLists(d.sentences), d.ask] : []);
+
+/** The reflexive reading with its translated lists; undefined when no translation came. */
+function readReflexive(d: ReflexiveDraft | null, read: ListReader): ReflexiveReading | undefined {
+  if (!d) return undefined;
+  const fields = readSentences(d.sentences, read);
+  const [asked = []] = read(1);
+  const tr = (asked[0]?.tr ?? '').trim().replace(/\.$/, '');
+  const translation = d.translation || (tr && tr.toLowerCase() !== d.ask[0]?.toLowerCase() ? lowerFirst(tr) : '');
+  if (!translation) return undefined;
+  return { translation, ...fields, ...(d.preps ? { preps: d.preps } : {}) };
+}
+
 /** An article as a card would get it (one gender). */
 interface ArticleDraft {
   gender: Gender;
@@ -505,16 +603,24 @@ async function planLocal(hit: LocalHit, wikiStep: LocalWiki, parsed: ParsedTerm,
   // Translations and examples of the matching article only (not "die See"'s for "der See").
   const own = gender && same?.articles ? wikiArticle(same, gender) : same;
 
-  let translation = localTr || mine?.translation || (own ? formatMeanings(own.translations[lang]) : '');
+  // A verb with "sich": the reflexive reading as the result, or next to it (see Readings).
+  const o = OTHER_LANG[lang];
+  const readings = readingsOf(parsed, mine ? 'noun' : pos, e.reflexive ?? same?.reflexive);
+  const refl = readings.main === 'refl';
+  /** The reflexive verb's translation: the offline dictionary's, else its page's reflexive senses'. */
+  const reflTr = (l: Lang) =>
+    (e.trRefl?.[l] ?? '').trim() || (readings.kind === 'only' ? (e.tr[l] ?? '').trim() : '') || formatMeanings(same?.reflexiveTranslations?.[l] ?? []);
+
+  let translation = refl ? reflTr(lang) : localTr || mine?.translation || (own ? formatMeanings(own.translations[lang]) : '');
   if (!translation) {
-    const t = await translateWord(e.term, pos, ctx);
+    const t = await translateWord(refl ? withSich(e.term) : e.term, pos, ctx);
     translation = t.text;
     complete &&= t.ok;
   }
 
   const result: LookupResult = {
-    term: e.term,
-    pos,
+    term: refl ? withSich(e.term) : e.term,
+    pos: refl ? 'verb' : pos,
     genders: e.genders.length ? [...e.genders] : own?.genders.length ? [...own.genders] : pos === 'noun' ? parsed.genders : [],
     plural: e.plural || own?.plural || '',
     praeteritum: e.praeteritum || same?.praeteritum || '',
@@ -541,13 +647,21 @@ async function planLocal(hit: LocalHit, wikiStep: LocalWiki, parsed: ParsedTerm,
       },
     };
   }
-  const other = (e.tr[OTHER_LANG[lang]] ?? '').trim() || (own ? formatMeanings(own.translations[OTHER_LANG[lang]]) : '');
-  const sentences = sentencesFor(translation, own, other, lang);
+  const other = refl ? reflTr(o) : (e.tr[o] ?? '').trim() || (own ? formatMeanings(own.translations[o]) : '');
+  const page = refl ? readingPage(own, true) : readings.extra ? readingPage(own, false) : own;
+  const sentences = sentencesFor(translation, page, other, lang);
+  // The offline dictionary's prepositions are the reflexive reading's when the verb has both.
+  const localPreps = (e.preps ?? '').trim();
+  const preps = (readings.kind === 'also' && !refl ? '' : localPreps) || sensePreps(translation, page, other, lang, refl);
+  if (preps) result.preps = preps;
+  const extra = readings.extra ? reflexiveDraft(e.term, reflTr(lang), reflTr(o), own, localPreps, lang) : null;
   return {
-    lists: [...sentenceLists(sentences), phraseList(phrases)],
+    lists: [...sentenceLists(sentences), ...reflexiveLists(extra), phraseList(phrases)],
     finish(examples, ok) {
       const read = listReader(examples);
       putExamples(result, readSentences(sentences, read));
+      const reading = readReflexive(extra, read);
+      if (reading) result.reflexive = reading;
       putPhrases(result, phrases, read(1)[0]);
       return done(ok);
     },
@@ -579,10 +693,17 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
   }
 
   const { entry, lemmaOf } = details;
+  const { lang } = ctx;
+  const o = OTHER_LANG[lang];
+  // A verb with "sich": the reflexive reading as the result, or next to it (see Readings).
+  const readings = readingsOf(parsed, entry.pos, entry.reflexive);
+  const refl = readings.main === 'refl';
+  const reflTr = (l: Lang) => formatMeanings(entry.reflexiveTranslations?.[l] ?? []);
+  const term = refl ? withSich(entry.title) : entry.title;
   let complete = true;
-  let translation = formatMeanings(entry.translations[ctx.lang]);
+  let translation = refl ? reflTr(lang) : formatMeanings(entry.translations[lang]);
   if (!translation) {
-    const t = await translateWord(entry.title, entry.pos, ctx);
+    const t = await translateWord(term, entry.pos, ctx);
     translation = t.text;
     complete = t.ok;
   }
@@ -590,10 +711,16 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
   if (split) complete &&= split.ok;
   const phrases = phrasesOf(entry);
 
-  const build = (own: ExampleFields, articles: ArticleVariant[] | undefined, phraseExamples: Example[] | undefined, ok: boolean): Resolved => {
+  const build = (
+    own: ExampleFields,
+    articles: ArticleVariant[] | undefined,
+    phraseExamples: Example[] | undefined,
+    ok: boolean,
+    extra?: { preps: string; reflexive?: ReflexiveReading },
+  ): Resolved => {
     const result: LookupResult = {
-      term: entry.title,
-      pos: entry.pos,
+      term,
+      pos: refl ? 'verb' : entry.pos,
       genders: entry.genders.length ? entry.genders : entry.pos === 'noun' ? parsed.genders : [],
       plural: entry.plural || (entry.pos === 'noun' ? (parsed.plural ?? '') : ''),
       praeteritum: entry.praeteritum || (entry.pos === 'verb' ? (parsed.praeteritum ?? '') : ''),
@@ -605,6 +732,8 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
     };
     putExamples(result, own);
     putPhrases(result, phrases, phraseExamples);
+    if (extra?.preps) result.preps = extra.preps;
+    if (extra?.reflexive) result.reflexive = extra.reflexive;
     if (articles) result.articles = articles;
     if (lemmaOf) result.lemmaOf = lemmaOf;
     return done(result, complete && ok);
@@ -620,12 +749,18 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
       },
     };
   }
-  const sentences = sentencesFor(translation, entry, formatMeanings(entry.translations[OTHER_LANG[ctx.lang]]), ctx.lang);
+  const other = refl ? reflTr(o) : formatMeanings(entry.translations[o]);
+  const page = refl ? readingPage(entry, true) : readings.extra ? readingPage(entry, false) : entry;
+  const sentences = sentencesFor(translation, page, other, lang);
+  const preps = sensePreps(translation, page, other, lang, refl);
+  const draft = readings.extra ? reflexiveDraft(entry.title, reflTr(lang), reflTr(o), entry, '', lang) : null;
   return {
-    lists: [...sentenceLists(sentences), phraseList(phrases)],
+    lists: [...sentenceLists(sentences), ...reflexiveLists(draft), phraseList(phrases)],
     finish(examples, ok) {
       const read = listReader(examples);
-      return build(readSentences(sentences, read), undefined, read(1)[0], ok);
+      const own = readSentences(sentences, read);
+      const reflexive = readReflexive(draft, read);
+      return build(own, undefined, read(1)[0], ok, { preps, reflexive });
     },
   };
 }
@@ -640,7 +775,7 @@ type Found =
 
 /** Word details for one word: offline dictionary, else de.wiktionary (one request per page). */
 async function find(parsed: ParsedTerm, ctx: Ctx): Promise<Found> {
-  const d = await step(ctx, 'word-details', DETAIL_PROVIDERS, parsed);
+  const d = await step(ctx, 'word-details', DETAIL_PROVIDERS, detailQuery(parsed));
   if (d.value?.kind === 'local') return { kind: 'local', hit: d.value.hit, wiki: await localWiki(d.value.hit.entry, ctx) };
   if (d.value) return { kind: 'wiki', details: d.value };
   return { kind: 'none', ok: d.ok };
@@ -648,13 +783,15 @@ async function find(parsed: ParsedTerm, ctx: Ctx): Promise<Found> {
 
 async function plan(found: Found, parsed: ParsedTerm, ctx: Ctx): Promise<Plan> {
   if (found.kind === 'local') return planLocal(found.hit, found.wiki, parsed, ctx);
-  if (found.kind === 'wiki') return planWiki(found.details, parsed, ctx);
+  // "sich …" is a verb, never a compound noun.
+  if (found.kind === 'wiki' && !(parsed.reflexive && found.details.kind === 'compound')) return planWiki(found.details, parsed, ctx);
 
-  // Last resort: a translation-only result (no grammar beyond what was typed).
-  const s = await step(ctx, 'word-translation', translationProviders(ctx.lang, parsed.pos), parsed.term);
-  const base = { complete: found.ok && s.ok, detailsMissing: !found.ok };
+  // Last resort: a translation-only result (no grammar beyond what was typed; "sich …" as a whole).
+  const typedPos = parsed.pos ?? (parsed.reflexive ? 'verb' : undefined);
+  const s = await step(ctx, 'word-translation', translationProviders(ctx.lang, typedPos), parsed.term);
+  const base = { complete: (found.kind === 'none' ? found.ok : true) && s.ok, detailsMissing: found.kind === 'none' && !found.ok };
   if (!s.value) return planned({ ...base, result: null, via: null });
-  const pos: Pos = parsed.pos ?? s.value.pos ?? 'other';
+  const pos: Pos = typedPos ?? s.value.pos ?? 'other';
   return planned({
     ...base,
     via: s.via,
@@ -815,7 +952,8 @@ export async function translateText(text: string, from: 'de' | Lang, to: 'de' | 
 
 /**
  * Merge a lookup result into a card, filling only empty fields. A card that already has an
- * article takes that article's meaning ("die See" → море, not озеро). Pure function.
+ * article takes that article's meaning ("die See" → море, not озеро). The card's term is kept
+ * ("sich freuen" is looked up as the reflexive verb, so its result is that reading). Pure function.
  */
 export function mergeIntoCard(card: Card, lookup: LookupResult): Card {
   const result = card.pos === 'noun' || card.pos === 'other' ? preferArticle(lookup, card.genders) : lookup;
@@ -831,6 +969,7 @@ export function mergeIntoCard(card: Card, lookup: LookupResult): Card {
     examples: card.examples.some((e) => e.de.trim())
       ? card.examples.map((e) => ({ ...e }))
       : result.examples.map((e) => ({ ...e })),
+    ...(!card.preps?.trim() && result.preps ? { preps: result.preps } : {}),
     needsFill: 0,
   };
 }
@@ -908,7 +1047,7 @@ async function lookupBatch(cards: Card[], lang: Lang, avoid: Set<ProviderId>, si
 
   // Offline dictionary.
   const local: Step<Details>[] = [];
-  for (const i of todo) local[i] = await step(shared, 'word-details', [LOCAL_DETAILS], words[i].parsed);
+  for (const i of todo) local[i] = await step(shared, 'word-details', [LOCAL_DETAILS], detailQuery(words[i].parsed));
   throwIfAborted(signal);
 
   // Wiktionary pages, batched. A refusal puts Wiktionary in cooldown: the rest of the run goes on without it.
@@ -931,7 +1070,7 @@ async function lookupBatch(cards: Card[], lang: Lang, avoid: Set<ProviderId>, si
         }
       }
       try {
-        const details = await wikiDetails(words[i].parsed, loader);
+        const details = await wikiDetails(detailQuery(words[i].parsed), loader);
         return details ? { kind: 'wiki', details } : { kind: 'none', ok: l.ok };
       } catch {
         return { kind: 'none', ok: false };

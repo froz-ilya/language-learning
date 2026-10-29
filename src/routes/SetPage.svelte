@@ -10,7 +10,15 @@
   import SwipeRow from '../components/SwipeRow.svelte';
   import FillProgress from '../components/library/FillProgress.svelte';
   import EmptyState from '../components/library/EmptyState.svelte';
-  import { afterSheet, learnedLine, plural, setKnownWithUndo, stagger } from '../components/library/actions';
+  import {
+    afterSheet,
+    isReflexiveCard,
+    learnedLine,
+    plural,
+    reflexiveOnlyVerbs,
+    setKnownWithUndo,
+    stagger,
+  } from '../components/library/actions';
   import { go, replace, route } from '../lib/router.svelte';
   import { live } from '../lib/live.svelte';
   import { dur } from '../lib/motion';
@@ -43,20 +51,44 @@
   const needFill = $derived(cards.filter((c) => c.needsFill));
   const statusOfCard = (c: Card): WordStatus => data.value?.status.get(c.id!) ?? 'new';
 
+  // ---------- Reflexive verbs ----------
+
+  /** Preset verbs used only with "sich" (beeilen), per the offline dictionary; presets keep the bare verb. */
+  let presetReflexive = $state.raw(new Set<number>());
+  $effect(() => {
+    if (!isPreset) return;
+    let stale = false;
+    void reflexiveOnlyVerbs(cards).then((ids) => {
+      if (!stale) presetReflexive = ids;
+    });
+    return () => {
+      stale = true;
+    };
+  });
+  const isReflexive = (c: Card) => isReflexiveCard(c) || presetReflexive.has(c.id!);
+  const reflexiveCount = $derived(cards.filter(isReflexive).length);
+
   // ---------- Filter + search ----------
 
   type Filter = 'all' | WordStatus;
   const FILTERS: Filter[] = ['all', 'new', 'learning', 'learned', 'known'];
   let filter = $state<Filter>('all');
   let query = $state('');
+  /** "with sich": only reflexive verbs (the chip shows only when the set has some). */
+  let onlySich = $state(false);
+  const sichFilter = $derived(onlySich && reflexiveCount > 0);
 
-  const countOf = (f: Filter) => (f === 'all' ? cards.length : (data.value?.progress[f] ?? 0));
+  const countOf = (f: Filter) => {
+    if (sichFilter) return cards.filter((c) => isReflexive(c) && (f === 'all' || statusOfCard(c) === f)).length;
+    return f === 'all' ? cards.length : (data.value?.progress[f] ?? 0);
+  };
 
   const visible = $derived.by(() => {
     const q = query.trim().toLowerCase();
     return cards.filter(
       (c) =>
         (filter === 'all' || statusOfCard(c) === filter) &&
+        (!sichFilter || isReflexive(c)) &&
         (!q ||
           c.term.toLowerCase().includes(q) ||
           c.translation.toLowerCase().includes(q) ||
@@ -252,22 +284,30 @@
         </div>
       {:else}
         <section class="section">
-          <div class="chips" role="tablist" aria-label="Filter by status">
-            {#each FILTERS as f}
-              {@const n = countOf(f)}
-              <button
-                class="fchip"
-                class:active={filter === f}
-                role="tab"
-                aria-selected={filter === f}
-                disabled={!n && filter !== f}
-                onclick={() => (filter = f)}
-              >
-                {#if f !== 'all'}<span class="dot st-{f}"></span>{/if}
-                {f === 'all' ? 'All' : STATUS_LABELS[f]}
-                <span class="n">{n}</span>
+          <div class="chips">
+            <div class="tabs" role="tablist" aria-label="Filter by status">
+              {#each FILTERS as f}
+                {@const n = countOf(f)}
+                <button
+                  class="fchip"
+                  class:active={filter === f}
+                  role="tab"
+                  aria-selected={filter === f}
+                  disabled={!n && filter !== f}
+                  onclick={() => (filter = f)}
+                >
+                  {#if f !== 'all'}<span class="dot st-{f}"></span>{/if}
+                  {f === 'all' ? 'All' : STATUS_LABELS[f]}
+                  <span class="n">{n}</span>
+                </button>
+              {/each}
+            </div>
+            {#if reflexiveCount}
+              <button class="fchip sich-chip" class:active={sichFilter} aria-pressed={sichFilter} onclick={() => (onlySich = !onlySich)}>
+                with <span lang="de">sich</span>
+                <span class="n">{reflexiveCount}</span>
               </button>
-            {/each}
+            {/if}
           </div>
 
           {#if cards.length > 10}
@@ -287,7 +327,9 @@
 
           {#if !visible.length}
             <div class="empty">
-              {query.trim() ? `No words match “${query.trim()}”.` : `No ${STATUS_LABELS[filter as WordStatus]?.toLowerCase() ?? ''} words.`}
+              {query.trim()
+                ? `No words match “${query.trim()}”.`
+                : `No ${STATUS_LABELS[filter as WordStatus]?.toLowerCase() ?? ''} words${sichFilter ? ' with “sich”' : ''}.`}
             </div>
           {:else}
             <div class="words">
@@ -311,6 +353,7 @@
                         <span class="texts">
                           <span class="line1">
                             <span class="de"><Term card={c} /></span>
+                            {#if isReflexive(c)}<span class="sich" lang="de" title="Reflexive verb">sich</span>{/if}
                             {#if data.value?.hard.has(c.id!)}<span class="hard" title="Hard word"><Icon name="flame" size={14} filled /></span>{/if}
                             {#if c.translation}<span class="tr">{c.translation}</span>{/if}
                           </span>
@@ -407,6 +450,13 @@
     white-space: nowrap;
     cursor: pointer;
     flex-shrink: 0;
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+  }
+  .sich-chip {
+    margin-left: 4px;
   }
   .fchip.active {
     background: var(--accent-fill);
@@ -522,6 +572,17 @@
     font-size: 12px;
     font-weight: 600;
     margin-left: 4px;
+  }
+  .sich {
+    align-self: center;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.5;
   }
   .hard {
     display: inline-flex;

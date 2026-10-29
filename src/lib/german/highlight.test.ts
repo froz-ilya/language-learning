@@ -54,8 +54,14 @@ describe('markExample', () => {
     expect(await marked('Ein schönes Haus, die schönsten Tage.', adj('schön'))).toEqual(['schönes', 'schönsten']);
   });
 
-  it('marks each word of a several-word term, not sich', async () => {
-    expect(await marked('Ich freue mich auf dich.', verb('sich freuen'))).toEqual(['freue']);
+  it('marks each word of a several-word term and the reflexive pronoun of a "sich" verb', async () => {
+    expect(await marked('Ich freue mich auf dich.', verb('sich freuen'))).toEqual(['freue', 'mich']);
+    expect(await marked('Wir treffen uns morgen.', verb('sich treffen'))).toEqual(['treffen', 'uns']);
+    expect(await marked('Ich mache mir Sorgen.', verb('sich Sorgen machen'))).toEqual(['mache', 'mir', 'Sorgen']);
+    expect(await marked('Wir trafen uns.', verb('sich treffen', 'traf', 'getroffen'))).toEqual(['trafen', 'uns']);
+    // Bare verb: no pronoun; no verb found: no pronoun either.
+    expect(await marked('Ich freue mich.', verb('freuen'))).toEqual(['freue']);
+    expect(await marked('Er trifft sich mit ihr.', verb('sich treffen'))).toEqual([]);
   });
 
   it('survives a failing dictionary', async () => {

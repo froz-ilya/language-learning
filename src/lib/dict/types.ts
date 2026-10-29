@@ -19,6 +19,15 @@ export interface LexEntry {
   rank: number;
   /** Level band when the word is in the A1–C2 presets. */
   level?: LevelCode;
+  /**
+   * Verbs used with "sich": 'also' next to other meanings (treffen / sich treffen), 'only' when
+   * the verb has no meaning without it (sich beeilen). Absent for other words.
+   */
+  reflexive?: 'also' | 'only';
+  /** Translations of the reflexive meanings (sich treffen → встречаться), when the dictionary has them. */
+  trRefl?: { ru: string; en: string };
+  /** Prepositions with their case, "; "-separated, as Card.preps ("auf + Akk; über + Akk"). */
+  preps?: string;
 }
 
 /** Result of a local lookup: the lemma entry plus how the input matched it. */

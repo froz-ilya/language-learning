@@ -63,6 +63,18 @@ function reviveDates(r: Review): Review {
 }
 
 /**
+ * A card from any backup version as today's code stores it: v1 cards predate level presets and
+ * the "known" flag; cards before `preps` have none (it stays absent; a value that isn't text is
+ * dropped).
+ */
+function normalizeCard(c: Card): Card {
+  const { preps, ...rest } = c as Card & { preps?: unknown };
+  const out: Card = { ...rest, known: c.known ?? 0, presetId: c.presetId ?? '' };
+  if (typeof preps === 'string' && preps.trim()) out.preps = preps.trim();
+  return out;
+}
+
+/**
  * replace: wipe everything and restore the backup as-is.
  * merge: add the backup's folders/sets/cards next to existing ones (new ids).
  */
@@ -72,7 +84,7 @@ export async function importBackup(text: string, mode: 'replace' | 'merge'): Pro
   // v1 backups predate level presets and the "known" flag.
   data.folders = data.folders.map((f) => ({ ...f, level: f.level ?? '' }));
   data.sets = data.sets.map((s) => ({ ...s, level: s.level ?? '', topic: s.topic ?? '' }));
-  data.cards = data.cards.map((c) => ({ ...c, known: c.known ?? 0, presetId: c.presetId ?? '' }));
+  data.cards = data.cards.map(normalizeCard);
   const reviews = (data.reviews ?? []).map(reviveDates);
 
   await db.transaction('rw', [db.folders, db.sets, db.cards, db.reviews, db.settings], async () => {

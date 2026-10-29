@@ -9,6 +9,7 @@
   import Term from '../Term.svelte';
   import Examples from './Examples.svelte';
   import NoteHint from './NoteHint.svelte';
+  import Preps from './Preps.svelte';
   import SwipeCard, { type SwipeDir } from './SwipeCard.svelte';
 
   /**
@@ -103,10 +104,11 @@
             <SpeakButton text={speakableTerm(card)} />
           </div>
           <div class="translation" class:emph={germanFront}><Meanings translation={card.translation} /></div>
-          {#if plural || verbForms}
+          {#if plural || verbForms || card.preps?.trim()}
             <div class="forms">
               {#if plural}<div>Plural: <span class="g-f">{plural}</span></div>{/if}
               {#if verbForms}<div>{verbForms}</div>{/if}
+              <Preps preps={card.preps} />
             </div>
           {/if}
           <NoteHint notes={card.notes} />

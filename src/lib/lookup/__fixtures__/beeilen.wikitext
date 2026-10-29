@@ -1,0 +1,82 @@
+== beeilen ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Verb|Deutsch}} ===
+
+{{Deutsch Verb Übersicht
+|Präsens_ich=beeile
+|Präsens_du=beeilst
+|Präsens_er, sie, es=beeilt
+|Präteritum_ich=beeilte
+|Partizip II=beeilt
+|Konjunktiv II_ich=beeilte
+|Imperativ Singular=beeile
+|Imperativ Plural=beeilt
+|Hilfsverb=haben
+}}
+
+{{Worttrennung}}
+:be·ei·len, {{Prät.}} be·eil·te, {{Part.}} be·eilt
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|bəˈʔaɪ̯lən}}
+:{{Hörbeispiele}} {{Audio|De-beeilen.ogg}}, {{Audio|De-beeilen2.ogg}}
+:{{Reime}} {{Reim|aɪ̯lən|Deutsch}}
+
+{{Bedeutungen}}
+:[1] {{K|refl.|intrans.}} (die [[Geschwindigkeit]] erhöhen), sich schneller bewegen, schneller machen
+::[1a] ''sich beeilen, um (gleich, noch, rechtzeitig, sofort, …) etwas'' <small>zu bewerkstelligen, zu machen</small>: etwas schneller <small>bewerkstelligen, machen</small> ''(Als [[Reaktion]] auf [[Zeitdruck]] oder (als [[Aufforderung]] im [[Imperativ]]) um unter [[Zeitdruck]] zu [[setzen]])''
+::[1b] ''sich beeilen mit etwas'': etwas schneller machen (das ''etwas'' ist oft ein [[Nomen Actionis]], häufig aber auch eine Sache, die [[elliptisch]] ein [[Nomen Actionis]] vertritt)
+
+{{Herkunft}}
+:{{Verbherkunft|2=u}}
+
+{{Synonyme}}
+:[1] [[eilen]], [[galoppieren]], [[hasten]], [[hechten]], [[huschen]], [[hochschnellen]], [[laufen]], [[pesen]], [[preschen]], [[rennen]], [[sausen]], sich [[sputen]], [[sprinten]], [[stürmen]], [[traben]], [[wetzen]], sich [[heranhalten]]
+
+{{Gegenwörter}}
+:[1] [[trotten]], [[trödeln]]
+
+{{Beispiele}}
+:[1] Sie mussten sich sehr ''beeilen,'' um den Bus noch zu erreichen.
+:[1a] Er ''beeilt'' sich, um noch gegen Mittag fertig zu werden.
+:[1b] ''Beeile'' dich mit dem hinteren Feld, wir wollen morgen in den Forst!
+
+{{Wortbildungen}}
+:[[Beeilung]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=sich schneller bewegen, schneller machen|Ü-Liste=
+*{{eu}}: {{Ü|eu|bizkortu}}, {{Ü|eu|azkartu}}
+*{{bg}}: {{Üt|bg|бързам}}
+*{{en}}: {{Ü|en|hurry}}
+*{{eo}}: {{Ü|eo|rapidiri}}, {{Ü|eo|rapidi}}, {{Ü|eo|urĝiĝi}}
+*{{fr}}: se {{Ü|fr|dépêcher}}
+*{{el}}: {{Üt|el|βιάζομαι|viázome}}, {{Üt|el|σπεύδω|spévdo}}
+*{{it}}: {{Ü|it|sbrigarsi}}, {{Ü|it|affrettarsi}}
+*{{ja}}: {{Üt|ja|急ぐ|いそぐ, isogu}}
+*{{tlh}}: {{Ü|tlh|moD}}
+*{{pt}}: {{Ü|pt|apressar-se}}
+*{{ro}}: {{Ü|ro|grăbi|se grăbi}}
+*{{ru}}: {{Üt|ru|торопиться}}, {{Üt|ru|спешить}}
+*{{sv}}: {{Ü|sv|skynda sig}}
+*{{sr}}: {{Üt|sr|пожурити се|požuriti se}}
+*{{es}}: {{Ü|es|apurarse}}, {{Ü|es|apresurarse}}
+*{{hu}}: {{Ü|hu|iparkodik}}, {{Ü|hu|siet}}
+*{{uz}}: {{Ü|uz|shoshilmoq}}
+}}
+{{Ü-Tabelle|1a|G=etwas schneller bewerkstelligen|Ü-Liste=
+*{{ru}}: {{Üt|ru|торопиться}}, {{Üt|ru|спешить}}
+*{{sv}}: {{Ü|sv|skynda sig}}
+*{{sr}}: {{Üt|sr|пожурити се|požuriti se}}
+}}
+{{Ü-Tabelle|1b|G=sich beeilen mit etwas|Ü-Liste=
+*{{ru}}: {{Üt|ru|торопиться}}, {{Üt|ru|спешить}}
+*{{sv}}: {{Ü|sv|skynda sig}}
+*{{sr}}: {{Üt|sr|пожурити се|požuriti se}}
+}}
+
+{{Referenzen}}
+:[1] {{Ref-Grimm}}
+:[1] {{Ref-DWDS}}
+:[1] {{Ref-UniLeipzig}}
+
+{{Ähnlichkeiten 1|[[Beilen]], [[peilen]]|Anagramme=[[beinele]], [[einlebe]]}}

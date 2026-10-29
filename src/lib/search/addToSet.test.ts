@@ -61,6 +61,21 @@ describe('isSameWord', () => {
     expect(quickAddDuplicate(cards, word('See', 'noun', ['m']), 2)?.id).toBe(1);
     expect(quickAddDuplicate(cards, word('See', 'noun', ['f']), 2)).toBeUndefined();
   });
+
+  it('quickAddDuplicate: "sich treffen" and "treffen" are different words', () => {
+    const cards = [
+      { id: 1, term: 'treffen', genders: [] },
+      { id: 2, term: 'sich beeilen', genders: [] },
+    ];
+    const verb = (term: string) => ({ term, pos: 'verb' as Pos, genders: [] });
+    expect(quickAddDuplicate(cards, verb('sich treffen'))).toBeUndefined();
+    expect(quickAddDuplicate(cards, verb('treffen'))?.id).toBe(1);
+    expect(quickAddDuplicate(cards, verb('sich beeilen'))?.id).toBe(2);
+    // Typed with other spacing or capitals: still the same word.
+    expect(quickAddDuplicate(cards, verb(' Sich  beeilen '))?.id).toBe(2);
+    expect(quickAddDuplicate(cards, verb('beeilen'))).toBeUndefined();
+    expect(findDuplicate([{ id: 3, term: 'sich treffen', genders: [] }], { term: 'treffen' })).toBeUndefined();
+  });
 });
 
 describe('addWordToSet', () => {

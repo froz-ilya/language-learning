@@ -24,8 +24,9 @@
   import { rememberQuickAddSet } from '../lib/share';
   import { findDuplicate, quickAddDuplicate } from '../lib/search/addToSet';
   import { takeKeyboard } from '../lib/ui/keyboard';
-  import { arrangeExamples, examplePool, phrasesToAdd } from '../lib/lookup/examplePool';
-  import type { ArticleVariant, Card, Example, Gender, LookupResult, Pos } from '../lib/types';
+  import { arrangeExamples, examplePool, phrasesForReading, phrasesToAdd } from '../lib/lookup/examplePool';
+  import { isReflexiveTerm, withSich } from '../lib/german/reflexive';
+  import type { ArticleVariant, Card, Example, Gender, LookupResult, Pos, ReflexiveReading } from '../lib/types';
 
   /*
    * New word  → "Quick add": type → dictionary preview → ✓ Add (keyboard stays up for the next
@@ -56,7 +57,7 @@
   /** Has a dictionary lookup filled this card (or was it already filled before editing)? */
   let filled = isNew ? false : true;
   /** Values the last lookup put into free-text fields; a re-lookup only replaces untouched ones. */
-  let auto = $state({ translation: '', examples: '' });
+  let auto = $state({ translation: '', examples: '', preps: '' });
   /** The card's examples are still the ones the lookup put in (not edited by hand). */
   const examplesAuto = $derived(JSON.stringify(card.examples) === auto.examples);
 
@@ -106,6 +107,14 @@
   const lang = $derived(settings.lang.toUpperCase());
   const forms = $derived(card.pos === 'noun' ? displayPlural(card) : card.pos === 'verb' ? displayVerbForms(card) : '');
   const firstExample = $derived(card.examples.find((e) => e.de.trim()));
+  /** "auf + Akk; über + Akk" → "auf + Akk · über + Akk" (the preview's line). */
+  const prepsLine = $derived(
+    (card.preps ?? '')
+      .split(';')
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .join(' · '),
+  );
 
   // ---------- Typed article / verb forms ----------
 
@@ -152,6 +161,7 @@
     via = null;
     articles = [];
     wantGender = null;
+    reflexive = null;
     if (!isNew || showDetails) return; // the full form may hold hand-typed details
     card.pos = 'other';
     card.genders = [];
@@ -161,7 +171,8 @@
     card.auxiliary = '';
     if (card.translation === auto.translation) card.translation = '';
     if (JSON.stringify(card.examples) === auto.examples) card.examples = [];
-    auto = { translation: '', examples: '' };
+    if ((card.preps ?? '') === auto.preps) card.preps = undefined;
+    auto = { translation: '', examples: '', preps: '' };
     clearMeanings();
     filled = false;
   }
@@ -316,6 +327,7 @@
     lemmaNote = '';
     via = null;
     articles = [];
+    reflexive = null;
     // The article picked from a suggestion, or the one the card has: its meaning comes first.
     const gender = wantGender ?? (card.pos === 'noun' && card.genders.length === 1 ? card.genders[0] : null);
     wantGender = null;
@@ -347,6 +359,7 @@
       // Existing card: only fill what's empty.
       const merged = mergeIntoCard($state.snapshot(card) as Card, r);
       card = { ...merged, id: card.id, setId: card.setId };
+      if (r.preps && !card.preps?.trim()) card.preps = r.preps;
       if (r.translation && card.translation.trim() === r.translation.trim()) offerMeanings();
       return;
     }
@@ -358,6 +371,7 @@
     card.praeteritum = r.praeteritum;
     card.partizip2 = r.partizip2;
     card.auxiliary = r.auxiliary;
+    setPreps(r.preps);
     if (r.translation && (!card.translation.trim() || card.translation === auto.translation)) {
       card.translation = r.translation;
       auto.translation = r.translation;
@@ -365,6 +379,28 @@
     }
     lookupEx = { byMeaning: r.meaningExamples ?? [], examples: r.examples, phrases: r.phrases ?? [] };
     if (!card.examples.length || examplesAuto) fillExamples();
+    // A verb with a "sich" reading next to its own (treffen / sich treffen): offer the switch.
+    reflexive =
+      r.reflexive && !isReflexiveTerm(card.term)
+        ? {
+            base: card.term.trim(),
+            plain: {
+              translation: r.translation,
+              examples: r.examples,
+              meaningExamples: r.meaningExamples,
+              preps: r.preps,
+              phrases: r.phrases ?? [],
+            },
+            refl: r.reflexive,
+          }
+        : null;
+  }
+
+  /** The dictionary's prepositions, unless the user typed their own (new words). */
+  function setPreps(preps: string | undefined) {
+    if (card.preps?.trim() && card.preps !== auto.preps) return;
+    card.preps = preps || undefined;
+    auto.preps = preps ?? '';
   }
 
   /**
@@ -392,6 +428,37 @@
         auto.examples = JSON.stringify(card.examples);
       }
     }
+  }
+
+  // ---------- Reflexive reading (treffen / sich treffen) ----------
+
+  type Reading = ReflexiveReading & { phrases: Example[] };
+  /** The last lookup's verb and its two readings, when it has a "sich" one (new words). */
+  let reflexive = $state.raw<{ base: string; plain: Reading; refl: ReflexiveReading } | null>(null);
+  const reflexiveOn = $derived(isReflexiveTerm(card.term));
+
+  /**
+   * The card becomes "sich treffen" (or back "treffen"): that reading's translation, examples
+   * and prepositions. A translation or example the user typed is kept (see chooseArticle).
+   */
+  function chooseReflexive(on: boolean) {
+    if (!reflexive || on === reflexiveOn) return;
+    const { base, plain, refl } = reflexive;
+    const reading: Reading = on ? { ...refl, phrases: phrasesForReading(plain.phrases, true) } : plain;
+    const other = (on ? plain : refl).translation.trim();
+    const translationIsAuto = !card.translation.trim() || card.translation === auto.translation || card.translation.trim() === other;
+    card.term = on ? withSich(base) : base;
+    // The typed text is this word now: Return adds it, typing on starts a new word.
+    lastLookedUp = card.term.trim();
+    if (translationIsAuto && reading.translation.trim()) {
+      card.translation = reading.translation;
+      auto.translation = reading.translation;
+      clearMeanings();
+      offerMeanings();
+    }
+    setPreps(reading.preps);
+    lookupEx = { byMeaning: reading.meaningExamples ?? [], examples: reading.examples, phrases: reading.phrases };
+    if (!card.examples.some((e) => e.de.trim()) || examplesAuto) fillExamples();
   }
 
   /** Quick add of one article straight from its row. */
@@ -550,6 +617,10 @@
       c.auxiliary = '';
     }
     c.examples = c.examples.map((e) => ({ de: e.de.trim(), tr: (e.tr ?? '').trim() }));
+    // Prepositions as typed, trimmed; none → no field (cards saved before it existed have none).
+    const preps = c.preps?.trim();
+    if (preps) c.preps = preps;
+    else delete c.preps;
     // The lookup's set phrases go after its sentences (not when the examples were edited by hand).
     if (isNew && examplesAuto) c.examples.push(...phrasesToAdd(c.examples, lookupEx.phrases));
     c.needsFill = !filled && detailsMissing(c) ? 1 : 0;
@@ -585,7 +656,8 @@
     stopSuggest();
     card = emptyCard(card.setId);
     filled = false;
-    auto = { translation: '', examples: '' };
+    auto = { translation: '', examples: '', preps: '' };
+    reflexive = null;
     clearMeanings();
     clearLookupExamples();
     lookupState = 'idle';
@@ -772,6 +844,32 @@
               <div class="p-term"><Term {card} /></div>
               <SpeakButton text={speakableTerm(card)} />
             </div>
+            {#if reflexive && lookupState === 'done'}
+              {@const verb = reflexive.base}
+              <div class="refl-pick">
+                <div class="segmented refl-seg" role="group" aria-label="Reflexive">
+                  <button
+                    type="button"
+                    class:active={!reflexiveOn}
+                    aria-pressed={!reflexiveOn}
+                    lang="de"
+                    onpointerdown={keepFocus}
+                    onclick={() => chooseReflexive(false)}>{verb}</button
+                  >
+                  <button
+                    type="button"
+                    class:active={reflexiveOn}
+                    aria-pressed={reflexiveOn}
+                    lang="de"
+                    onpointerdown={keepFocus}
+                    onclick={() => chooseReflexive(true)}>{withSich(verb)}</button
+                  >
+                </div>
+                {#if !reflexiveOn && reflexive.refl.translation}
+                  <div class="small muted ellipsis"><span lang="de">{withSich(verb)}</span> — <span lang={settings.lang}>{reflexive.refl.translation}</span></div>
+                {/if}
+              </div>
+            {/if}
             {#if articles.length > 1 && lookupState === 'done'}
               <div class="article-pick">
                 <ArticleChoices
@@ -788,6 +886,7 @@
               </div>
             {:else}
               {#if forms}<div class="p-forms">{forms}</div>{/if}
+              {#if prepsLine}<div class="p-preps small" lang="de">{prepsLine}</div>{/if}
               {#if card.translation}
                 <div class="p-tr">{card.translation}</div>
               {:else}
@@ -976,6 +1075,13 @@
               </div>
             </div>
           {/if}
+          {#if card.pos === 'verb' || card.preps?.trim()}
+            <!-- Verbs, and any word that has prepositions already (stolz auf + Akk). -->
+            <div class="field">
+              <label for="preps">Prepositions <span class="hint">(“; ” between them)</span></label>
+              <input id="preps" class="input" bind:value={card.preps} placeholder="auf + Akk" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" lang="de" />
+            </div>
+          {/if}
 
           <div class="field">
             <label for="tr">Translation</label>
@@ -1143,6 +1249,28 @@
   }
   .p-forms {
     color: var(--muted);
+  }
+  .p-preps {
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .refl-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 2px 0 4px;
+  }
+  .refl-seg {
+    align-self: flex-start;
+    max-width: 100%;
+  }
+  .refl-seg button {
+    flex: 0 1 auto;
+    min-height: 34px;
+    padding: 4px 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .p-tr {
     font-size: 19px;

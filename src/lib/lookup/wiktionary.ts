@@ -1,6 +1,6 @@
 import type { Auxiliary, Gender, Lang, Pos } from '../types';
 import { checkResponse, SourceError } from '../sources/chain';
-import { mergeMeanings, pickMeanings, sameMeaning, type SenseTranslations } from './meanings';
+import { formatPreps, mergeMeanings, pickMeanings, sameMeaning, type SenseTranslations } from './meanings';
 
 const API = 'https://de.wiktionary.org/w/api.php';
 
@@ -12,6 +12,13 @@ export interface WikiSense {
   translations: Record<Lang, string[]>;
   /** Example sentences marked with this sense ("[2] Er …"), page order, markup stripped. */
   examples: string[];
+  /**
+   * A reflexive use of a verb ("sich treffen"): its definition is labelled "{{K|refl.}}",
+   * "''reflexiv:''", "''sich …:''", or it stands under a "reflexiv:" heading.
+   */
+  reflexive?: true;
+  /** Prepositions with their case the sense is used with, page order ("auf + Akk"; see sensePreps). */
+  preps?: string[];
 }
 
 /**
@@ -60,6 +67,22 @@ export interface WikiEntry {
    * first one's. Absent for gender variants of one meaning (der/das Teil: genders [n, m]).
    */
   articles?: WikiArticle[];
+  /**
+   * Verbs used with "sich": 'only' when every sense on the page is reflexive (sich beeilen),
+   * 'also' when some are (treffen / sich treffen). Same values as LexEntry.reflexive.
+   */
+  reflexive?: 'also' | 'only';
+  /**
+   * With `reflexive`: meanings of the reflexive senses, as `translations`. `translations` then
+   * holds the other senses' meanings (all senses' when the others have no translation).
+   */
+  reflexiveTranslations?: Record<Lang, string[][]>;
+  /**
+   * Prepositions with their case of all senses, "; "-separated, at most 3, as Card.preps
+   * ("auf + Akk; über + Akk"). Lookups take the ones of the senses a reading stands for
+   * (WikiSense.preps).
+   */
+  preps?: string;
 }
 
 /** Wiktionary refused the request (HTTP 429/503). */
@@ -342,15 +365,17 @@ function senseNumbers(body: string): number[] {
 }
 
 /**
- * Numbered senses of a block with their own translations and examples: an example marked
- * "[1, 2]" belongs to both. Senses the page ties nothing to are left out. `offset` is added to
- * the sense numbers (see blockEntry).
+ * Numbered senses of a block with their own translations, examples and prepositions: an
+ * example marked "[1, 2]" belongs to both. Senses the page ties nothing to are left out.
+ * `offset` is added to the sense numbers (see blockEntry); only a verb's senses are marked
+ * reflexive.
  */
-function parseSenses(body: string, offset = 0): WikiSense[] {
+function parseSenses(body: string, title: string, offset = 0, verb = false): WikiSense[] {
   const numbers = senseNumbers(body);
   if (!numbers.length) return [];
   const words = { en: parseSenseTranslations(body, 'en'), ru: parseSenseTranslations(body, 'ru') };
   const lines = exampleLines(body);
+  const marks = senseMarks(body, title);
   const out: WikiSense[] = [];
   for (const n of numbers) {
     const translations = { en: [], ru: [] } as Record<Lang, string[]>;
@@ -361,11 +386,126 @@ function parseSenses(body: string, offset = 0): WikiSense[] {
       translations[lang] = [...new Set(sorted)];
     }
     const examples = pickExamples(lines.filter((e) => e.senses.includes(n)));
-    if (examples.length || translations.en.length || translations.ru.length) {
-      out.push({ n: n + offset, translations, examples });
+    const mark = marks.get(n);
+    const preps = mark?.preps ?? [];
+    if (examples.length || translations.en.length || translations.ru.length || preps.length) {
+      const sense: WikiSense = { n: n + offset, translations, examples };
+      if (verb && mark?.reflexive) sense.reflexive = true;
+      if (preps.length) sense.preps = preps;
+      out.push(sense);
     }
   }
   return out;
+}
+
+// ---------- Reflexive senses and prepositions ----------
+
+/** Labels in front of a definition: templates and italic notes ("{{K|refl.}} ''sich auf etwas freuen:''"). */
+const LEADING_LABELS = /^(?:\{\{(?:[^{}]|\{\{[^{}]*\}\})*\}\}\s*|''[^'\n]*''\s*:?\s*)+/;
+
+/** A label marking a reflexive use: "{{K|refl.}}", "''reflexiv:''", "''sich treffen:''", "''es trifft sich:''". */
+const REFLEXIVE_LABEL = /(?<!\p{L})(?:refl\.|reflexiv|sich(?!\p{L}))/iu;
+
+type Case = 'Akk' | 'Dat' | 'Gen';
+
+/**
+ * Case of a preposition's object when the wording doesn't say ("auf etwas" → Akk). Two-way
+ * prepositions get the case they nearly always have after a verb (warten auf + Akk, sich
+ * fürchten vor + Dat); null where both are common (an, in): those need "jemanden"/"jemandem"
+ * or an explicit case.
+ */
+const PREP_CASE: Record<string, Case | null> = {
+  mit: 'Dat', von: 'Dat', zu: 'Dat', aus: 'Dat', bei: 'Dat', nach: 'Dat', seit: 'Dat', gegenüber: 'Dat',
+  für: 'Akk', um: 'Akk', gegen: 'Akk', durch: 'Akk', ohne: 'Akk',
+  wegen: 'Gen',
+  auf: 'Akk', über: 'Akk', vor: 'Dat', unter: 'Dat',
+  an: null, in: null, neben: null, hinter: null, zwischen: null,
+};
+/** Prepositions whose case never depends on the wording. */
+const FIXED_CASE = new Set(['mit', 'von', 'zu', 'aus', 'bei', 'nach', 'seit', 'gegenüber', 'für', 'um', 'gegen', 'durch', 'ohne', 'wegen']);
+const PREP = `(${Object.keys(PREP_CASE).join('|')})`;
+/** "sich auf etwas freuen", "sich (über etwas) freuen", "mit jemandem": a preposition and the placeholder for its object. */
+const PREP_OBJECT = new RegExp(`(?<![\\p{L}])${PREP}\\s+(etwas|etw\\.|jemanden|jemandem|jemand|jmdn\\.?|jmdm\\.?|jdn\\.?|jdm\\.?)(?![\\p{L}])`, 'giu');
+/** "auf + Akk.", "mit + Dativ". */
+const PREP_PLUS_CASE = new RegExp(`(?<![\\p{L}])${PREP}\\s*\\+\\s*(Akk|Dat|Gen)`, 'giu');
+
+const caseOf = (c: string): Case | null => {
+  const k = c.slice(0, 3).toLowerCase();
+  return k === 'akk' ? 'Akk' : k === 'dat' ? 'Dat' : k === 'gen' ? 'Gen' : null;
+};
+
+/** "auf + Akk" for a preposition and the case given (or implied), null when the case is unknown. */
+function prepWith(prep: string, given: Case | null): string | null {
+  const p = prep.toLowerCase();
+  if (!(p in PREP_CASE)) return null;
+  const c = FIXED_CASE.has(p) ? PREP_CASE[p] : (given ?? PREP_CASE[p]);
+  return c ? `${p} + ${c}` : null;
+}
+
+/** Case a placeholder stands in: "jemanden" → Akk, "jemandem" → Dat, "etwas" → unknown. */
+const placeholderCase = (w: string): Case | null =>
+  /^(?:jemanden|jmdn|jdn)/i.test(w) ? 'Akk' : /^(?:jemandem|jmdm|jdm)/i.test(w) ? 'Dat' : null;
+
+/**
+ * Prepositions in a definition's labels, conservatively: the K template's "Prä=auf|Kas=Akk."
+ * or "auf + Akk.", and an italic usage note with the word or "sich" in it whose preposition
+ * comes with a placeholder ("''sich auf etwas freuen:''", "''sich beeilen mit etwas''"). A
+ * preposition starting a clause ("sich beeilen, um … etwas zu …") is not one: it is not
+ * followed by the placeholder. The definition itself is never read ("auf etwas aufprallen"
+ * explains the word, it is not how the word is used).
+ */
+function labelPreps(label: string, title: string): string[] {
+  const out: string[] = [];
+  const add = (p: string | null) => p && !out.includes(p) && out.push(p);
+  for (const k of label.matchAll(/\{\{K\|((?:[^{}]|\{\{[^{}]*\}\})*)\}\}/g)) {
+    for (const m of k[1].matchAll(/Prä(\d*)\s*=\s*([^|}]+)/g)) {
+      const kas = k[1].match(new RegExp(`Kas${m[1]}\\s*=\\s*([^|}]+)`));
+      add(prepWith(stripMarkup(m[2]).trim(), kas ? caseOf(kas[1].trim()) : null));
+    }
+  }
+  for (const m of stripMarkup(label.replace(/''/g, ' ')).matchAll(PREP_PLUS_CASE)) add(prepWith(m[1], caseOf(m[2])));
+  const word = title.toLowerCase();
+  for (const it of label.matchAll(/''([^'\n]*)''/g)) {
+    const text = stripMarkup(it[1]);
+    const lower = text.toLowerCase();
+    if (!lower.includes(word) && !/(?<!\p{L})sich(?!\p{L})/u.test(lower)) continue;
+    for (const m of text.matchAll(PREP_OBJECT)) add(prepWith(m[1], placeholderCase(m[2])));
+  }
+  return out;
+}
+
+/**
+ * Reflexive flag and prepositions of each sense under {{Bedeutungen}}: a sense is reflexive
+ * when its definition's labels say so (REFLEXIVE_LABEL) or it stands under a heading line that
+ * does ("''reflexiv:''"); a heading without the mark ends such a group. Sub-senses ("::[1b]")
+ * add their prepositions to their sense.
+ */
+function senseMarks(body: string, title: string): Map<number, { reflexive: boolean; preps: string[] }> {
+  const out = new Map<number, { reflexive: boolean; preps: string[] }>();
+  let group = false;
+  for (const line of meaningLines(body)) {
+    const d = line.match(/^(:+)\s*\[(\d+)[a-z]?\]\s*(.*)$/);
+    if (!d) {
+      const rest = line.replace(/^[:*]+\s*/, '').trim();
+      const label = rest.match(LEADING_LABELS)?.[0];
+      if (rest && label?.length === rest.length) group = REFLEXIVE_LABEL.test(label);
+      continue;
+    }
+    const n = Number(d[2]);
+    const label = d[3].match(LEADING_LABELS)?.[0] ?? '';
+    let mark = out.get(n);
+    if (!mark) {
+      if (d[1].length > 1) continue; // a sub-sense of a sense not listed
+      out.set(n, (mark = { reflexive: group || REFLEXIVE_LABEL.test(label), preps: [] }));
+    }
+    for (const p of labelPreps(label, title)) if (!mark.preps.includes(p)) mark.preps.push(p);
+  }
+  return out;
+}
+
+/** Reflexive sense numbers of a block (see senseMarks). */
+function reflexiveSenses(body: string, title: string): Set<number> {
+  return new Set([...senseMarks(body, title)].filter(([, m]) => m.reflexive).map(([n]) => n));
 }
 
 /** Longest set phrase kept (WikiEntry.phrases). */
@@ -620,9 +760,18 @@ export function parseSenseTranslations(body: string, lang: Lang): SenseTranslati
   return [...senses].map(([n, s]) => ({ n, words: s.words, weight: s.langs.size }));
 }
 
-/** Meanings of a part-of-speech block in `lang` (see pickMeanings). */
-function parseTranslations(body: string, lang: Lang): string[][] {
-  return pickMeanings(parseSenseTranslations(body, lang), marginalSenses(body));
+/**
+ * Meanings of a part-of-speech block in `lang` (see pickMeanings). With reflexive senses
+ * (`refl`), `plain` are the other senses' meanings (all senses' when the others have no
+ * translation) and `reflexive` the reflexive senses' own.
+ */
+function parseTranslations(body: string, lang: Lang, refl: Set<number> = new Set()): { plain: string[][]; reflexive: string[][] } {
+  const senses = parseSenseTranslations(body, lang);
+  const marginal = marginalSenses(body);
+  const all = pickMeanings(senses, marginal);
+  if (!refl.size) return { plain: all, reflexive: [] };
+  const plain = pickMeanings(senses.filter((s) => !refl.has(s.n)), marginal);
+  return { plain: plain.length ? plain : all, reflexive: pickMeanings(senses.filter((s) => refl.has(s.n)), marginal) };
 }
 
 function lemmaOf(body: string): string | undefined {
@@ -721,6 +870,10 @@ function blockEntry(title: string, pos: Pos, bodies: string[], headers: string[]
   };
   const senses: WikiSense[] = [];
   const phrases: WikiPhrase[] = [];
+  const reflexive = { en: [] as string[][], ru: [] as string[][] };
+  /** Sense counts over the blocks: all, and reflexive ones. */
+  let senseCount = 0;
+  let reflCount = 0;
 
   bodies.forEach((body, i) => {
     const b = { body, header: headers[i] ?? '' };
@@ -745,17 +898,28 @@ function blockEntry(title: string, pos: Pos, bodies: string[], headers: string[]
       const aux = (p['Hilfsverb'] ?? '').trim();
       if (!entry.auxiliary && (aux === 'haben' || aux === 'sein')) entry.auxiliary = aux;
     }
+    const refl = pos === 'verb' ? reflexiveSenses(b.body, title) : new Set<number>();
+    senseCount += senseNumbers(b.body).length;
+    reflCount += refl.size;
     // "die Bank" (bench) + "die Bank" (bank): the first meaning of each, then the rest.
     for (const lang of ['en', 'ru'] as const) {
-      entry.translations[lang] = mergeMeanings(entry.translations[lang], parseTranslations(b.body, lang));
+      const t = parseTranslations(b.body, lang, refl);
+      entry.translations[lang] = mergeMeanings(entry.translations[lang], t.plain);
+      reflexive[lang] = mergeMeanings(reflexive[lang], t.reflexive);
     }
     for (const ex of parseExamples(b.body)) {
       if (entry.examples.length < 3 && !entry.examples.includes(ex)) entry.examples.push(ex);
     }
-    senses.push(...parseSenses(b.body, i * SENSE_OFFSET));
+    senses.push(...parseSenses(b.body, title, i * SENSE_OFFSET, pos === 'verb'));
     for (const p of parsePhrases(b.body, title)) if (!phrases.some((x) => x.de === p.de)) phrases.push(p);
   });
   if (senses.length) entry.senses = senses;
   if (phrases.length) entry.phrases = phrases.slice(0, 3);
+  if (reflCount) {
+    entry.reflexive = reflCount === senseCount ? 'only' : 'also';
+    entry.reflexiveTranslations = reflexive;
+  }
+  const preps = formatPreps(senses.flatMap((s) => s.preps ?? []));
+  if (preps) entry.preps = preps;
   return entry;
 }

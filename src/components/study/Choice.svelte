@@ -9,6 +9,7 @@
   import type { Card } from '../../lib/types';
   import Examples from './Examples.svelte';
   import ResultIcon from './ResultIcon.svelte';
+  import Preps from './Preps.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import Term from '../Term.svelte';
 
@@ -81,12 +82,27 @@
   </div>
 
   {#if picked !== null}
-    {#if hasExamples}<div class="card ex-card"><Examples {card} /></div>{/if}
+    {#if hasExamples || card.preps?.trim()}
+      <div class="card ex-card">
+        {#if card.preps?.trim()}<div class="ex-preps"><span lang="de"><Term {card} /></span> <Preps preps={card.preps} /></div>{/if}
+        <Examples {card} />
+      </div>
+    {/if}
     <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>Continue</button>
   {/if}
 </div>
 
 <style>
+  .ex-preps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    font-weight: 700;
+  }
+  .ex-card .ex-preps + :global(.examples) {
+    margin-top: 10px;
+  }
   .ex-card :global(.examples) {
     margin-top: 0;
     padding-top: 0;

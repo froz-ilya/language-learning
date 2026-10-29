@@ -1,5 +1,6 @@
 import type { Card, Strictness } from '../types';
 import { ARTICLE } from './articles';
+import { baseOfReflexive, isReflexiveTerm, REFLEXIVE_PRONOUNS } from './reflexive';
 
 export type Verdict = 'correct' | 'typo' | 'wrong';
 
@@ -73,6 +74,30 @@ export interface GermanCheck {
   verdict: Verdict;
   /** Noun answered without (or with a wrong) article while one is required. */
   articleProblem?: 'missing' | 'wrong';
+  /**
+   * Reflexive verbs: 'missing' — "treffen" for "sich treffen" (accepted as almost right);
+   * 'form' — a conjugated pronoun ("mich treffen") instead of the dictionary form with "sich".
+   */
+  reflexiveProblem?: 'missing' | 'form';
+}
+
+/** "mich treffen" → ["mich", "treffen"] (normalized input). */
+const PRONOUN_LEAD = new RegExp(`^(${Object.keys(REFLEXIVE_PRONOUNS).join('|')}) (.+)$`);
+
+/**
+ * Reflexive verbs: "sich treffen" answered "treffen" is almost right ('typo', "sich" missing,
+ * whatever the strictness); "sich treffen" for the bare "treffen" is right; any reflexive
+ * pronoun ("mich treffen", "uns treffen") counts as the reflexive form. Null when this isn't
+ * a reflexive answer to a reflexive (or bare-verb) card.
+ */
+function checkReflexive(g: string, term: string, strictness: Strictness): GermanCheck | null {
+  const lead = g.match(PRONOUN_LEAD);
+  const reflexive = isReflexiveTerm(term);
+  if (!lead && !reflexive) return null;
+  const verdict = compare(lead ? lead[2] : g, normalize(baseOfReflexive(term)), strictness);
+  if (verdict === 'wrong') return null;
+  if (!lead) return { verdict: 'typo', reflexiveProblem: 'missing' };
+  return lead[1] === 'sich' ? { verdict } : { verdict, reflexiveProblem: 'form' };
 }
 
 /** Check a typed German answer against a card, optionally requiring the noun's article. */
@@ -87,7 +112,9 @@ export function checkGerman(
   const term = normalize(card.term);
 
   if (card.pos !== 'noun' || card.genders.length === 0) {
-    return { verdict: compare(g, term, strictness) };
+    const verdict = compare(g, term, strictness);
+    if (verdict === 'correct') return { verdict };
+    return checkReflexive(g, card.term, strictness) ?? { verdict };
   }
 
   const m = g.match(/^(der|die|das)\s+(.+)$/);

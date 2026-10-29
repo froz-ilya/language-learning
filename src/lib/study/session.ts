@@ -1,4 +1,5 @@
 import type { Card, Direction, Review } from '../types';
+import { isPronounCard } from './pronouns';
 
 /**
  * Pure study-session logic (no DB, no DOM) so it can be unit tested.
@@ -10,13 +11,14 @@ import type { Card, Direction, Review } from '../types';
  */
 
 export type Scope = 'due' | 'all';
-export type StudyMode = 'flashcards' | 'write' | 'choice' | 'match' | 'listen' | 'articles' | 'verbs';
+export type StudyMode = 'flashcards' | 'write' | 'choice' | 'match' | 'listen' | 'articles' | 'verbs' | 'pronouns';
 /** Per question: 'de-x' shows German and asks the translation, 'x-de' the other way round. */
 export type QuestionDir = 'de-x' | 'x-de';
 export type Rng = () => number;
 
-export const STUDY_MODES: StudyMode[] = ['flashcards', 'write', 'choice', 'match', 'listen', 'articles', 'verbs'];
+export const STUDY_MODES: StudyMode[] = ['flashcards', 'write', 'choice', 'match', 'listen', 'articles', 'verbs', 'pronouns'];
 
+/** A known mode name (saved choices and routes from other versions may hold anything). */
 export function isStudyMode(s: string | undefined): s is StudyMode {
   return !!s && (STUDY_MODES as string[]).includes(s);
 }
@@ -74,6 +76,8 @@ export function modeApplies(mode: StudyMode, c: Card): boolean {
       return isArticleCard(c);
     case 'verbs':
       return isVerbCard(c);
+    case 'pronouns':
+      return isPronounCard(c);
     default:
       return !!c.translation.trim();
   }
@@ -94,6 +98,7 @@ export function modeAvailability(mode: StudyMode, cards: Card[], poolSize = card
   const count = cards.filter((c) => modeApplies(mode, c)).length;
   if (mode === 'articles' && count === 0) return { count, reason: 'No nouns with der/die/das' };
   if (mode === 'verbs' && count === 0) return { count, reason: 'No verbs with Präteritum or Partizip II' };
+  if (mode === 'pronouns' && count === 0) return { count, reason: 'No reflexive verbs with an example' };
   if (mode === 'match' && count < 2) return { count, reason: 'Needs at least 2 words' };
   if (mode === 'choice' && poolSize < 2) return { count, reason: 'Needs at least 2 words' };
   if (count === 0) return { count, reason: cards.length ? 'No words with a translation' : 'Nothing to study' };

@@ -19,6 +19,7 @@ export const MODE_INFO: Record<StudyMode, ModeInfo> = {
   listen: { name: 'Listen', description: 'Hear the German word and type it', icon: 'speaker', usesDirection: false },
   articles: { name: 'Articles', description: 'der, die or das?', badge: 'der', usesDirection: false },
   verbs: { name: 'Verb forms', description: 'Präteritum, Partizip II, haben/sein', icon: 'refresh', usesDirection: false },
+  pronouns: { name: 'Reflexive pronouns', description: 'mich or mir? Fill in the pronoun', badge: 'sich', usesDirection: false },
 };
 
 /** Props shared by the queue-based mode components. */

@@ -4,6 +4,7 @@
 // another article of a noun whose articles differ in meaning ("See#f" = die See next to der See).
 import type { Auxiliary, Gender, Pos } from '../types';
 import { LEVELS } from '../levels/types';
+import { asReflexive, baseOfReflexive, isReflexiveTerm } from '../german/reflexive';
 import type { LexEntry, LocalHit } from './types';
 
 /** Key used to split the dictionary into pieces: lowercase, ä→a ö→o ü→u ß→ss. */
@@ -17,12 +18,15 @@ export function normalizeKey(word: string): string {
 }
 
 /**
- * Compact entry: [rank, tags, ru, en, a?, b?]. tags = pos letter (n/v/a/o), then noun genders
- * (m/f/n) or verb auxiliary (h/s), then a level digit (1–6 = A1–C2). Noun: a = plural; verb:
- * a = Präteritum, b = Partizip II, each either the full form or "<n><suffix>" relative to the
- * term (drop n letters, append suffix).
+ * Compact entry: [rank, tags, ru, en, a?, b?, c?, d?, p?]. tags = pos letter (n/v/a/o), then
+ * noun genders (m/f/n) or verb auxiliary (h/s), verb reflexive (r = 'also', R = 'only'), then a
+ * level digit (1–6 = A1–C2). Noun: a = plural; verb: a = Präteritum, b = Partizip II, each either
+ * the full form or "<n><suffix>" relative to the term (drop n letters, append suffix); then
+ * c / d = translations of the reflexive meanings, ru / en ('' = same as tr), p = prepositions
+ * with their case ("auf + Akk; über + Akk"). Older pieces end after b and have no r/R: the
+ * fields stay absent.
  */
-type RawEntry = [number, string, string, string, string?, string?];
+type RawEntry = [number, string, string, string, string?, string?, string?, string?, string?];
 
 interface PieceFile {
   lemmas: Record<string, RawEntry>;
@@ -72,16 +76,19 @@ function expandForm(term: string, s: string | undefined): string {
 
 function decode(id: string, raw: RawEntry): LexEntry {
   const term = id.split('#')[0];
-  const [rank, tags, ru, en, a, b] = raw;
+  const [rank, tags, ru, en, a, b, ruRefl, enRefl, preps] = raw;
   const pos = POS[tags[0]] ?? 'other';
   const genders: Gender[] = [];
   let auxiliary: Auxiliary = '';
   let level: LexEntry['level'];
+  let reflexive: LexEntry['reflexive'];
   for (const c of tags.slice(1)) {
     if (/\d/.test(c)) level = LEVELS[Number(c) - 1];
     else if (pos === 'noun' && (c === 'm' || c === 'f' || c === 'n')) genders.push(c);
     else if (pos === 'verb' && c === 'h') auxiliary = 'haben';
     else if (pos === 'verb' && c === 's') auxiliary = 'sein';
+    else if (pos === 'verb' && c === 'r') reflexive = 'also';
+    else if (pos === 'verb' && c === 'R') reflexive = 'only';
   }
   const entry: LexEntry = {
     term,
@@ -95,6 +102,11 @@ function decode(id: string, raw: RawEntry): LexEntry {
     rank,
   };
   if (level) entry.level = level;
+  if (pos === 'verb') {
+    if (reflexive) entry.reflexive = reflexive;
+    if (ruRefl || enRefl) entry.trRefl = { ru: ruRefl ?? '', en: enRefl ?? '' };
+    if (preps) entry.preps = preps;
+  }
   return entry;
 }
 
@@ -189,11 +201,13 @@ function clean(word: string): string {
 /**
  * Look a word up offline. Accepts lemmas and inflected forms ("ging" → gehen, "Häuser" → Haus),
  * any capitalisation, with or without an article ("der Tisch"). Several hits when ambiguous,
- * best first. [] when unknown or the dictionary piece can't be loaded.
+ * best first. [] when unknown or the dictionary piece can't be loaded. A reflexive verb
+ * ("sich treffen", any case) → its verb's hits read as the reflexive verb (see lookupReflexive).
  */
 export async function lookupLocal(word: string): Promise<LocalHit[]> {
   const w = clean(word);
   if (!w) return [];
+  if (isReflexiveTerm(w)) return lookupReflexive(w);
   const piece = await pieceFor(w);
   if (!piece) return [];
   const lower = w.toLowerCase();
@@ -228,6 +242,22 @@ export async function lookupLocal(word: string): Promise<LocalHit[]> {
   }
   hits.sort((a, b) => a.tier - b.tier || a.hit.entry.rank - b.hit.entry.rank);
   return hits.map((h) => h.hit);
+}
+
+/**
+ * "sich treffen" → the verb hits of "treffen" through asReflexive (term "sich treffen", the
+ * reflexive meanings' translations). Verbs the dictionary knows as reflexive come first; a verb
+ * without reflexive data still comes, after them (the user may know a use Wiktionary lacks), with
+ * its plain translations. Other parts of speech are dropped ("sich Tisch" → []). An inflected
+ * verb ("sich trifft") keeps the input as typed in `form`.
+ */
+async function lookupReflexive(w: string): Promise<LocalHit[]> {
+  const verbs = (await lookupLocal(baseOfReflexive(w))).filter((h) => h.entry.pos === 'verb');
+  const known = verbs.filter((h) => h.entry.reflexive);
+  return [...known, ...verbs.filter((h) => !h.entry.reflexive)].map((h) => {
+    const entry = asReflexive(h.entry);
+    return h.form ? { entry, form: w } : { entry };
+  });
 }
 
 /**
@@ -272,9 +302,9 @@ export async function prefixLocal(prefix: string, limit = 8): Promise<LexEntry[]
   return [...out.values()].sort((a, b) => a.rank - b.rank).slice(0, limit);
 }
 
-/** Frequency rank of a lemma (1 = most common), or null if not in the dictionary. */
+/** Frequency rank of a lemma (1 = most common), or null if not in the dictionary. "sich treffen" → treffen's. */
 export async function rankOf(lemma: string): Promise<number | null> {
-  const w = clean(lemma);
+  const w = baseOfReflexive(clean(lemma));
   if (!w) return null;
   const piece = await pieceFor(w);
   const ids = piece?.byLower.get(w.toLowerCase()) ?? [];

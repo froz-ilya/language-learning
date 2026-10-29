@@ -99,6 +99,7 @@
     <Feedback
       verdict={result.verdict}
       articleProblem={result.articleProblem}
+      reflexiveProblem={result.reflexiveProblem}
       card={item.card}
       {answerGerman}
       {given}

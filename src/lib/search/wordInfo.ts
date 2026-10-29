@@ -5,6 +5,7 @@ import { articleVariants, lookupLocal } from '../dict/local';
 import type { LexEntry } from '../dict/types';
 import { lookupWord } from '../lookup/lookup';
 import { displayPlural, displayVerbForms } from '../german/articles';
+import { asReflexive, baseOfReflexive, isReflexiveTerm, withSich } from '../german/reflexive';
 import { fieldsFromEntry, fieldsFromLookup } from '../reading/store';
 import type { ArticleVariant, Auxiliary, Card, Lang, LookupResult, Pos } from '../types';
 
@@ -29,11 +30,35 @@ export function initialWordLookup(): WordLookupState {
   return { local: null, localArticles: [], localDone: false, form: '', remote: null, remoteState: 'idle' };
 }
 
-/** The online lookup is needed when the offline entry is missing or has no translation (any article). */
+/**
+ * A "sich …" entry of a verb the dictionary doesn't know as reflexive (no `reflexive` flag): its
+ * translation is just the plain verb's (asReflexive falls back to it), so the lookup is asked.
+ * A flagged verb without trRefl has reflexive meanings the same as its translations.
+ */
+export const weakReflexive = (e: LexEntry | null): boolean => !!e && isReflexiveTerm(e.term) && !e.reflexive;
+
+/**
+ * The online lookup is needed when the offline entry is missing or has no translation (any
+ * article), or is a "sich …" verb with only the plain verb's translation.
+ */
 export function needsRemote(best: LexEntry | null, variants: LexEntry[], lang: Lang): boolean {
   const untranslated = variants.length > 1 ? variants.some((v) => !v.tr[lang]) : !best?.tr[lang];
-  return !best || untranslated;
+  return !best || untranslated || weakReflexive(best);
 }
+
+/**
+ * Card fields from an offline entry, with a term (prepositions as fieldsFromEntry gives them: not
+ * on the plain verb of a verb that is also reflexive, they belong to its "sich …" reading).
+ */
+export const entryFields = (entry: LexEntry, lang: Lang): WordFields => ({ ...fieldsFromEntry(entry, lang), term: entry.term });
+
+/** "auf + Akk; über + Akk" → "auf + Akk · über + Akk" (for the line under the forms). */
+export const prepsText = (preps: string | undefined): string =>
+  (preps ?? '')
+    .split(';')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .join(' · ');
 
 /**
  * Look `word` up: offline dictionary (lemma, article variants), then — only if needed and
@@ -63,6 +88,14 @@ export async function loadWordInfo(
     const hits = await lookupLocal(word);
     best = hits[0]?.entry ?? opts.entry ?? null;
     form = hits[0]?.entry && hits[0].form ? hits[0].form : '';
+    // "sich treffen" where the dictionary has no "sich …" terms: the verb, read reflexively.
+    if (isReflexiveTerm(word) && !(best && isReflexiveTerm(best.term))) {
+      const verb = (await lookupLocal(baseOfReflexive(word))).find((h) => h.entry.pos === 'verb')?.entry;
+      if (verb) best = asReflexive(verb);
+      form = '';
+    }
+    // A verb used only with "sich" is shown and added as "sich beeilen".
+    if (best?.reflexive === 'only') best = asReflexive(best);
     if (best) variants = await articleVariants(best);
   } catch {
     // keep the precomputed entry
@@ -86,21 +119,70 @@ export async function loadWordInfo(
   return state;
 }
 
+/**
+ * The lookup as the reading `local` stands for: for a "sich …" entry whose lookup came back as
+ * the plain verb with a reflexive reading (treffen + reflexive), that reading as "sich treffen".
+ */
+export function remoteFor(local: LexEntry | null, remote: LookupResult | null): LookupResult | null {
+  if (!remote?.reflexive || !local || !isReflexiveTerm(local.term) || isReflexiveTerm(remote.term)) return remote;
+  const r = remote.reflexive;
+  const out: LookupResult = { ...remote, term: withSich(remote.term), translation: r.translation, examples: r.examples };
+  delete out.reflexive;
+  delete out.phrases;
+  delete out.preps;
+  if (r.meaningExamples) out.meaningExamples = r.meaningExamples;
+  else delete out.meaningExamples;
+  if (r.preps) out.preps = r.preps;
+  return out;
+}
+
 /** Everything known about the word, local entry first, gaps filled from the online lookup. */
-export function mergeInfo(local: LexEntry | null, remote: LookupResult | null, lang: Lang): WordFields | null {
+export function mergeInfo(local: LexEntry | null, remoteResult: LookupResult | null, lang: Lang): WordFields | null {
+  const remote = remoteFor(local, remoteResult);
   const base = local ? fieldsFromEntry(local, lang) : null;
   const extra = remote ? fieldsFromLookup(remote) : null;
+  const preps = base?.preps || extra?.preps;
+  const withPreps = (f: WordFields): WordFields => (preps ? { ...f, preps } : f);
   if (!base && !extra) return null;
-  if (!base) return { ...extra!, term: extra!.term! };
-  if (!extra) return { ...base, term: base.term! };
-  return {
+  if (!base) return withPreps({ ...extra!, term: extra!.term! });
+  if (!extra) return withPreps({ ...base, term: base.term! });
+  // The lookup's "sich …" reading of a verb the dictionary has without it (sich beeilen), and
+  // its reflexive translation over the plain verb's one asReflexive() fell back to.
+  const reflexiveRemote = isReflexiveTerm(extra.term!) && baseOfReflexive(extra.term!) === baseOfReflexive(base.term!);
+  const preferRemote = reflexiveRemote && !!extra.translation && weakReflexive(local);
+  return withPreps({
     ...base,
-    term: base.term!,
-    translation: base.translation || extra.translation,
+    term: reflexiveRemote ? extra.term! : base.term!,
+    translation: preferRemote ? extra.translation : base.translation || extra.translation,
     genders: base.genders?.length ? base.genders : extra.genders,
     plural: base.plural || extra.plural,
     examples: extra.examples,
+  });
+}
+
+/**
+ * The reflexive reading of a plain verb (treffen → "sich treffen" — встречаться), from the
+ * dictionary's flags or the lookup's `reflexive`, as card fields; null when it has none (or the
+ * word already is the "sich …" reading). The translation is the dictionary's (asReflexive), else
+ * the lookup's, else ''.
+ */
+export function reflexiveReadingOf(local: LexEntry | null, remote: LookupResult | null, lang: Lang): WordFields | null {
+  if (local && (local.pos !== 'verb' || isReflexiveTerm(local.term))) return null;
+  const sameWord = !!remote && !isReflexiveTerm(remote.term) && (!local || remote.term === local.term);
+  const r = sameWord ? remote!.reflexive : undefined;
+  if (local?.reflexive !== 'also' && !r) return null;
+  const plain = local ? fieldsFromEntry(local, lang) : fieldsFromLookup(remote!);
+  const out: WordFields = {
+    ...plain,
+    term: withSich(local?.term ?? remote!.term),
+    translation: (local?.reflexive ? asReflexive(local).tr[lang] : '') || r?.translation || '',
+    examples: (r?.examples ?? []).map((e) => ({ ...e })),
   };
+  // The plain reading's prepositions don't carry over; the dictionary's are the "sich …" ones.
+  delete out.preps;
+  const preps = r?.preps || local?.preps;
+  if (preps) out.preps = preps;
+  return out;
 }
 
 /** The fields a word's header and forms line need (defaults filled in). */

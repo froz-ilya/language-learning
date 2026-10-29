@@ -113,19 +113,24 @@ export function expandForm(term, s) {
 }
 
 /**
- * LexEntry → compact array [rank, tags, ru, en, a?, b?]:
- *   tags = pos letter (n/v/a/o) + noun genders (m/f/n) or verb auxiliary (h/s) + level digit (1–6, A1–C2);
- *   noun: a = plural; verb: a = Präteritum, b = Partizip II, each as compactForm. Trailing
+ * LexEntry → compact array [rank, tags, ru, en, a?, b?, c?, d?, p?]:
+ *   tags = pos letter (n/v/a/o) + noun genders (m/f/n) or verb auxiliary (h/s) + verb reflexive
+ *   (r = 'also', R = 'only') + level digit (1–6, A1–C2);
+ *   noun: a = plural; verb: a = Präteritum, b = Partizip II, each as compactForm, then
+ *   c / d = trRefl ru / en ('' = same as tr), p = preps ("auf + Akk; über + Akk"). Trailing
  *   empty strings are dropped. The term is the id (minus "#pos").
+ * `reflexive: false` leaves the reflexive data out (the build sizes its budget without it).
  */
-export function encodeEntry(e) {
+export function encodeEntry(e, { reflexive = true } = {}) {
   let tags = POS_CODE[e.pos] ?? 'o';
   if (e.pos === 'noun') tags += e.genders.join('');
   if (e.pos === 'verb' && e.auxiliary) tags += e.auxiliary[0];
+  if (e.pos === 'verb' && reflexive && e.reflexive) tags += e.reflexive === 'only' ? 'R' : 'r';
   if (e.level) tags += LEVEL_DIGIT[e.level];
   const out = [e.rank, tags, e.tr.ru, e.tr.en];
   if (e.pos === 'noun') out.push(compactForm(e.term, e.plural));
   if (e.pos === 'verb') out.push(compactForm(e.term, e.praeteritum), compactForm(e.term, e.partizip2));
+  if (e.pos === 'verb' && reflexive) out.push(e.trRefl?.ru ?? '', e.trRefl?.en ?? '', e.preps ?? '');
   while (out.length > 4 && !out[out.length - 1]) out.pop();
   return out;
 }

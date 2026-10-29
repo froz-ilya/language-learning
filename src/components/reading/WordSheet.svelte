@@ -11,6 +11,7 @@
   import { db } from '../../lib/db/schema';
   import { saveCard } from '../../lib/db/repo';
   import type { LexEntry } from '../../lib/dict/types';
+  import { asReflexive } from '../../lib/german/reflexive';
   import { ARTICLE, speakableTerm } from '../../lib/german/articles';
   import { setKnown, STATUS_LABELS } from '../../lib/progress';
   import type { ArticleVariant, Gender } from '../../lib/types';
@@ -25,6 +26,8 @@
     initialWordLookup,
     loadWordInfo,
     mergeInfo,
+    prepsText,
+    reflexiveReadingOf,
     type WordFields,
   } from '../../lib/search/wordInfo';
   import { findDuplicate } from '../../lib/search/addToSet';
@@ -42,9 +45,10 @@
     article,
     setId = 0,
     cards = [],
+    cardsOfTerm,
     onclose,
   }: {
-    /** The word to look up: as written in the text, or the joined verb of a split pair (anrufen). */
+    /** The word to look up: as written in the text, or the joined verb of a split or reflexive verb (anrufen, sich treffen). */
     word: string;
     /** The text as it appears in the article when it isn't `word` ("rufe … an"). */
     written?: string;
@@ -57,8 +61,19 @@
     setId?: number;
     /** The user's cards for this word's lemma (best status first). */
     cards?: CardRef[];
+    /** The user's cards for any term (for the verb's "sich …" reading). */
+    cardsOfTerm?: (term: string) => CardRef[];
     onclose?: () => void;
   } = $props();
+
+  /**
+   * Switched to the verb's reflexive reading from its row ("sich treffen"): what is looked up
+   * instead, and the plain reading to switch back to.
+   */
+  let switched = $state<{ term: string; entry: LexEntry | null; back: { term: string; translation: string } } | null>(null);
+  const current = $derived(switched?.term ?? word);
+  /** The cards of the word shown. */
+  const shownCards = $derived(switched ? (cardsOfTerm?.(switched.term) ?? []) : cards);
 
   /** Offline entry, its articles, and the online lookup when needed (see lib/search/wordInfo). */
   let lookup = $state(initialWordLookup());
@@ -70,8 +85,8 @@
   // Offline dictionary first; the online lookup only when it has nothing (or no translation).
   $effect(() => {
     const ctrl = new AbortController();
-    void loadWordInfo(word, {
-      entry,
+    void loadWordInfo(current, {
+      entry: switched ? switched.entry : entry,
       lang: settings.lang,
       isOnline: () => online.value,
       signal: ctrl.signal,
@@ -85,7 +100,24 @@
   const info = $derived(mergeInfo(lookup.local, lookup.remote, lang));
   const display = $derived(displayOf(info));
   const forms = $derived(formsOf(display));
+  const preps = $derived(prepsText(info?.preps));
   const translation = $derived(info?.translation?.trim() ?? '');
+
+  /** A plain verb's reflexive reading ("sich treffen — встречаться"): a row to switch to or add. */
+  const reflexive = $derived(switched ? null : reflexiveReadingOf(lookup.local, lookup.remote, lang));
+  /** Its translation, unless it's just the plain verb's again. */
+  const reflexiveTr = $derived(reflexive?.translation && reflexive.translation !== translation ? reflexive.translation : '');
+  const reflexiveInSet = $derived(!!reflexive && !!setId && (cardsOfTerm?.(reflexive.term) ?? []).some((c) => c.setId === setId));
+
+  function switchToReflexive() {
+    if (!reflexive) return;
+    const local = lookup.local;
+    switched = {
+      term: reflexive.term,
+      entry: local ? asReflexive(local) : null,
+      back: { term: display?.term ?? word, translation },
+    };
+  }
   const lookingUp = $derived(!lookup.localDone || remoteState === 'loading');
   const shown = $derived(written ?? word);
   const sameAsWord = $derived(!!display && display.term.toLowerCase() === shown.toLowerCase());
@@ -99,7 +131,7 @@
   /** Genders of the user's cards for this lemma (to tell which article is in the set already). */
   let cardGenders = $state(new Map<number, Gender[]>());
   $effect(() => {
-    const ids = cards.map((c) => c.id);
+    const ids = shownCards.map((c) => c.id);
     if (!ids.length) {
       cardGenders = new Map();
       return;
@@ -110,15 +142,15 @@
   });
   /** A card in this set with no article, or this article, counts as this article. */
   const hasArticle = (g: Gender, inThisSet: boolean) =>
-    cards.some((c) => (!inThisSet || c.setId === setId) && (cardGenders.get(c.id)?.length ? cardGenders.get(c.id)!.includes(g) : true));
+    shownCards.some((c) => (!inThisSet || c.setId === setId) && (cardGenders.get(c.id)?.length ? cardGenders.get(c.id)!.includes(g) : true));
 
-  const inSet = $derived(!!setId && cards.some((c) => c.setId === setId));
-  const status = $derived(cards[0]?.status);
+  const inSet = $derived(!!setId && shownCards.some((c) => c.setId === setId));
+  const status = $derived(shownCards[0]?.status);
   const isKnown = $derived(status === 'known' || status === 'learned');
 
   let otherSet = $state('');
   $effect(() => {
-    const ref = cards.find((c) => c.setId !== setId) ?? null;
+    const ref = shownCards.find((c) => c.setId !== setId) ?? null;
     otherSet = '';
     if (!ref) return;
     void db.sets.get(ref.setId).then((s) => (otherSet = s ? s.topic || s.name : ''));
@@ -126,15 +158,17 @@
 
   /** Card fields for adding: what we know, or just the word (filled in later). */
   function fields(): WordFields {
-    return info ?? { term: word };
+    return info ?? { term: current };
   }
 
-  async function add(): Promise<number | null> {
+  /** Add the word shown, or `f` (the reflexive reading, named in the toast). */
+  async function add(f?: WordFields): Promise<number | null> {
     if (busy) return null;
     busy = true;
     try {
-      const r = await addWordToArticle(article, fields(), context);
-      showToast(r.created ? `Added to «${setName}»` : `Already in «${setName}»`, {
+      const r = await addWordToArticle(article, f ?? fields(), context);
+      const name = f ? `“${f.term}” ` : '';
+      showToast(r.created ? `Added ${name}to «${setName}»` : `${name ? `${name}is already` : 'Already'} in «${setName}»`, {
         actionLabel: 'Open set',
         onAction: () => go(`/set/${r.setId}`),
       });
@@ -172,7 +206,7 @@
   }
 
   async function markKnown() {
-    let ids = cards.map((c) => c.id);
+    let ids = shownCards.map((c) => c.id);
     if (!ids.length) {
       const id = articleRows.length > 1 ? await addArticleCard(articleRows[0]) : await add();
       if (id === null) return;
@@ -184,7 +218,7 @@
   }
 
   async function notLearned() {
-    const ids = cards.map((c) => c.id);
+    const ids = shownCards.map((c) => c.id);
     if (!ids.length) return;
     await setKnown(ids, false);
     showToast(`“${display?.term ?? word}” is back to learning`);
@@ -222,6 +256,7 @@
     </div>
   {:else}
     {#if forms}<div class="forms muted">{forms}</div>{/if}
+    {#if preps}<div class="preps muted small">{preps}</div>{/if}
     {#if translation}
       <div class="translation" lang={lang}><Meanings {translation} /></div>
     {:else if remoteState === 'loading'}
@@ -237,6 +272,25 @@
         {/if}
       </div>
     {/if}
+  {/if}
+
+  {#if reflexive}
+    <div class="alt">
+      <button type="button" class="alt-main" onclick={switchToReflexive}>
+        <span class="alt-term">{reflexive.term}</span>{#if reflexiveTr}<span class="alt-tr" lang={lang}>— {reflexiveTr}</span>{/if}
+      </button>
+      {#if reflexiveInSet}
+        <span class="alt-done" aria-label="{reflexive.term} is in the set"><Icon name="check" size={18} /></span>
+      {:else}
+        <button type="button" class="alt-add" aria-label="Add {reflexive.term}" disabled={busy || lookingUp} onclick={() => reflexive && void add(reflexive)}
+          ><Icon name="plus" size={18} /></button
+        >
+      {/if}
+    </div>
+  {:else if switched}
+    <button type="button" class="alt alt-main back" onclick={() => (switched = null)}>
+      <span class="alt-term">{switched.back.term}</span>{#if switched.back.translation}<span class="alt-tr" lang={lang}>— {switched.back.translation}</span>{/if}
+    </button>
   {/if}
 
   {#if status}
@@ -256,7 +310,7 @@
         <button class="btn btn-ghost" onclick={() => go(`/set/${setId}`)}>Open set</button>
       </div>
     {:else}
-      <button class="btn btn-primary btn-block add" onclick={add} disabled={busy || lookingUp}>
+      <button class="btn btn-primary btn-block add" onclick={() => add()} disabled={busy || lookingUp}>
         <Icon name="plus" size={18} /><span class="ellipsis">Add to «{setName}»</span>
       </button>
     {/if}
@@ -298,6 +352,67 @@
   }
   .forms {
     font-size: 16px;
+  }
+  .preps {
+    margin-top: -6px;
+  }
+  .alt {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--inset-bg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  .alt-main {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .alt.back {
+    display: block;
+    width: 100%;
+  }
+  .alt-term {
+    font-family: var(--font-display);
+    font-weight: 800;
+  }
+  .alt-tr {
+    margin-left: 0.3em;
+    color: var(--text-2);
+  }
+  .alt-add,
+  .alt-done {
+    flex-shrink: 0;
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-right: 2px;
+    border-radius: 50%;
+    color: var(--accent);
+  }
+  .alt-add {
+    border: 0;
+    background: color-mix(in srgb, currentColor 12%, var(--surface));
+    cursor: pointer;
+  }
+  .alt-add:disabled {
+    opacity: 0.5;
+  }
+  .alt-done {
+    color: var(--good);
   }
   .translation {
     font-size: 19px;

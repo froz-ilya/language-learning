@@ -6,6 +6,7 @@
   import Flashcards from '../components/study/Flashcards.svelte';
   import Listen from '../components/study/Listen.svelte';
   import Match from '../components/study/Match.svelte';
+  import Pronouns from '../components/study/Pronouns.svelte';
   import SessionBar from '../components/study/SessionBar.svelte';
   import SessionResults from '../components/study/SessionResults.svelte';
   import Verbs from '../components/study/Verbs.svelte';
@@ -201,6 +202,8 @@
               <Choice {item} {pool} {onanswer} {onnext} />
             {:else if mode === 'articles'}
               <Articles {item} {onanswer} {onnext} />
+            {:else if mode === 'pronouns'}
+              <Pronouns {item} {onanswer} {onnext} />
             {/if}
           </div>
         {/key}

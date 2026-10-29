@@ -22,6 +22,8 @@ const V2 = {
 const V3 = { ...V2, articles: 'id, source, savedAt, readAt' };
 /** v4 changed no tables (it only cleared lookupCache). */
 const V4 = V3;
+/** v5 changed no tables either (it cleared lookupCache again). */
+const V5 = V4;
 
 function oldDb(version: number, stores: Record<string, string>) {
   const d = new Dexie('deutsch');
@@ -107,7 +109,7 @@ describe('upgrading the database', () => {
     // Tables added later exist; the stale lookup cache is cleared.
     expect(await db.articles.count()).toBe(0);
     expect(await db.lookupCache.count()).toBe(0);
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
   });
 
   it('keeps v1 settings and adds defaults for settings added later', async () => {
@@ -173,11 +175,55 @@ describe('upgrading the database', () => {
     d.close();
 
     const { db } = await import('./schema');
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
     expect(await db.lookupCache.count()).toBe(0);
     expect(await db.cards.get(1)).toMatchObject({ ...v1Card, known: 0, presetId: 'A1:Tisch' });
     expect(await db.sets.get(1)).toMatchObject({ name: 'Essen', level: 'A1' });
     expect((await db.reviews.get(1))?.fsrs.due).toBeInstanceOf(Date);
+  });
+
+  it('opens a v5 database: drops cached lookups of the old shape, keeps words saved without preps', async () => {
+    const d = oldDb(5, V5);
+    await d.table('folders').add({ name: 'School', level: '', createdAt: 1 });
+    await d.table('sets').add({ name: 'Verben', folderId: 1, level: '', topic: '', createdAt: 1 });
+    // Words as v5 saved them: no `preps`; a reflexive verb is just a term with "sich".
+    const tisch = { ...v1Card, id: 1, known: 0, presetId: '' };
+    const freuen = { ...v1Card, id: 2, term: 'sich freuen', translation: 'радоваться', pos: 'verb', genders: [], plural: '', praeteritum: 'freute', partizip2: 'gefreut', auxiliary: 'haben', examples: [], notes: '', starred: 0, known: 0, presetId: '' };
+    await d.table('cards').add(tisch);
+    await d.table('cards').add(freuen);
+    await d.table('reviews').put({ cardId: 2, due: fsrs.due.getTime(), fsrs, mistakes: 1, lastWrong: 0 });
+    // A lookup as v5 cached it (key "v4:…", with meaningExamples/phrases but no reflexive/preps).
+    const result = {
+      term: 'freuen',
+      pos: 'verb',
+      genders: [],
+      plural: '',
+      praeteritum: 'freute',
+      partizip2: 'gefreut',
+      auxiliary: 'haben',
+      translation: 'радоваться',
+      examples: [{ de: 'Ich freue mich.', tr: 'Я рад.' }],
+      meaningExamples: [[{ de: 'Ich freue mich.', tr: 'Я рад.' }]],
+      phrases: [{ de: 'sich des Lebens freuen', tr: 'наслаждаться жизнью' }],
+      source: 'wiktionary',
+    };
+    await d.table('lookupCache').put({ key: 'v4:ru:freuen', result, fetchedAt: Date.now(), via: 'de.wiktionary' });
+    d.close();
+
+    const { db } = await import('./schema');
+    expect(db.verno).toBe(6);
+    expect(await db.lookupCache.count()).toBe(0);
+    const [a, b] = [(await db.cards.get(1))!, (await db.cards.get(2))!];
+    expect(a).toEqual(tisch);
+    expect(b).toEqual(freuen);
+    expect(b).not.toHaveProperty('preps');
+    expect((await db.reviews.get(2))?.fsrs.due).toBeInstanceOf(Date);
+    // Such a card takes prepositions later like any field.
+    const { mergeIntoCard } = await import('../lookup/lookup');
+    const filled = mergeIntoCard(b, { ...result, term: 'sich freuen', preps: 'auf + Akk; über + Akk' } as never);
+    expect(filled).toEqual({ ...b, examples: result.examples, preps: 'auf + Akk; über + Akk', needsFill: 0 });
+    await db.cards.put(filled);
+    expect((await db.cards.get(2))?.preps).toBe('auf + Akk; über + Akk');
   });
 
   it('upgraded words still work with today’s logic', async () => {
@@ -212,5 +258,35 @@ describe('restoring old backups', () => {
     expect(await db.cards.get(1)).toMatchObject({ term: 'Tisch', known: 0, presetId: '' });
     expect(await db.sets.get(1)).toMatchObject({ level: '', topic: '' });
     expect((await db.reviews.get(1))?.fsrs.due).toBeInstanceOf(Date);
+  });
+
+  it('imports a v2 backup made before preps, and round-trips preps', async () => {
+    const { db } = await import('./schema');
+    const { exportBackup, importBackup } = await import('./backup');
+    const card = { ...v1Card, id: 1, known: 1, presetId: '' };
+    const file = {
+      app: 'deutsch',
+      version: 2,
+      exportedAt: '2026-10-28T10:00:00Z',
+      folders: [{ id: 1, name: 'School', level: '', createdAt: 1 }],
+      sets: [{ id: 1, name: 'Möbel', folderId: 1, level: '', topic: '', createdAt: 1 }],
+      cards: [card, { ...card, id: 2, term: 'sich freuen', preps: ' auf + Akk ' }, { ...card, id: 3, term: 'warten', preps: 42 }],
+      reviews: [],
+      settings: [],
+    };
+    await importBackup(JSON.stringify(file), 'replace');
+    expect(await db.cards.get(1)).toEqual(card);
+    expect(await db.cards.get(2)).toEqual({ ...card, id: 2, term: 'sich freuen', preps: 'auf + Akk' });
+    // A value that isn't text is dropped, the rest of the card kept.
+    expect(await db.cards.get(3)).toEqual({ ...card, id: 3, term: 'warten' });
+
+    const text = await (await exportBackup()).text();
+    await importBackup(text, 'merge');
+    const copies = (await db.cards.toArray()).filter((c) => c.id! > 3);
+    expect(copies.map((c) => [c.term, c.preps])).toEqual([
+      ['Tisch', undefined],
+      ['sich freuen', 'auf + Akk'],
+      ['warten', undefined],
+    ]);
   });
 });

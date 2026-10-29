@@ -53,6 +53,11 @@ export interface Card {
   /** Level preset word id like "A1:Haus"; '' for user words. */
   presetId: string;
   createdAt: number;
+  /**
+   * Prepositions the word goes with, with their case, "; "-separated: "auf + Akk; über + Akk"
+   * (sich freuen), "für + Akk". Optional: absent on cards saved before it existed.
+   */
+  preps?: string;
 }
 
 export interface Review {
@@ -109,6 +114,15 @@ export interface ArticleVariant {
   meaningExamples?: Example[][];
 }
 
+/** A verb's reflexive reading (see LookupResult.reflexive): what a "sich …" card gets. */
+export interface ReflexiveReading {
+  translation: string;
+  examples: Example[];
+  /** As LookupResult.meaningExamples, for `translation`. */
+  meaningExamples?: Example[][];
+  preps?: string;
+}
+
 /** What a dictionary lookup can fill into a card. */
 export interface LookupResult {
   term: string;
@@ -129,6 +143,14 @@ export interface LookupResult {
   meaningExamples?: Example[][];
   /** Set phrases with the word and their translations ("infrage stellen" — "ставить под сомнение"). */
   phrases?: Example[];
+  /** Prepositions with their case, as Card.preps ("auf + Akk; über + Akk"). */
+  preps?: string;
+  /**
+   * The verb's reflexive reading when it was looked up without "sich" and has one next to its
+   * other meanings (treffen → sich treffen — встречаться). Reflexive-only verbs (beeilen) and
+   * input with "sich" come as `term: "sich …"` directly instead.
+   */
+  reflexive?: ReflexiveReading;
   source: 'local' | 'wiktionary' | 'compound' | 'google';
   /** Set when the typed word was an inflected form, e.g. "ging" → "gehen". */
   lemmaOf?: string;

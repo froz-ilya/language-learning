@@ -75,7 +75,7 @@ import { matchSenses, meaningSentences } from './meanings';
 
 // ---------- Fetch mock ----------
 
-const FIXTURES = ['Haus', 'Tisch', 'gehen', 'ging', 'Häuser', 'Hausschlüssel', 'Schlüssel', 'schön', 'See', 'Folge'];
+const FIXTURES = ['Haus', 'Tisch', 'gehen', 'ging', 'Häuser', 'Hausschlüssel', 'Schlüssel', 'schön', 'See', 'Folge', 'treffen', 'freuen', 'beeilen'];
 const fixture = (name: string) => readFileSync(new URL(`./__fixtures__/${name}.wikitext`, import.meta.url), 'utf8');
 const ALL_PAGES: Record<string, string> = Object.fromEntries(FIXTURES.map((n) => [n.normalize('NFC'), fixture(n)]));
 
@@ -384,7 +384,7 @@ describe('lookupWord', () => {
 
   it('ignores expired cache entries', async () => {
     const { fetch } = mockFetch();
-    mem.cache.set('v4:ru:Tisch', { key: 'v4:ru:Tisch', result: null, fetchedAt: Date.now() - 2 * 24 * 3600 * 1000 });
+    mem.cache.set('v5:ru:Tisch', { key: 'v5:ru:Tisch', result: null, fetchedAt: Date.now() - 2 * 24 * 3600 * 1000 });
     expect((await lookupWord('Tisch', 'ru'))!.term).toBe('Tisch');
     expect(fetch).toHaveBeenCalled();
   });
@@ -564,7 +564,7 @@ describe('offline dictionary', () => {
     expect(r.result!.examples.length).toBeGreaterThan(0);
     expect(r.result!.examples[0].tr).toBe(`TR(${r.result!.examples[0].de})`);
     expect(calls.wiki.map((p) => p.get('page'))).toEqual(['Haus']);
-    expect(mem.cache.get('v4:ru:Haus')).toMatchObject({ via: 'local' });
+    expect(mem.cache.get('v5:ru:Haus')).toMatchObject({ via: 'local' });
   });
 
   it('returns the local entry alone when Wiktionary is down', async () => {
@@ -633,7 +633,7 @@ describe('articles with different meanings', () => {
     expect(r.examples).toEqual(f.examples);
     expect(calls.google).toHaveLength(1);
     // The cached row holds der See (first article); "See" and "die See" both read it.
-    expect((mem.cache.get('v4:ru:See') as { result: LookupResult }).result.genders).toEqual(['m']);
+    expect((mem.cache.get('v5:ru:See') as { result: LookupResult }).result.genders).toEqual(['m']);
     expect((await lookupWord('See', 'ru'))!.translation).toBe('озеро');
     expect((await lookupWord('die See', 'ru'))!.translation).toBe('море');
     expect(calls.google).toHaveLength(1);
@@ -1067,7 +1067,7 @@ describe('fillCards', () => {
     expect(calls.google).toHaveLength(1);
     expect(calls.google[0].split('\n')).not.toContain('Tisch');
     // The Tisch result lacks its translation, so it isn't cached; Haus is.
-    expect([...mem.cache.keys()]).toEqual(['v4:ru:Haus']);
+    expect([...mem.cache.keys()]).toEqual(['v5:ru:Haus']);
   });
 
   it('continues with the pages a response left out (size limit)', async () => {
@@ -1184,7 +1184,7 @@ describe('examples by meaning', () => {
       ['Der Tisch ist gedeckt.', 'Stell die Vase auf den Tisch.', 'Nach Tisch ruhen wir.', 'etwas klären'].join('\n'),
     ]);
     // Cached with its new fields.
-    expect((mem.cache.get('v4:ru:Tisch') as { result: LookupResult }).result).toEqual(r);
+    expect((mem.cache.get('v5:ru:Tisch') as { result: LookupResult }).result).toEqual(r);
   });
 
   it('falls back to the page’s first examples when no meaning matches a sense', async () => {
@@ -1262,5 +1262,134 @@ describe('examples by meaning', () => {
     // Tisch: 3 examples + 1 idiom explanation; Haus: 1 example + 1 explanation.
     expect(calls.google[0].split('\n')).toHaveLength(4 + 2);
     expect((mem.saved as Card[])[0].examples[0]).toEqual(TR('Der Tisch ist gedeckt.'));
+  });
+});
+
+// ---------- Reflexive verbs ----------
+
+describe('reflexive verbs', () => {
+  const TR = (de: string) => ({ de, tr: `TR(${de})` });
+  const TREFFEN_LEX = lex({
+    term: 'treffen',
+    pos: 'verb',
+    praeteritum: 'traf',
+    partizip2: 'getroffen',
+    auxiliary: 'haben',
+    tr: { ru: 'встречать; попадать', en: 'meet; hit' },
+    reflexive: 'also',
+    trRefl: { ru: 'встречаться', en: 'meet up' },
+    preps: 'mit + Dat',
+  });
+  const MEET = 'Die zwei Fußballmannschaften treffen sich auf dem Fußballfeld.';
+  const FITS = 'Dass ich heute müde bin, trifft sich gut, wenn du sowieso keine Zeit hast.';
+
+  it('looks up "sich treffen" as the reflexive verb: its translation, examples and prepositions', async () => {
+    dict.hits.set('treffen', [{ entry: TREFFEN_LEX }]);
+    const { calls } = mockFetch();
+    const r = (await lookupWord('sich treffen', 'ru'))!;
+    expect(r).toMatchObject({ term: 'sich treffen', pos: 'verb', praeteritum: 'traf', partizip2: 'getroffen', translation: 'встречаться', preps: 'mit + Dat' });
+    // Examples of the reflexive senses only ([2], [5]), none of "jemanden treffen".
+    expect(r.examples).toEqual([TR(MEET), TR(FITS)]);
+    expect(r).not.toHaveProperty('reflexive');
+    expect(calls.wiki.map((p) => p.get('page'))).toEqual(['treffen']);
+    expect(calls.google).toHaveLength(1);
+    expect(mem.cache.get('v5:ru:sich treffen')).toMatchObject({ via: 'local', result: { term: 'sich treffen' } });
+  });
+
+  it('asks for the translation of "sich treffen" as a whole when no dictionary has one', async () => {
+    const { calls } = mockFetch({ google: (q) => (q === 'sich treffen' ? [[['Встречаться', q]], null, 'de'] : echoGoogle(q, 'ru')) });
+    const r = (await lookupWord('sich treffen', 'ru'))!;
+    expect(r).toMatchObject({ term: 'sich treffen', pos: 'verb', translation: 'встречаться', source: 'wiktionary' });
+    expect(r.examples).toEqual([TR(MEET), TR(FITS)]);
+    expect(calls.google).toEqual(['sich treffen', [MEET, FITS].join('\n')]);
+  });
+
+  it('gives "treffen" its other meanings plus the reflexive reading, in one translation request', async () => {
+    dict.hits.set('treffen', [{ entry: TREFFEN_LEX }]);
+    const { calls } = mockFetch();
+    const r = (await lookupWord('treffen', 'ru'))!;
+    expect(r.term).toBe('treffen');
+    expect(r.translation).toBe('встречать; попадать');
+    // The offline prepositions belong to the reflexive reading.
+    expect(r).not.toHaveProperty('preps');
+    expect(r.examples.map((e) => e.de)).not.toContain(MEET);
+    // встречаться matches no sense (the page translates none of them): the reflexive senses' examples.
+    expect(r.reflexive).toEqual({ translation: 'встречаться', examples: [TR(MEET), TR(FITS)], meaningExamples: [[]], preps: 'mit + Dat' });
+    expect(calls.google).toHaveLength(1);
+    const lines = calls.google[0].split('\n');
+    expect(lines).toEqual(expect.arrayContaining([MEET, FITS, ...r.examples.map((e) => e.de)]));
+    expect(lines.length).toBeLessThanOrEqual(6 + 3 + 3);
+    // Cached with its reflexive reading, apart from "sich treffen".
+    expect((mem.cache.get('v5:ru:treffen') as { result: LookupResult }).result).toEqual(r);
+    expect(mem.cache.has('v5:ru:sich treffen')).toBe(false);
+  });
+
+  it('translates the reflexive reading with the examples when only Wiktionary knows the verb', async () => {
+    const { calls } = mockFetch();
+    const r = (await lookupWord('treffen', 'ru'))!;
+    expect(r.translation).toBe('встретить; попадать');
+    expect(r.meaningExamples![0].map((e) => e.de)).toContain('Sie am Wochenende zu treffen ist schwierig.');
+    expect(r.examples.map((e) => e.de)).not.toContain(MEET);
+    // "sich treffen" goes in the examples' request: no request of its own.
+    expect(r.reflexive).toEqual({ translation: 'TR(sich treffen)', examples: [TR(MEET), TR(FITS)] });
+    expect(calls.google).toHaveLength(1);
+    expect(calls.google[0].split('\n')).toContain('sich treffen');
+  });
+
+  it('gives a reflexive-only verb as "sich …" (beeilen → sich beeilen)', async () => {
+    const { calls } = mockFetch();
+    const r = (await lookupWord('beeilen', 'ru'))!;
+    expect(r).toMatchObject({ term: 'sich beeilen', pos: 'verb', praeteritum: 'beeilte', partizip2: 'beeilt', auxiliary: 'haben' });
+    expect(r.translation).toBe('торопиться, спешить');
+    expect(r.preps).toBe('mit + Dat');
+    expect(r).not.toHaveProperty('reflexive');
+    expect(r.examples[0]).toEqual(TR('Sie mussten sich sehr beeilen, um den Bus noch zu erreichen.'));
+    expect(calls.google).toHaveLength(1);
+    // Typed with "sich", the same reading.
+    const typed = (await lookupWord('sich beeilen', 'ru'))!;
+    expect(typed).toEqual(r);
+  });
+
+  it('takes a reading’s prepositions from the senses its meanings stand for (sich freuen)', async () => {
+    mockFetch();
+    const r = (await lookupWord('freuen', 'ru'))!;
+    expect(r.reflexive).toMatchObject({ translation: 'радоваться', preps: 'über + Akk; auf + Akk' });
+    expect(r.reflexive!.examples[0]).toEqual(TR('Peter freut sich über sein gutes Schulzeugnis. Herbert aber freute sich dessen nicht.'));
+    // "freuen" alone: "es freut mich" ([3]), whose examples it gets.
+    expect(r.examples[0]).toEqual(TR('Es freut mich außerordentlich, dass Sie heute erscheinen konnten.'));
+    expect(r).not.toHaveProperty('preps');
+    const refl = (await lookupWord('sich freuen', 'ru'))!;
+    expect(refl).toMatchObject({ term: 'sich freuen', translation: 'радоваться', preps: 'über + Akk; auf + Akk' });
+  });
+
+  it('fills imported "sich …" cards as the reflexive verb, with prepositions, as one lookup per card would', async () => {
+    dict.hits.set('treffen', [{ entry: TREFFEN_LEX }]);
+    mockFetch();
+    const expected = await perCard(storedTerms('sich freuen', 'treffen', 'sich treffen'));
+    const expectedCache = cacheRows();
+    mem.cache.clear();
+    mem.saved.length = 0;
+    const { calls } = mockFetch();
+    expect(await fillCards(storedTerms('sich freuen', 'treffen', 'sich treffen'), 'ru')).toEqual({ filled: 3, notFound: 0, failed: 0 });
+    const saved = mem.saved as Card[];
+    expect(saved.map((c) => ({ ...c, id: 0 }))).toEqual(expected.map((c) => ({ ...c, id: 0 })));
+    expect(cacheRows()).toEqual(expectedCache);
+    expect(Object.keys(expectedCache).sort()).toEqual(['v5:ru:sich freuen', 'v5:ru:sich treffen', 'v5:ru:treffen']);
+    expect(saved.map((c) => [c.term, c.pos, c.translation, c.preps])).toEqual([
+      ['sich freuen', 'verb', 'радоваться', 'über + Akk; auf + Akk'],
+      ['treffen', 'verb', 'встречать; попадать', undefined],
+      ['sich treffen', 'verb', 'встречаться', 'mit + Dat'],
+    ]);
+    // One page request and one translation request for all three.
+    expect(calls.wiki).toHaveLength(1);
+    expect(calls.google).toHaveLength(1);
+  });
+
+  it('keeps the card’s own prepositions when merging', () => {
+    const card = { ...storedTerms('sich freuen')[0], preps: 'auf + Akk' };
+    const result = { term: 'sich freuen', pos: 'verb', genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', translation: 'x', examples: [], preps: 'über + Akk', source: 'wiktionary' } as LookupResult;
+    expect(mergeIntoCard(card, result).preps).toBe('auf + Akk');
+    expect(mergeIntoCard({ ...card, preps: undefined }, result).preps).toBe('über + Akk');
+    expect(mergeIntoCard(storedTerms('Tisch')[0], { ...result, preps: undefined })).not.toHaveProperty('preps');
   });
 });

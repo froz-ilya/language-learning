@@ -219,6 +219,106 @@ describe('parseEntry', () => {
   });
 });
 
+describe('reflexive verbs and prepositions', () => {
+  const senseOf = (e: ReturnType<typeof entry>, n: number) => e.senses!.find((s) => s.n === n)!;
+
+  it('marks senses labelled {{K|refl.}} and reads their prepositions (freuen)', () => {
+    const e = entry('freuen');
+    expect(e.reflexive).toBe('also');
+    expect(e.senses!.map((s) => [s.n, !!s.reflexive])).toEqual([
+      [1, true],
+      [2, true],
+      [3, false],
+    ]);
+    // ''sich (über etwas) freuen:'', ''sich auf etwas freuen:''
+    expect(senseOf(e, 1).preps).toEqual(['über + Akk']);
+    expect(senseOf(e, 2).preps).toEqual(['auf + Akk']);
+    expect(senseOf(e, 3).preps).toBeUndefined();
+    expect(e.preps).toBe('über + Akk; auf + Akk');
+    expect(e.reflexiveTranslations!.ru).toEqual([['радоваться']]);
+    // "es freut mich" ([3]) has no Russian translation: all senses' meanings stay.
+    expect(e.translations.ru).toEqual([['радоваться']]);
+  });
+
+  it('marks "reflexiv, …:" senses and keeps the others’ translations apart (treffen)', () => {
+    const e = entry('treffen');
+    expect(e.reflexive).toBe('also');
+    expect(e.senses!.filter((s) => s.reflexive).map((s) => s.n)).toEqual([2, 5]);
+    expect(senseOf(e, 2).examples).toEqual(['Die zwei Fußballmannschaften treffen sich auf dem Fußballfeld.']);
+    expect(e.translations.ru).toEqual([['встретить'], ['попадать']]);
+    expect(e.reflexiveTranslations).toEqual({ en: [], ru: [] });
+    // "auf etwas oder jemandem aufprallen" is the definition, not how treffen is used.
+    expect(e.preps).toBeUndefined();
+  });
+
+  it('calls a verb whose every sense is reflexive reflexive-only (beeilen)', () => {
+    const e = entry('beeilen');
+    expect(e.reflexive).toBe('only');
+    expect(e.reflexiveTranslations!.ru).toEqual([['торопиться', 'спешить']]);
+    expect(e.translations.ru).toEqual([['торопиться', 'спешить']]);
+    // [1b] ''sich beeilen mit etwas''; not "um" of "sich beeilen, um (…) etwas zu machen" ([1a]).
+    expect(e.preps).toBe('mit + Dat');
+  });
+
+  it('finds nothing reflexive in other verbs and words', () => {
+    for (const name of ['gehen', 'anrufen', 'Haus', 'schön']) {
+      const e = entry(name);
+      expect(e.reflexive).toBeUndefined();
+      expect(e.reflexiveTranslations).toBeUndefined();
+      expect(e.senses?.some((s) => s.reflexive)).toBeFalsy();
+      expect(e.preps).toBeUndefined();
+    }
+  });
+
+  const verbPage = (word: string, meanings: string[], examples: string[] = []) =>
+    [
+      `== ${word} ({{Sprache|Deutsch}}) ==`,
+      '=== {{Wortart|Verb|Deutsch}} ===',
+      '{{Bedeutungen}}',
+      ...meanings,
+      '',
+      '{{Beispiele}}',
+      ...examples,
+      '',
+      '==== {{Übersetzungen}} ====',
+      '{{Ü-Tabelle|1|G=x|Ü-Liste=',
+      '*{{ru}}: {{Üt|ru|раз}}',
+      '}}',
+      '{{Ü-Tabelle|2|G=y|Ü-Liste=',
+      '*{{ru}}: {{Üt|ru|два}}',
+      '}}',
+      '',
+    ].join('\n');
+
+  it('marks the senses under a "reflexiv:" heading', () => {
+    const e = parseEntry('waschen', verbPage('waschen', ["''transitiv:''", ':[1] etwas sauber machen', "''reflexiv:''", ':[2] den eigenen Körper sauber machen'], [':[1] Ich wasche das Auto.', ':[2] Ich wasche mich.']))!;
+    expect(e.senses!.map((s) => [s.n, !!s.reflexive])).toEqual([
+      [1, false],
+      [2, true],
+    ]);
+    expect(e.translations.ru).toEqual([['раз']]);
+    expect(e.reflexiveTranslations!.ru).toEqual([['два']]);
+  });
+
+  it('reads prepositions from K parameters and explicit cases, and leaves an unclear case out', () => {
+    const e = parseEntry(
+      'denken',
+      verbPage('denken', [
+        ':[1] {{K|intrans.|Prä=an|Kas=Akk.}} gedanklich bei etwas sein',
+        ":[2] ''an etwas denken:'' sich erinnern",
+        ":[3] ''mit jemandem über etwas denken'' (an + Dativ) dies und das",
+      ]),
+    )!;
+    expect(e.reflexive).toBeUndefined();
+    expect(senseOf(e, 1).preps).toEqual(['an + Akk']);
+    // "an etwas": Akk or Dat — not guessed.
+    expect(senseOf(e, 2).preps).toBeUndefined();
+    // Only the labels count, not the explanation after them.
+    expect(senseOf(e, 3).preps).toEqual(['mit + Dat', 'über + Akk']);
+    expect(e.preps).toBe('an + Akk; mit + Dat; über + Akk');
+  });
+});
+
 describe('translation tables', () => {
   it('splits lines at top-level separators and sense markers', () => {
     expect(lineSegments(' {{Ü|en|a}}, to {{Ü|en|b}} ({{Ü|en|c}}, d); [2] {{Ü|en|e}}')).toEqual([

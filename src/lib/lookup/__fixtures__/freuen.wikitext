@@ -1,0 +1,134 @@
+== freuen ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Verb|Deutsch}} ===
+
+{{Deutsch Verb Übersicht
+|Präsens_ich=freue
+|Präsens_du=freust
+|Präsens_er, sie, es=freut
+|Präteritum_ich=freute
+|Partizip II=gefreut
+|Konjunktiv II_ich=freute
+|Imperativ Singular=freu
+|Imperativ Plural=freut
+|Hilfsverb=haben
+}}
+
+{{Worttrennung}}
+:freu·en, {{Prät.}} freu·te, {{Part.}} ge·freut
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ˈfʁɔɪ̯ən}}
+:{{Hörbeispiele}} {{Audio|De-freuen.ogg}}, {{Audio|De-freuen2.ogg}}
+:{{Reime}} {{Reim|ɔɪ̯ən|Deutsch}}
+
+{{Bedeutungen}}
+:[1] {{K|refl.}} ''sich (über etwas) freuen:'' Freude erleben oder empfinden
+:[2] {{K|refl.}} ''sich auf etwas freuen:'' bei dem Gedanken an ein zukünftiges Ereignis Freude empfinden; [[Vorfreude]] empfinden
+:[3] {{K|trans.|unpersönlich}} jemandem Freude bereiten
+
+{{Herkunft}}
+:Das mhd. ''vröuwen'' bzw. das ahd. ''frewan'' gehen auf eine germanische Wurzel *''frawija'' zurück. Alle tragen bereits die Bedeutung des heutigen Verbs ''freuen.'' Ursprünglich ist das schwache Verb ein Kausativum zu [[froh]] und bedeutet demnach "froh machen". {{QS Herkunft|unbelegt}}
+
+{{Sinnverwandte Wörter}}
+:[1] [[ergötzen]], [[genießen]]
+
+{{Gegenwörter}}
+:[1] [[bekümmern]], [[fürchten]], [[sorgen]], [[trauern]]
+
+{{Oberbegriffe}}
+:[1, 2] [[empfinden]]
+
+{{Unterbegriffe}}
+:[1, 3] [[erfreuen]]
+:[1] [[mitfreuen]]
+
+{{Beispiele}}
+:[1] Peter ''freut sich'' über sein gutes Schulzeugnis. Herbert aber ''freute sich'' dessen nicht.
+:[1] Maria ''freut sich'', Peter endlich wiederzusehen.
+:[2] Ich ''freue mich'' schon ''auf'' unser nächstes Treffen.
+:[3] Es ''freut'' mich außerordentlich, dass Sie heute erscheinen konnten.
+:[3] Die Entscheidung des Parlaments ''freute'' den Präsidenten.
+:[3] Ich komme gerne dazu, wenn es dich ''freut''.
+
+{{Redewendungen}}
+:[1] [[sich des Lebens freuen|sich des Lebens ''freuen'']] – das Leben genießen
+
+{{Wortbildungen}}
+:[[Freude]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=reflexiv: sich (über etwas) freuen: Freude erleben oder empfinden|Ü-Liste=
+*{{da}}: {{Ü|da|glæde sig}}
+*{{en}}: {{Ü|en|be happy}}, {{Ü|en|be pleased}}, {{Ü|en|rejoice}}, {{Ü|en|be glad|L=E}}
+*{{eo}}: {{Ü|eo|ĝoji pri io|L=E}}
+*{{et}}: {{Ü|et|rõõmustama}}
+*{{fo}}: {{Ü|fo|frøa}}
+*{{fi}}: {{Ü|fi|iloita}}
+*{{fr}}: {{Ü|fr|se réjouir}}, {{Ü|fr|être content|L=E}}
+*{{el}}: {{Üt|el|χαίρομαι|chaíromai}}
+*{{io}}: {{Ü|io|joyar}}
+*{{ia}}: {{Ü|ia|gauder}}
+*{{is}}: {{Ü|is|gleðjast}}
+*{{it}}: {{Ü|it|rallegrarsi}}, {{Ü|it|essere contento}}
+*{{ja}}: {{Üt|ja|喜ぶ|よろこぶ, yorokobu}}
+*{{ca}}: {{Ü|ca|alegrar-se}}
+*{{ko}}: {{Üt|ko|기뻐하다|gibbahada}}
+*{{la}}: {{Ü|la|gaudere}}, {{Ü|la|laetari}}
+*{{lv}}: {{Ü|lv|priecāties}}
+*{{lt}}: {{Ü|lt|džiaūgtis}}
+*{{nds}}: {{Ü?|nds|frei'n}}
+*{{nl}}: (zich) {{Ü|nl|verheugen}}
+*{{no}}: {{Ü|no|glede seg}}, {{Ü|no|fryde seg}}
+*{{pl}}: {{Ü|pl|cieszyć|cieszyć się}}
+*{{pt}}: {{Ü|pt|estar feliz (über: com)}}
+*{{ro}}: {{Ü|ro|se bucura}}
+*{{ru}}: {{Üt|ru|радоваться}}
+*{{sv}}: {{Ü|sv|glädja sig}}
+*{{sr}}: {{Üt|sr|радовати се |radovati se}}
+*{{es}}: {{Ü|es|alegrarse}}
+*{{cs}}: {{Ü|cs|těšit se}}, {{Ü|cs|radovat se}}
+*{{tr}}: {{Ü|tr|mutlu olmak}}
+*{{uk}}: {{Üt|uk|радіти}}
+*{{hu}}: {{Ü|hu|örül}}, {{Ü|hu|örvend}}
+*{{uz}}: {{Ü|uz|xursand bölmoq}}
+}}
+
+{{Ü-Tabelle|2|G=bei dem Gedanken an ein zukünftiges Ereignis Freude empfinden|Ü-Liste=
+*{{en}}: {{Ü|en|look forward to}}
+*{{eo}}: {{Ü|eo|iluzii sin|L=E}}, {{Ü|eo|ĝojigi sin|L=E}}, {{Ü|eo|jam ĝoji|L=E}}, {{Ü|eo|antaŭĝoji}}
+*{{it}}: {{Ü|it|essere contento}}
+*{{ja}}: {{Üt|ja|楽しみにする|たのしみにする, tanoshimi ni suru}}, {{Üt|ja|楽しむ|たのしむ, tanoshimu}}
+*{{ca}}: {{Ü|ca|esperar amb il·lusió}}
+*{{nl}}: (zich) {{Ü|nl|verheugen}}
+*{{no}}: {{Ü|no|glede seg}}, {{Ü|no|fryde seg}}
+*{{pt}}: {{Ü|pt|estar ansioso (auf: por)}}
+*{{ru}}: {{Üt|ru|радоваться}}
+*{{sv}}: {{Ü|sv|glädja sig}}
+*{{sr}}: {{Üt|sr|радовати се |radovati se}}
+*{{es}}: {{Ü|es|estar ilusionado}}
+*{{cs}}: {{Ü|cs|těšit se}}, {{Ü|cs|radovat se}}
+*{{tr}}: {{Ü|tr|memnun olmak}}
+*{{hu}}: {{Ü|hu|örömmel vár}}, {{Ü|hu|vár}}, {{Ü|hu|alig vár}}
+*{{uz}}: {{Ü|uz|intiqlik bilan kutmoq}}
+}}
+
+{{Ü-Tabelle|3|G=jemandem Freude bereiten|Ü-Liste=
+*{{fr}}: {{Ü|fr|réjouir}}, {{Ü|fr|faire plaisir}}
+*{{io}}: {{Ü|io|joyigar}}
+*{{ca}}: {{Ü|ca|alegrar}}
+*{{nl}}: {{Ü|nl|verheugen}}
+*{{pt}}: {{Ü|pt|agradar}}
+*{{sv}}: {{Ü|sv|glädja}}
+*{{sr}}: {{Üt|sr|израдовати|izradovati}}, {{Üt|sr|обрадовати|obradovati}}
+*{{es}}: {{Ü|es|alegrar}}
+*{{cs}}: {{Ü|cs|těšit}}
+*{{hu}}: {{Ü|hu|örömére szolgál}}, {{Ü|hu|kedvére van}}
+*{{uz}}: {{Ü|uz|quvontirmoq}}
+}}
+
+{{Referenzen}}
+:[1, 2] {{Ref-Grimm}}
+:[1–3] {{Ref-DWDS}}
+:[1, 2] {{Ref-UniLeipzig}}
+
+{{Ähnlichkeiten 1|[[freien]]|Anagramme=[[feuern]], [[Feuern]]}}

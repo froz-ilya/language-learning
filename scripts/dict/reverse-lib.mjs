@@ -19,7 +19,8 @@
 //     VVVV id [~text]
 //     VVVV  base-64 number ((rank × 64 + tag) × 8 + flags), most significant digit first:
 //           rank = frequency rank (1 = most common, capped at MAX_RANK), tag = index into
-//           `tags` (the entry's compact tags: pos, genders/auxiliary, level), flags = meaning
+//           `tags` (the entry's compact tags: pos, genders/auxiliary, level; not the
+//           reflexive r/R), flags = meaning
 //           index × 2 + kind (kind 0: a synonym is just this word; 1: the word is part of a
 //           longer synonym, "телефон" in "мобильный телефон")
 //     id    dictionary id ("Steuer#f")
@@ -278,6 +279,10 @@ export function packShards(encoded, maxFile = MAX_FILE) {
  * @returns {{ index: RevIndex, files: Map<string, string> }}
  */
 export function buildReverse(entriesByLang, { cap = CAP, maxWords = MAX_WORDS, maxFile = MAX_FILE } = {}) {
+  // Verbs' reflexive letters (r/R, see encodeEntry in lib.mjs) stay out of the tag table.
+  entriesByLang = Object.fromEntries(
+    Object.entries(entriesByLang).map(([lang, list]) => [lang, list.map((e) => (/[rR]/.test(e.tags) ? { ...e, tags: e.tags.replace(/[rR]/g, '') } : e))]),
+  );
   /** @type {Map<string, number>} */
   const tagCount = new Map();
   for (const list of Object.values(entriesByLang)) for (const e of list) tagCount.set(e.tags, (tagCount.get(e.tags) ?? 0) + 1);

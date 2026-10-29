@@ -6,6 +6,8 @@ import { chooseAction, promptText, ui, undoToast } from '../../lib/ui/dialogs.sv
 import { primeKeyboard, releaseKeyboard } from '../../lib/ui/keyboard';
 import { emptyProgress, progressFor, setKnown, type Progress } from '../../lib/progress';
 import { fetchLevelIndex } from '../../lib/levels/install';
+import { lookupLocal } from '../../lib/dict/local';
+import { isReflexiveTerm } from '../../lib/german/reflexive';
 import { LEVEL_TITLES, LEVELS, type LevelCode, type LevelIndex } from '../../lib/levels/types';
 import type { Card, Review, WordSet } from '../../lib/types';
 
@@ -127,6 +129,27 @@ export async function setKnownWithUndo(ids: number[], known: boolean, message: s
   };
   await setKnown(ids, known);
   undoToast(message, snapshot);
+}
+
+// ---------- Reflexive verbs ----------
+
+/** A card for a reflexive verb: "sich treffen" (user words carry "sich" in the term). */
+export const isReflexiveCard = (c: Pick<Card, 'term'>) => isReflexiveTerm(c.term);
+
+/**
+ * Ids of the verbs (level presets keep the bare verb: "beeilen") that the offline dictionary
+ * marks as used only with "sich". Exact lemmas only; empty when the dictionary can't load.
+ */
+export async function reflexiveOnlyVerbs(cards: Pick<Card, 'id' | 'term' | 'pos'>[]): Promise<Set<number>> {
+  const verbs = cards.filter((c) => c.id && c.pos === 'verb' && !isReflexiveTerm(c.term));
+  const only = await Promise.all(
+    verbs.map(async (c) => {
+      const term = c.term.trim();
+      const hits = await lookupLocal(term).catch(() => []);
+      return hits.some((h) => !h.form && h.entry.term === term && h.entry.reflexive === 'only');
+    }),
+  );
+  return new Set(verbs.filter((_, i) => only[i]).map((c) => c.id!));
 }
 
 // ---------- Levels ----------

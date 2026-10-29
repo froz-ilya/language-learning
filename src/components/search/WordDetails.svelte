@@ -12,6 +12,7 @@
   import { online } from '../../lib/online.svelte';
   import { settings } from '../../lib/settings.svelte';
   import type { LexEntry } from '../../lib/dict/types';
+  import { asReflexive } from '../../lib/german/reflexive';
   import { ARTICLE, displayTerm, speakableTerm } from '../../lib/german/articles';
   import { parseGermanInput } from '../../lib/german/parseTerm';
   import { STATUS_LABELS } from '../../lib/progress';
@@ -25,6 +26,8 @@
     initialWordLookup,
     loadWordInfo,
     mergeInfo,
+    prepsText,
+    reflexiveReadingOf,
     type WordFields,
   } from '../../lib/search/wordInfo';
 
@@ -55,12 +58,18 @@
   const lang = $derived(settings.lang);
   let lookup = $state(initialWordLookup());
 
+  /**
+   * Switched to the verb's reflexive reading from its row ("sich treffen"): what is looked up
+   * instead, and the plain reading to switch back to.
+   */
+  let switched = $state<{ term: string; entry: LexEntry | null; back: { term: string; translation: string } } | null>(null);
+
   // Offline dictionary first, online only when needed; runs again when the connection comes back.
   $effect(() => {
     void online.value;
     const ctrl = new AbortController();
-    void loadWordInfo(word, {
-      entry,
+    void loadWordInfo(switched?.term ?? word, {
+      entry: switched ? switched.entry : entry,
       lang: settings.lang,
       isOnline: () => online.value,
       signal: ctrl.signal,
@@ -75,6 +84,18 @@
   const split = $derived(articleRows.length > 1 && !!display);
   const lookingUp = $derived(!lookup.localDone || lookup.remoteState === 'loading');
   const translation = $derived(info?.translation?.trim() ?? '');
+  const preps = $derived(split ? '' : prepsText(info?.preps));
+
+  /** A plain verb's reflexive reading ("sich treffen — встречаться"): a row to switch to or add. */
+  const reflexive = $derived(switched ? null : reflexiveReadingOf(lookup.local, lookup.remote, lang));
+  /** Its translation, unless it's just the plain verb's again. */
+  const reflexiveTr = $derived(reflexive?.translation && reflexive.translation !== translation ? reflexive.translation : '');
+
+  function switchToReflexive() {
+    if (!reflexive) return;
+    const local = lookup.local;
+    switched = { term: reflexive.term, entry: local ? asReflexive(local) : null, back: { term: display?.term ?? word, translation } };
+  }
 
   // ---------- Article (nouns whose articles differ in meaning) ----------
 
@@ -183,6 +204,7 @@
     </div>
   {:else}
     {#if forms}<div class="forms muted">{forms}</div>{/if}
+    {#if preps}<div class="preps muted small">{preps}</div>{/if}
     {#if translation}
       <div class="translation" lang={lang}><Meanings {translation} /></div>
     {:else if lookup.remoteState === 'loading'}
@@ -198,6 +220,25 @@
         {/if}
       </div>
     {/if}
+  {/if}
+
+  {#if reflexive}
+    <div class="alt">
+      <button type="button" class="alt-main" onclick={switchToReflexive}>
+        <span class="alt-term">{reflexive.term}</span>{#if reflexiveTr}<span class="alt-tr" lang={lang}>— {reflexiveTr}</span>{/if}
+      </button>
+      <button
+        type="button"
+        class="alt-add"
+        aria-label="Add {reflexive.term} to a set"
+        disabled={lookingUp}
+        onclick={() => reflexive && onadd(reflexive, reflexive.term)}><Icon name="plus" size={18} /></button
+      >
+    </div>
+  {:else if switched}
+    <button type="button" class="alt alt-main back" onclick={() => (switched = null)}>
+      <span class="alt-term">{switched.back.term}</span>{#if switched.back.translation}<span class="alt-tr" lang={lang}>— {switched.back.translation}</span>{/if}
+    </button>
   {/if}
 
   {#if example}
@@ -263,6 +304,61 @@
   }
   .forms {
     font-size: 16px;
+  }
+  .preps {
+    margin-top: -6px;
+  }
+  .alt {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--inset-bg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  .alt-main {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .alt.back {
+    display: block;
+    width: 100%;
+  }
+  .alt-term {
+    font-family: var(--font-display);
+    font-weight: 800;
+  }
+  .alt-tr {
+    margin-left: 0.3em;
+    color: var(--text-2);
+  }
+  .alt-add {
+    flex-shrink: 0;
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-right: 2px;
+    border: 0;
+    border-radius: 50%;
+    color: var(--accent);
+    background: color-mix(in srgb, currentColor 12%, var(--surface));
+    cursor: pointer;
+  }
+  .alt-add:disabled {
+    opacity: 0.5;
   }
   .translation {
     font-size: 19px;

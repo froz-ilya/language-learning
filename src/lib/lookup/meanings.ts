@@ -76,6 +76,12 @@ export function mergeMeanings(a: string[][], b: string[][]): string[][] {
   return limitMeanings([a[0], b[0], ...a.slice(1), ...b.slice(1)]);
 }
 
+/** Most prepositions a card gets (Card.preps). */
+export const MAX_PREPS = 3;
+
+/** Prepositions ("auf + Akk") as Card.preps: "auf + Akk; über + Akk", each once, at most MAX_PREPS. */
+export const formatPreps = (preps: string[]): string => [...new Set(preps)].slice(0, MAX_PREPS).join('; ');
+
 /** Short preview of a translation string: two synonyms, or the first word of the first two meanings. */
 export function previewOf(translation: string | undefined): string {
   const m = splitMeanings(translation ?? '');
@@ -141,6 +147,8 @@ export function pickMeanings(senses: SenseTranslations[], marginal: Set<number> 
 export interface SenseLike {
   translations: Record<Lang, string[]>;
   examples: string[];
+  reflexive?: true;
+  preps?: string[];
 }
 
 /**

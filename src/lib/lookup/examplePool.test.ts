@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { arrangeExamples, examplePool, phrasesToAdd } from './examplePool';
+import { arrangeExamples, examplePool, phrasesForReading, phrasesToAdd } from './examplePool';
 
 const ex = (de: string, tr = '') => ({ de, tr });
 const des = (list: { de: string }[]) => list.map((e) => e.de);
@@ -88,5 +88,20 @@ describe('phrasesToAdd', () => {
   it('handles no phrases', () => {
     expect(phrasesToAdd([], undefined)).toEqual([]);
     expect(phrasesToAdd([], [])).toEqual([]);
+  });
+});
+
+describe('phrasesForReading', () => {
+  const phrases = [ex('eine Entscheidung treffen', 'принять решение'), ex('sich mit Freunden treffen'), ex('Sich wohl fühlen')];
+
+  it('keeps only phrases with "sich" for the reflexive reading', () => {
+    expect(des(phrasesForReading(phrases, true))).toEqual(['sich mit Freunden treffen', 'Sich wohl fühlen']);
+    // "sich" as a word, not inside one.
+    expect(phrasesForReading([ex('sicher treffen')], true)).toEqual([]);
+  });
+
+  it('keeps every phrase for the plain verb', () => {
+    expect(des(phrasesForReading(phrases, false))).toEqual(des(phrases));
+    expect(phrasesForReading(undefined, false)).toEqual([]);
   });
 });

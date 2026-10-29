@@ -11,6 +11,7 @@
   import ResultIcon from './ResultIcon.svelte';
   import Examples from './Examples.svelte';
   import NoteHint from './NoteHint.svelte';
+  import Preps from './Preps.svelte';
 
   /** der / die / das drill. Keyed per question by the parent. */
   let { item, onanswer, onnext }: ModeProps = $props();
@@ -71,6 +72,7 @@
         <SpeakButton text={speakableTerm(card)} />
       </div>
       {#if card.plural}<div class="muted">Plural: {displayPlural(card)}</div>{/if}
+      <Preps preps={card.preps} />
       {#if !correct}<NoteHint notes={card.notes} />{/if}
       <Examples {card} />
     </div>

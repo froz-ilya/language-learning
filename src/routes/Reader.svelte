@@ -22,8 +22,11 @@
   import { headingText, isHeading, sentenceAt, tokenize, countWords, type Token } from '../lib/reading/text';
   import { comfortRank, estimateLevel, isFunctionWord, knownShare } from '../lib/reading/level';
   import { rankLookup } from '../lib/reading/rate';
-  import { splitVerbs, splitVerbText, type SplitVerb } from '../lib/reading/separable';
-  import { cardsFor, lemmaMap, loadVocab, type CardRef } from '../lib/reading/vocab';
+  import { splitVerbs, type SplitVerb } from '../lib/reading/separable';
+  import { groupText, reflexiveVerbs, verbGroups, type ReflexiveVerb, type VerbGroup } from '../lib/reading/reflexive';
+  import { cardsFor, cardsOfTerm, lemmaMap, loadVocab, type CardRef } from '../lib/reading/vocab';
+  import { asReflexive } from '../lib/german/reflexive';
+  import { entryFields } from '../lib/search/wordInfo';
   import {
     articleIdFromParts,
     articlePath,
@@ -31,7 +34,6 @@
     buildCard,
     deleteArticle,
     ensureArticleSet,
-    fieldsFromEntry,
     markRead,
     removeFromSaved,
     saveForOffline,
@@ -108,27 +110,39 @@
 
   /** Separable verbs split across a clause ("rufe … an" → anrufen), one map per paragraph; null until found. */
   let splits = $state.raw<Map<number, SplitVerb>[] | null>(null);
+  /** Reflexive verbs ("treffen … uns" → sich treffen, "ziehe mich … an"), found after the split verbs. */
+  let reflexives = $state.raw<Map<number, ReflexiveVerb>[] | null>(null);
 
   $effect(() => {
     const t = tokens;
     splits = null;
+    reflexives = null;
     if (!t.length) return;
     let cancelled = false;
     void splitVerbs(t)
-      .then((m) => !cancelled && (splits = m))
+      .then(async (m) => {
+        if (cancelled) return;
+        splits = m;
+        const r = await reflexiveVerbs(t, m);
+        if (!cancelled) reflexives = r;
+      })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
   });
 
-  /** The split verb a token belongs to (as the verb or as the particle). */
-  const splitAt = (p: number, t: number): SplitVerb | undefined => splits?.[p]?.get(t);
+  /** Verbs written as several tokens, per paragraph: a reflexive verb wins over a split one sharing a token. */
+  const groups = $derived(splits ? splits.map((m, p) => verbGroups(m, reflexives?.[p])) : null);
+
+  /** The split or reflexive verb a token belongs to (as the verb, the particle or the pronoun). */
+  const groupAt = (p: number, t: number): VerbGroup | undefined => groups?.[p]?.get(t);
 
   const NO_LEMMAS = new Map<string, LexEntry | null>();
   const cardsOf = (w: string): CardRef[] => (vocab.value ? cardsFor(w, lemmas ?? NO_LEMMAS, vocab.value) : []);
-  /** Cards for a dictionary entry itself (a split verb's anrufen), not via the text's lemmas. */
-  const cardsOfEntry = (e: LexEntry): CardRef[] => vocab.value?.get(e.term.toLowerCase()) ?? [];
+  /** Cards for a term itself (a split verb's anrufen, "sich treffen"), not via the text's lemmas. */
+  const cardsOfWord = (term: string): CardRef[] => cardsOfTerm(term, vocab.value);
+  const cardsOfEntry = (e: LexEntry): CardRef[] => cardsOfWord(e.term);
 
   /** Words up to this rank count as familiar (the user's level); rarer ones are highlighted as new. */
   const comfort = $derived(comfortRank(settings.focus));
@@ -152,21 +166,21 @@
     return map;
   });
 
-  /** Classes for the tokens of split verbs, by paragraph and token index: coloured as the joined verb. */
-  const splitClasses = $derived.by(() => {
-    if (!splits || !vocab.value) return null;
-    return splits.map((m) => {
+  /** Classes for the tokens of split and reflexive verbs, by paragraph and token index: coloured as the joined verb. */
+  const groupClasses = $derived.by(() => {
+    if (!groups || !vocab.value) return null;
+    return groups.map((m) => {
       const out = new Map<number, string>();
-      for (const s of new Set(m.values())) {
-        const refs = cardsOfEntry(s.entry);
-        const cls = refs.length ? (refs[0].status === 'learning' ? 'l' : '') : isNewWord(s.entry, s.entry.term) ? 'u' : '';
-        out.set(s.verb, cls).set(s.particle, cls);
+      for (const g of new Set(m.values())) {
+        const refs = cardsOfEntry(g.entry);
+        const cls = refs.length ? (refs[0].status === 'learning' ? 'l' : '') : isNewWord(g.entry, g.entry.term) ? 'u' : '';
+        for (const t of g.tokens) out.set(t, cls);
       }
       return out;
     });
   });
 
-  const classOf = (p: number, t: number, text: string) => splitClasses?.[p]?.get(t) ?? classes.get(text) ?? '';
+  const classOf = (p: number, t: number, text: string) => groupClasses?.[p]?.get(t) ?? classes.get(text) ?? '';
 
   const share = $derived(vocab.value ? knownShare(allTokens, (w) => cardsOf(w)[0]?.status) : null);
 
@@ -206,9 +220,11 @@
     tokens.forEach((list, pi) => {
       let offset = 0;
       list.forEach((t, ti) => {
-        // A split verb counts once, as the joined verb at its verb token; its particle not at all.
-        const split = splitAt(pi, ti);
-        const e = split ? (split.verb === ti ? split.entry : null) : t.word ? lemmas!.get(t.text) : null;
+        // A split or reflexive verb counts once, as the joined verb at its verb token; its particle
+        // and pronoun not at all. A verb used only with "sich" counts as "sich beeilen".
+        const group = groupAt(pi, ti);
+        const lemma = t.word ? lemmas!.get(t.text) : null;
+        const e = group ? (group.verb === ti ? group.entry : null) : lemma?.reflexive === 'only' ? asReflexive(lemma) : lemma;
         if (e && isNewWord(e, t.text)) {
           const key = e.term.toLowerCase();
           if (!out.has(key) && !vocab.value!.has(key)) {
@@ -224,12 +240,11 @@
   // ---------- Tapping a word ----------
 
   let sheetOpen = $state(false);
-  /** The tapped word; for a split verb, `word` is the joined verb and `pair` the two tokens. */
-  let sel = $state<{ p: number; t: number; word: string; pair: SplitVerb | null; context: string; key: number } | null>(null);
+  /** The tapped word; for a split or reflexive verb, `word` is the joined verb and `group` its tokens. */
+  let sel = $state<{ p: number; t: number; word: string; group: VerbGroup | null; context: string; key: number } | null>(null);
   let selKey = 0;
 
-  const isSel = (p: number, t: number) =>
-    sheetOpen && sel?.p === p && (sel.t === t || sel.pair?.verb === t || sel.pair?.particle === t);
+  const isSel = (p: number, t: number) => sheetOpen && sel?.p === p && (sel.t === t || !!sel.group?.tokens.includes(t));
 
   function onTap(e: MouseEvent) {
     const span = (e.target as Element | null)?.closest?.<HTMLElement>('[data-t]');
@@ -239,12 +254,12 @@
     const t = Number(span.dataset.t);
     const tok = tokens[p]?.[t];
     if (!tok?.word) return;
-    const pair = splitAt(p, t) ?? null;
-    // The context is the verb's sentence, whichever half of a split verb was tapped.
-    const at = pair ? pair.verb : t;
+    const group = groupAt(p, t) ?? null;
+    // The context is the verb's sentence, whichever token of the group was tapped.
+    const at = group ? group.verb : t;
     const offset = tokens[p].slice(0, at).reduce((n, x) => n + x.text.length, 0);
     const context = sentenceAt(headingText(paragraphs[p]), offset);
-    sel = { p, t, word: pair ? pair.entry.term : tok.text, pair, context, key: ++selKey };
+    sel = { p, t, word: group ? group.entry.term : tok.text, group, context, key: ++selKey };
     sheetOpen = true;
   }
 
@@ -325,7 +340,7 @@
     adding = { done: 0, total: list.length };
     try {
       const sid = await ensureArticleSet($state.snapshot(article) as Article);
-      const cards: Card[] = list.map(({ entry, context }) => buildCard(sid, fieldsFromEntry(entry, settings.lang), context));
+      const cards: Card[] = list.map(({ entry, context }) => buildCard(sid, entryFields(entry, settings.lang), context));
       showToast(`Adding ${cards.length} words…`, { timeout: 2000 });
       for (let i = 0; i < cards.length; i += 50) {
         await addCards(cards.slice(i, i + 50));
@@ -503,12 +518,13 @@
     {#key sel.key}
       <WordSheet
         word={sel.word}
-        written={sel.pair ? splitVerbText(tokens[sel.p], sel.pair) : undefined}
-        entry={sel.pair ? sel.pair.entry : (lemmas?.get(sel.word) ?? null)}
+        written={sel.group ? groupText(tokens[sel.p], sel.group) : undefined}
+        entry={sel.group ? sel.group.entry : (lemmas?.get(sel.word) ?? null)}
         context={sel.context}
         {article}
         {setId}
-        cards={sel.pair ? cardsOfEntry(sel.pair.entry) : cardsOf(sel.word)}
+        cards={sel.group ? cardsOfEntry(sel.group.entry) : cardsOf(sel.word)}
+        cardsOfTerm={cardsOfWord}
         onclose={() => (sheetOpen = false)}
       />
     {/key}

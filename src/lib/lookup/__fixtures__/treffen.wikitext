@@ -1,0 +1,173 @@
+{{Siehe auch|[[Treffen]]}}
+== treffen ({{Sprache|Deutsch}}) ==
+=== {{Wortart|Verb|Deutsch}}, ''unregelmäßig'' ===
+
+{{Deutsch Verb Übersicht
+|Präsens_ich=treffe
+|Präsens_du=triffst
+|Präsens_er, sie, es=trifft
+|Präteritum_ich=traf
+|Partizip II=getroffen
+|Konjunktiv II_ich=träfe
+|Imperativ Singular=triff
+|Imperativ Plural=trefft
+|Hilfsverb=haben
+}}
+
+{{Worttrennung}}
+:tref·fen, {{Prät.}} traf, {{Part.}} ge·trof·fen
+
+{{Aussprache}}
+:{{IPA}} {{Lautschrift|ˈtʁɛfn̩}}
+:{{Hörbeispiele}} {{Audio|De-treffen.ogg}}, {{Audio|De-treffen2.ogg}}, {{Audio|De-at-treffen.ogg|spr=at}}
+:{{Reime}} {{Reim|ɛfn̩|Deutsch}}
+
+{{Bedeutungen}}
+:[1] jemandem [[begegnen]]
+::[1a] jemandem unerwartet [[begegnen]]
+:[2] ''reflexiv, sich treffen:'' einander begegnen, auch sich in Spiel oder Kampf [[gegenübertreten]]
+:[3] auf etwas oder jemandem [[aufprallen]], ein Ziel [[berühren]]
+:[4] ''übertragen:'' das Richtige sagen, das Gemeinte betonen, den Kern erfassen
+:[5] ''reflexiv, übertragen, es trifft sich:'' gut zusammenpassen
+:[6] ''übertragen:'' jemanden [[emotional]] [[berühren]] oder sogar [[verletzen]]
+:[7] etwas Negatives geschieht jemandem
+:[8] {{K|übertragen|als [[Funktionsverb]]}} (mit bestimmtem Akkusativobjekt) etwas [[ausführen]], [[realisieren]]
+
+{{Herkunft}}
+:mittelhochdeutsch:'' treffen, ''althochdeutsch:'' treffan'', aus germanisch ''*drep-a-,'' „schlagen“ {{QS_Herkunft|unbelegt}}
+
+{{Sinnverwandte Wörter}}
+:[1] [[begegnen]], [[sehen]]
+:[2] sich [[verabreden]]
+:[3] [[erreichen]], [[berühren]]
+:[6] [[verletzen]]
+
+{{Unterbegriffe}}
+:[1] [[antreffen]], [[aufeinandertreffen]], [[auftreffen]], [[danebentreffen]], [[eintreffen]], [[übereintreffen]], [[übertreffen]], [[vorbeitreffen]], [[wiedertreffen]], [[zusammentreffen]]
+:[4] [[betreffen]], [[zutreffen]]
+
+{{Beispiele}}
+:[1] Sie am Wochenende zu ''treffen'' ist schwierig.
+:[1] „Auf Social Media ''trifft'' man auf jedem Kanal, jeden Tag und zu gefühlt jedem Thema Trolle.“<ref name="fluter_01" >{{Internetquelle | url=https://www.fluter.de/trump-trollen-motivation?utm_source=pocket-newtab-de-de | titel=Mein bester Feind | autor=Martin Hogger | hrsg=fluter.de, fluter - Magazin der Bundeszentrale für politische Bildung, Bundeszentrale für politische Bildung / bpb, Bonn, Deutschland | datum=2024-06-17 | zugriff=2024-06-19 | kommentar= }}</ref>
+:[1a] Das Buch fängt super spannend an, wir ''treffen'' auf Maik Klingenberg, den Held und Erzähler.
+:[2] Die zwei Fußballmannschaften ''treffen'' sich auf dem Fußballfeld.
+:[3] Du musst den Ball mit dem Fuß ''treffen.''
+:[3] Ich bin am Arm ''getroffen!''
+:[3] [Ukrainekrieg 2022:] „Zwei Raketen haben eine Einrichtung des ukrainischen Militärs am Stadtrand von Dnipro ''getroffen.''“<ref>{{Per-taz Online | Online=https://taz.de/-Nachrichten-zum-Ukraine-Krieg-/!5844090/ | Autor=Simone Schmollack | Titel=+++ Nachrichten zum Ukraine-Krieg +++: Russische Kriegsschiffe zerstört | TitelErg= | Tag=25 | Monat=03 | Jahr=2022 | Zugriff=2022-03-25 | Kommentar= }}</ref>
+:[4] Deine Aussage ist wahrlich ''treffend.''
+:[5] Dass ich heute müde bin, ''trifft sich'' gut, wenn du sowieso keine Zeit hast.
+:[6] Der Tod meiner Großeltern hat mich schwer ''getroffen.''
+:[7] „In den Städten ''traf'' der Nahrungsmangel Einwohnerschaft wie einquartierte Soldaten häufig in gleicher Weise.“<ref>{{Per-Damals | Autor=Kay Peter Jankrift| Titel=Das große Sterben | Nummer=5 | Jahr=2018 | Seiten=34 }}</ref>
+
+{{Redewendungen}}
+:[4] [[den Nagel auf den Kopf treffen|den Nagel auf den Kopf ''treffen'']]
+
+{{Sprichwörter}}
+:[6] [[nur getroffene Hunde bellen|Nur ''getroffene'' Hunde bellen.]] – Wenn jemand protestiert, hat man das Richtige gesagt.
+
+{{Charakteristische Wortkombinationen}}
+:[1] [[jemanden]] treffen
+:[3] das [[Tor]] treffen, den [[Korb]] treffen
+
+{{Wortbildungen}}
+:[[Treff]], [[Treffen]], [[Treffer]], [[Treffgerade]], [[trefflich]], [[Treffplatz]], [[Treffpunkt]], [[treffsicher]], [[triftig]]
+
+==== {{Übersetzungen}} ====
+{{Ü-Tabelle|1|G=jemandem begegnen|Ü-Liste=
+*{{ar}}: {{Üt?|ar|يلتقي|}}, {{Üt?|ar|يتخذ|}}
+*{{bg}}: {{Üt|bg|срещам|}}
+*{{en}}: {{Ü|en|meet}}
+*{{eo}}: {{Ü|eo|trovi}}
+*{{fr}}: {{Ü|fr|rencontrer}}
+*{{gl}}: {{Ü|gl|encontrar}}
+*{{el}}: {{Üt|el|συναντώ|synandó}}
+*{{ia}}: {{Ü|ia|incontrar}}
+*{{is}}: {{Ü|is|hitta}}
+*{{it}}: {{Ü|it|incontrare}}
+*{{ja}}: {{Üt|ja|会う|あう, au}}
+*{{tlh}}: {{Ü|tlh|ghom}}
+*{{ko}}: {{Üt|ko|만나다|}}
+*{{nds}}: {{Ü|nds|sik bemöten}} (zufällig), {{Ü|nds|in'e Mööt kamen}} (beabsichtigt)
+*{{no}}: {{Ü|no|treffe}}
+*{{pl}}: {{Ü|pl|spotkać}}, {{Ü|pl|spotykać}}
+*{{pt}}: {{Ü|pt|encontrar}}, {{Ü|pt|reunir-se com}}, {{Ü|pt|ver}}
+*{{ro}}: {{Ü|ro|întâlni|a întâlni}}
+*{{ru}}: {{Üt|ru|встретить}}
+*{{sv}}: {{Ü|sv|möta}}, {{Ü|sv|mötas}}
+*{{es}}: {{Ü|es|encontrarse}} {{Ü|es|con}}, {{Ü|es|juntarse}} {{Ü|es|con}}, {{Ü|es|encontrar}}
+*{{cs}}: {{Ü|cs|potkat}}, {{Ü|cs|potkávat}}
+*{{uk}}: {{Üt|uk|зустрічатися|}}, {{Üt|uk|попадати|}}
+*{{hu}}: {{Ü|hu|ráakad}}, {{Ü|hu|rábukkan}}, {{Ü|hu|rátalál}}, {{Ü|hu|találkozik}}
+}}
+
+{{Ü-Tabelle|1a|G=jemandem unerwartet begegnen|Ü-Liste=
+*{{en}}: {{Ü|en|}}
+}}
+
+{{Ü-Tabelle|2|G=einander begegnen, auch sich in Spiel oder Kampf gegenübertreten|Ü-Liste=
+*{{eo}}: {{Ü|eo|alfrontiĝi}}, {{Ü|eo|renkontiĝi}}
+*{{fr}}: {{Ü|fr|se rencontrer}}
+*{{ja}}: {{Üt|ja|会う|あう, au}}
+*{{ca}}: {{Ü|ca|citar-se}}, {{Ü|ca|reunir-se}}
+*{{ro}}: {{Ü|ro|întâlni|a întâlni}}
+*{{sv}}: {{Ü|sv|råkas}}
+*{{es}}: {{Ü|es|reunirse}}, {{Ü|es|encontrarse con|L=E}}
+*{{cs}}: {{Ü|cs|setkávat se}}
+}}
+
+{{Ü-Tabelle|3|G=auf etwas oder jemandem aufprallen, ein Ziel berühren|Ü-Liste=
+*{{en}}: {{Ü|en|hit}}
+*{{eo}}: {{Ü|eo|frapi}}
+*{{fr}}: {{Ü|fr|toucher}} {{Ü|fr|atteindre}}
+*{{io}}: {{Ü|io|atingar}}
+*{{ja}}: {{Üt|ja|当てる|あてる, ateru}}, {{Üt|ja|当たる|あたる, ataru}}
+*{{ca}}: {{Ü|ca|tocar}}, {{Ü|ca|impactar}}
+*{{nds}}: {{Ü|nds|drapen}}
+*{{pl}}: {{Ü|pl|spotkać się}}
+*{{pt}}: {{Ü|pt|bater em}}, {{Ü|pt|atingir}}
+*{{ro}}: {{Ü|ro|lovi|a lovi}}
+*{{ru}}: {{Üt|ru|попадать}}
+*{{sv}}: {{Ü|sv|träffa}}
+*{{es}}: {{Ü|es|pegar}}, {{Ü|es|impactar}}, {{Ü|es|alcanzar}}, {{Ü|es|acertar}} (el blanco)
+*{{cs}}: {{Ü|cs|trefit}}, {{Ü|cs|trefovat}}
+}}
+
+{{Ü-Tabelle|4|G=das Richtige sagen, das Gemeinte betonen, den Kern erfassen|Ü-Liste=
+*{{eo}}: {{Ü|eo|diri trafaĵon}}
+*{{pl}}: {{Ü|pl|spotykać się}}
+*{{es}}: {{Ü|es|acertar}}
+}}
+
+{{Ü-Tabelle|5|G=gut zusammenpassen|Ü-Liste=
+*{{nds}}: {{Ü|nds|goot kamen}}, {{Ü|nds|henkamen}}
+}}
+
+{{Ü-Tabelle|6|G=jemanden emotional berühren oder sogar verletzen|Ü-Liste=
+*{{en}}: {{Ü|en|affect}}
+*{{eo}}: {{Ü|eo|vundi}}, {{Ü|eo|tuŝi}}, {{Ü|eo|dolorigi}}
+*{{fr}}: {{Ü|fr|affecter}}, {{Ü|fr|toucher}}
+*{{ca}}: {{Ü|ca|afectar}}
+*{{nds}}: {{Ü|nds|drapen}}
+*{{ro}}: {{Ü|ro|lovi|a lovi}}, {{Ü|ro|afecta|a afecta}}
+*{{es}}: {{Ü|es|impactar}}, {{Ü|es|afectar}}, {{Ü|es|ofender}}
+}}
+
+{{Ü-Tabelle|7|G=etwas Negatives geschieht jemandem|Ü-Liste=
+*{{en}}: {{Ü|en|}}
+*{{fr}}: {{Ü|fr|}}
+*{{es}}: {{Ü|es|alcanzar}}, {{Ü|es|afectar}}
+}}
+{{Ü-Tabelle|8|G=etwas ausführen, realisieren|Ü-Liste=
+*{{en}}: {{Ü|en|}}
+}}
+
+{{Referenzen}}
+:[1] {{Ref-Grimm}}
+:[1–7] {{Ref-DWDS}}
+:[*] {{Ref-UniLeipzig}}
+
+{{Referenzen prüfen|Deutsch}}
+
+{{Quellen}}
+
+{{Ähnlichkeiten 1|[[reffen]]|Anagramme=[[refften]]}}

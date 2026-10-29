@@ -9,6 +9,13 @@ import {
   ruleCandidates as buildRuleCandidates,
   SUFFIXES as BUILD_SUFFIXES,
 } from '../../../scripts/dict/lib.mjs';
+import {
+  caseFromExamples,
+  prepFromExamples,
+  prepsOfPattern,
+  reflexiveFields,
+  reflexiveOf,
+} from '../../../scripts/dict/reflexive.mjs';
 import type { LexEntry } from './types';
 
 type Local = typeof import('./local');
@@ -124,6 +131,59 @@ describe('lookupLocal', () => {
     expect(await local.lookupLocal('...')).toEqual([]);
   });
 
+  it('decodes the reflexive data of verbs (tags r/R, trailing trRefl and preps)', async () => {
+    const [treffen] = await local.lookupLocal('treffen');
+    expect(treffen.entry).toEqual({
+      term: 'treffen',
+      pos: 'verb',
+      genders: [],
+      plural: '',
+      praeteritum: 'traf',
+      partizip2: 'getroffen',
+      auxiliary: 'haben',
+      tr: { ru: 'встретить; попадать', en: 'meet; hit' },
+      rank: 195,
+      level: 'A1',
+      reflexive: 'also',
+      trRefl: { ru: 'встречаться', en: '' },
+    });
+    const [beeilen] = await local.lookupLocal('beeilen');
+    expect(beeilen.entry).toMatchObject({ reflexive: 'only', preps: 'mit + Dat', auxiliary: 'haben', level: 'A2' });
+    expect(beeilen.entry.trRefl).toBeUndefined();
+    // Entries without the data (older pieces, other words) have none of the fields.
+    const [gehen] = await local.lookupLocal('gehen');
+    expect(gehen.entry).not.toHaveProperty('reflexive');
+    expect(gehen.entry).not.toHaveProperty('trRefl');
+    expect(gehen.entry).not.toHaveProperty('preps');
+    expect((await local.lookupLocal('Treffen'))[0].entry).not.toHaveProperty('reflexive');
+  });
+
+  it('reads "sich …" as the reflexive verb', async () => {
+    const [hit, ...rest] = await local.lookupLocal('sich treffen');
+    expect(rest).toEqual([]); // the noun "Treffen" is not a reflexive verb
+    expect(hit.form).toBeUndefined();
+    expect(hit.entry).toMatchObject({ term: 'sich treffen', reflexive: 'also', praeteritum: 'traf', rank: 195 });
+    // The reflexive meanings' translations, else the verb's own.
+    expect(hit.entry.tr).toEqual({ ru: 'встречаться', en: 'meet; hit' });
+    expect(terms(await local.lookupLocal('Sich Treffen'))).toEqual(['sich treffen']);
+    expect(terms(await local.lookupLocal('  sich   beeilen '))).toEqual(['sich beeilen']);
+    expect((await local.lookupLocal('sich beeilen'))[0].entry).toMatchObject({ reflexive: 'only', tr: { ru: 'торопиться, спешить', en: 'hurry' } });
+    // Inflected: the input as typed.
+    const [trifft] = await local.lookupLocal('sich trifft');
+    expect(trifft).toMatchObject({ form: 'sich trifft', entry: { term: 'sich treffen' } });
+  });
+
+  it('ranks verbs known as reflexive before verbs without reflexive data', async () => {
+    // "ging": gehen (#32, no data) and ausgehen (#910, reflexive 'also').
+    expect(terms(await local.lookupLocal('ging'))).toEqual(['gehen', 'ausgehen']);
+    expect(terms(await local.lookupLocal('sich ging'))).toEqual(['sich ausgehen', 'sich gehen']);
+    // A verb without reflexive data still comes, with its own translations.
+    const [gehen] = await local.lookupLocal('sich gehen');
+    expect(gehen.entry).toMatchObject({ term: 'sich gehen', tr: { ru: 'идти, пойти', en: 'go, walk' } });
+    expect(await local.lookupLocal('sich Tisch')).toEqual([]);
+    expect(await local.lookupLocal('sich')).toEqual([]);
+  });
+
   it('returns [] for unknown words and prefixes without a piece', async () => {
     expect(await local.lookupLocal('Xylophon')).toEqual([]);
     expect(await local.lookupLocal('zzz')).toEqual([]);
@@ -190,6 +250,7 @@ describe('rankOf', () => {
     expect(await local.rankOf('sein')).toBe(2);
     expect(await local.rankOf('Essen')).toBe(400);
     expect(await local.rankOf('Häuser')).toBeNull();
+    expect(await local.rankOf('sich treffen')).toBe(195);
   });
 });
 
@@ -210,15 +271,116 @@ describe('build compatibility (scripts/dict/lib.mjs)', () => {
       { term: 'Mantel', pos: 'noun', genders: ['m'], plural: 'Mäntel', praeteritum: '', partizip2: '', auxiliary: '', tr: { ru: 'пальто', en: 'coat' }, rank: 2000, level: 'B1' },
       { term: 'mal', pos: 'other', genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', tr: { ru: 'раз', en: 'once' }, rank: 30, level: 'A1' },
       { term: 'matt', pos: 'adj', genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', tr: { ru: 'матовый', en: 'matt' }, rank: 12000 },
+      {
+        term: 'malen', pos: 'verb', genders: [], plural: '', praeteritum: 'malte', partizip2: 'gemalt', auxiliary: 'haben',
+        tr: { ru: 'рисовать', en: 'paint' }, rank: 1167, reflexive: 'also', trRefl: { ru: '', en: 'picture oneself' }, preps: 'mit + Dat',
+      },
+      // Reflexive data without Präteritum / Partizip II: their places are kept.
+      { term: 'mausern', pos: 'verb', genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', tr: { ru: 'линять', en: 'moult' }, rank: 15000, reflexive: 'only', preps: 'zu + Dat' },
     ];
     expect(compactForm('machen', 'machte')).toBe('2te');
+    expect(encodeEntry(entries[7])).toEqual([15000, 'vR', 'линять', 'moult', '', '', '', '', 'zu + Dat']);
+    // The build sizes its budget without the reflexive data.
+    expect(encodeEntry(entries[6], { reflexive: false })).toEqual([1167, 'vh', 'рисовать', 'paint', '2te', 'gemalt']);
     const piece = { lemmas: Object.fromEntries(entries.map((e) => [e.term, encodeEntry(e)])), forms: {} };
     extra = {
       'index.json': JSON.stringify({ version: 1, sources: '', count: entries.length, pieces: { ma: 'ma.json' } }),
       'ma.json': JSON.stringify(piece),
     };
     for (const e of entries) expect((await local.lookupLocal(e.term))[0].entry).toEqual(e);
-    expect((await local.prefixLocal('ma')).map((e) => e.term)).toEqual(['mal', 'machen', 'Mann', 'Mantel', 'Maus', 'matt']);
+    expect((await local.prefixLocal('ma')).map((e) => e.term)).toEqual(['mal', 'machen', 'Mann', 'malen', 'Mantel', 'Maus', 'matt', 'mausern']);
+  });
+});
+
+describe('reflexive data (scripts/dict/reflexive.mjs)', () => {
+  type Sense = { sense_index?: string; glosses?: string[]; tags?: string[]; raw_tags?: string[]; examples?: { text: string }[] };
+  type Tr = { lang_code: string; sense_index: string; sense?: string; word: string };
+  const verb = (word: string, senses: Sense[], translations: Tr[] = []) => ({ word, pos: 'verb', lang_code: 'de', senses, translations });
+  const ex = (...texts: string[]) => texts.map((text) => ({ text }));
+  // Shaped like the kaikki.org de-edition entries (trimmed).
+  const freuen = verb(
+    'freuen',
+    [
+      { sense_index: '1', glosses: ['Freude erleben oder empfinden'], tags: ['reflexive'], raw_tags: ['sich (über etwas) freuen'], examples: ex('Peter freut sich über sein gutes Schulzeugnis.') },
+      { sense_index: '2', glosses: ['Vorfreude empfinden'], tags: ['reflexive'], raw_tags: ['sich auf etwas freuen'], examples: ex('Ich freue mich schon auf unser nächstes Treffen.') },
+      { sense_index: '3', glosses: ['jemandem Freude bereiten'], tags: ['impersonal', 'transitive'], examples: ex('Es freut mich außerordentlich.') },
+    ],
+    [
+      { lang_code: 'ru', sense_index: '1', sense: 'reflexiv: sich (über etwas) freuen: Freude erleben oder empfinden', word: 'радоваться' },
+      { lang_code: 'en', sense_index: '1', sense: 'reflexiv: sich (über etwas) freuen: Freude erleben oder empfinden', word: 'be glad' },
+      { lang_code: 'en', sense_index: '2', sense: 'bei dem Gedanken an ein zukünftiges Ereignis Freude empfinden', word: 'look forward to' },
+      { lang_code: 'ru', sense_index: '3', sense: 'jemandem Freude bereiten', word: 'радовать' },
+    ],
+  );
+  const beeilen = verb('beeilen', [
+    { sense_index: '1', glosses: ['sich schneller bewegen'], tags: ['intransitive', 'reflexive'] },
+    { sense_index: '1a', glosses: ['sich schneller bewegen', 'sich beeilen, um (gleich, noch, sofort) etwas zu machen: etwas schneller machen'], tags: ['intransitive', 'reflexive'] },
+  ]);
+  const interessieren = verb(
+    'interessieren',
+    [
+      { glosses: ['transitiv, unpersönlich:'] },
+      { sense_index: '1', glosses: ['jemandes Interesse erregen'], raw_tags: ['jemanden (für etwas) interessieren'] },
+      { glosses: ['reflexiv:'] },
+      { sense_index: '2', glosses: ['an etwas/jemandem Interesse haben'], raw_tags: ['sich für etwas/jemanden interessieren'] },
+    ],
+    [
+      { lang_code: 'ru', sense_index: '1', sense: 'transitiv', word: 'интересовать' },
+      { lang_code: 'ru', sense_index: '2', sense: 'reflexiv', word: 'интересоваться' },
+    ],
+  );
+  const gehen = verb('gehen', [
+    { sense_index: '1', glosses: ['sich schreitend fortbewegen'], tags: ['intransitive'], examples: ex('Ich gehe über die Straße.') },
+    { sense_index: '15', glosses: ['(Computer) auf etwas gehen: den Mauszeiger auf etwas bewegen'], tags: ['intransitive'] },
+  ]);
+
+  it('extracts prepositions and their case from usage patterns', () => {
+    expect(prepsOfPattern('sich auf etwas freuen')).toEqual([{ prep: 'auf', case: '' }]);
+    expect(prepsOfPattern('sich für etwas/jemanden interessieren')).toEqual([{ prep: 'für', case: 'Akk' }]);
+    expect(prepsOfPattern('warten auf das Ereignis (Akkusativ)')).toEqual([{ prep: 'auf', case: 'Akk' }]);
+    expect(prepsOfPattern('auf etwas (Akk.) ankommen')).toEqual([{ prep: 'auf', case: 'Akk' }]);
+    expect(prepsOfPattern('sich auf etwas/jemanden verlassen')).toEqual([{ prep: 'auf', case: 'Akk' }]);
+    expect(prepsOfPattern('an etwas/jemandem hängen')).toEqual([{ prep: 'an', case: 'Dat' }]);
+    expect(prepsOfPattern('an etwas teilnehmen')).toEqual([{ prep: 'an', case: '' }]);
+    expect(prepsOfPattern('sich mit jemandem über etwas streiten')).toEqual([{ prep: 'mit', case: 'Dat' }, { prep: 'über', case: '' }]);
+    expect(prepsOfPattern('sich wegen etwas schämen')).toEqual([{ prep: 'wegen', case: 'Gen' }]);
+    expect(prepsOfPattern('reflexiv, mit „um“')).toEqual([{ prep: 'um', case: 'Akk' }]);
+    // Not an object: an infinitive clause, a note, a list of prepositions.
+    expect(prepsOfPattern('sich beeilen, um (gleich, noch) etwas zu machen')).toEqual([]);
+    expect(prepsOfPattern('in der Redewendung „zu haben sein“')).toEqual([]);
+    expect(prepsOfPattern('mit einem abhängigen Infinitiv eines Verbs')).toEqual([]);
+    expect(prepsOfPattern('an/auf/in etwas tippen')).toEqual([]);
+  });
+
+  it('reads the case of a two-way preposition from examples, only when they agree', () => {
+    expect(caseFromExamples('über', ['Peter freut sich über sein gutes Schulzeugnis.'])).toBe('Akk');
+    expect(caseFromExamples('auf', ['Ich freue mich schon auf unser nächstes Treffen.', 'Wir warten aufs Essen.'])).toBe('Akk');
+    expect(caseFromExamples('an', ['Er nimmt an der Sitzung teil.', 'Sie nahm am Rennen teil.'])).toBe('Dat');
+    expect(caseFromExamples('an', ['Er denkt an den Urlaub.', 'Er nimmt an der Sitzung teil.'])).toBe('');
+    // "die Händler auf dem Markt": the noun's, not the verb's.
+    expect(caseFromExamples('auf', ['Die Händler auf dem Markt gehen auf Betrug aus.'])).toBe('');
+    expect(caseFromExamples('auf', ['Er wartet auf Peter.'])).toBe('');
+    expect(prepFromExamples(['Ich erinnere mich noch genau daran.', 'Ich erinnere mich an dich.'])).toBe('an');
+    expect(prepFromExamples(['Ich erinnere mich daran.', 'Danach ging er.'])).toBe('');
+  });
+
+  it('tells "also" from "only" reflexive verbs and collects their data', () => {
+    const fields = (e: object, tr = { ru: '', en: '' }) => reflexiveFields([reflexiveOf(e)], tr);
+    expect(fields(freuen, { ru: 'радоваться', en: 'be glad; look forward to' })).toEqual({ reflexive: 'also', preps: 'über + Akk; auf + Akk' });
+    expect(reflexiveOf(freuen).tr).toEqual({ ru: [['радоваться']], en: [['be glad'], ['look forward to']] });
+    expect(fields(beeilen)).toEqual({ reflexive: 'only' });
+    // Header senses ("reflexiv:") and translation labels.
+    expect(fields(interessieren, { ru: 'интересовать; интересоваться', en: '' })).toEqual({
+      reflexive: 'also',
+      trRefl: { ru: 'интересоваться', en: '' },
+      preps: 'für + Akk',
+    });
+    // Not reflexive: a gloss that uses another reflexive verb; a field's pattern gives no preposition.
+    expect(fields(gehen)).toEqual({});
+    // Tagged reflexive and transitive ("jemanden / sich waschen"): both.
+    expect(fields(verb('waschen', [{ sense_index: '1', glosses: ['reinigen'], tags: ['reflexive', 'transitive'], raw_tags: ['auch'] }]))).toEqual({ reflexive: 'also' });
+    // One homonym not reflexive: 'also'.
+    expect(reflexiveFields([reflexiveOf(beeilen), reflexiveOf(gehen)], { ru: '', en: '' }).reflexive).toBe('also');
   });
 });
 
@@ -243,6 +405,17 @@ describe('generated dictionary (public/dict)', () => {
     expect(terms(await local.lookupLocal('rief'))).toContain('anrufen');
     expect((await local.lookupLocal('Tisch'))[0].entry).toMatchObject({ pos: 'noun', genders: ['m'], plural: 'Tische' });
     expect((await local.prefixLocal('Sch')).length).toBe(8);
+  });
+
+  it.skipIf(!existsSync(new URL('index.json', DICT)))('knows reflexive verbs and their prepositions', async () => {
+    const entry = async (w: string) => (await local.lookupLocal(w))[0].entry;
+    expect((await entry('treffen')).reflexive).toBe('also');
+    expect((await entry('beeilen')).reflexive).toBe('only');
+    expect((await entry('gehen')).reflexive).toBeUndefined();
+    expect((await entry('freuen')).preps).toContain('auf + Akk');
+    expect((await entry('warten')).preps).toBe('auf + Akk');
+    expect(await entry('sich interessieren')).toMatchObject({ term: 'sich interessieren', preps: 'für + Akk' });
+    expect((await entry('sich interessieren')).tr.ru).toBe('интересоваться');
   });
 
   it.skipIf(!existsSync(new URL('index.json', DICT)))('keeps distinct meanings apart ("; ")', async () => {

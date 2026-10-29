@@ -11,7 +11,20 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../dict/local', () => ({ lookupLocal: mocks.lookupLocal, articleVariants: mocks.articleVariants }));
 vi.mock('../lookup/lookup', () => ({ lookupWord: mocks.lookupWord }));
 
-const { articleCardFields, articleRowsOf, displayOf, formsOf, loadWordInfo, mergeInfo, needsRemote } = await import('./wordInfo');
+const {
+  articleCardFields,
+  articleRowsOf,
+  displayOf,
+  entryFields,
+  formsOf,
+  loadWordInfo,
+  mergeInfo,
+  needsRemote,
+  prepsText,
+  reflexiveReadingOf,
+  remoteFor,
+} = await import('./wordInfo');
+const { asReflexive } = await import('../german/reflexive');
 
 function lex(term: string, over: Partial<LexEntry> = {}): LexEntry {
   return { term, pos: 'other', genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', tr: { ru: '', en: '' }, rank: 1, ...over };
@@ -185,5 +198,79 @@ describe('loadWordInfo', () => {
     const { p, states } = run('gehen', { signal: ctrl.signal });
     await p;
     expect(states).toEqual([]);
+  });
+});
+
+describe('reflexive verbs', () => {
+  const treffen = lex('treffen', {
+    pos: 'verb',
+    praeteritum: 'traf',
+    partizip2: 'getroffen',
+    auxiliary: 'haben',
+    tr: { ru: 'встретить', en: 'meet' },
+    reflexive: 'also',
+    trRefl: { ru: 'встречаться', en: 'meet up' },
+    preps: 'mit + Dat',
+  });
+  const plainTreffen = lex('treffen', { pos: 'verb', tr: { ru: 'встретить', en: 'meet' } });
+  const beeilen = lex('beeilen', { pos: 'verb', tr: { ru: 'торопиться', en: 'hurry' }, reflexive: 'only', preps: 'mit + Dat' });
+  const remoteTreffen = result('treffen', {
+    pos: 'verb',
+    translation: 'встретить',
+    preps: 'auf + Akk',
+    examples: [{ de: 'Ich treffe ihn.' }],
+    reflexive: { translation: 'встречаться', examples: [{ de: 'Wir treffen uns.' }] },
+  });
+
+  it('"sich treffen" without dictionary hits: the verb read reflexively, no lookup when flagged', async () => {
+    mocks.lookupLocal.mockImplementation(async (w) => (w === 'treffen' ? [{ entry: treffen, form: undefined }] : []));
+    const s = await loadWordInfo('sich treffen', { lang: 'ru', isOnline: () => true, signal: new AbortController().signal });
+    expect(s.local).toMatchObject({ term: 'sich treffen', tr: { ru: 'встречаться' } });
+    expect(mocks.lookupWord).not.toHaveBeenCalled();
+    expect(mergeInfo(s.local, null, 'ru')).toMatchObject({ term: 'sich treffen', translation: 'встречаться', preps: 'mit + Dat' });
+  });
+
+  it('a verb the dictionary doesn\'t know as reflexive asks the lookup for "sich …"', async () => {
+    mocks.lookupLocal.mockImplementation(async (w) => (w === 'treffen' ? [{ entry: plainTreffen }] : []));
+    mocks.lookupWord.mockResolvedValue(result('sich treffen', { pos: 'verb', translation: 'встречаться', preps: 'mit + Dat' }));
+    const s = await loadWordInfo('sich treffen', { lang: 'ru', isOnline: () => true, signal: new AbortController().signal });
+    expect(mocks.lookupWord).toHaveBeenCalledWith('sich treffen', 'ru', expect.anything());
+    expect(mergeInfo(s.local, s.remote, 'ru')).toMatchObject({ term: 'sich treffen', translation: 'встречаться', preps: 'mit + Dat' });
+  });
+
+  it('a reflexive-only verb is shown as "sich beeilen"', async () => {
+    mocks.lookupLocal.mockResolvedValue([{ entry: beeilen, form: 'beeilt' }]);
+    const s = await loadWordInfo('beeilt', { lang: 'ru', isOnline: () => true, signal: new AbortController().signal });
+    expect(s.local?.term).toBe('sich beeilen');
+    expect(mergeInfo(s.local, null, 'ru')).toMatchObject({ term: 'sich beeilen', translation: 'торопиться', preps: 'mit + Dat' });
+  });
+
+  it('remoteFor reads a plain lookup as its reflexive reading, without the plain prepositions', () => {
+    const r = remoteFor(asReflexive(plainTreffen), remoteTreffen)!;
+    expect(r).toMatchObject({ term: 'sich treffen', translation: 'встречаться', examples: [{ de: 'Wir treffen uns.' }] });
+    expect(r.preps).toBeUndefined();
+    expect(r.reflexive).toBeUndefined();
+    expect(remoteFor(plainTreffen, remoteTreffen)).toBe(remoteTreffen);
+    expect(mergeInfo(asReflexive(plainTreffen), remoteTreffen, 'ru')).toMatchObject({ term: 'sich treffen', translation: 'встречаться' });
+  });
+
+  it('reflexiveReadingOf: the "sich …" row of a plain verb', () => {
+    expect(reflexiveReadingOf(treffen, null, 'ru')).toMatchObject({ term: 'sich treffen', pos: 'verb', translation: 'встречаться', preps: 'mit + Dat' });
+    // From the lookup only: its reflexive reading, not the plain reading's prepositions.
+    const fromRemote = reflexiveReadingOf(null, remoteTreffen, 'ru')!;
+    expect(fromRemote).toMatchObject({ term: 'sich treffen', translation: 'встречаться', examples: [{ de: 'Wir treffen uns.' }] });
+    expect(fromRemote.preps).toBeUndefined();
+    expect(reflexiveReadingOf(plainTreffen, remoteTreffen, 'en')).toMatchObject({ term: 'sich treffen', translation: 'встречаться' });
+    expect(reflexiveReadingOf(plainTreffen, null, 'ru')).toBeNull();
+    expect(reflexiveReadingOf(asReflexive(treffen), null, 'ru')).toBeNull();
+    expect(reflexiveReadingOf(haus, null, 'ru')).toBeNull();
+  });
+
+  it('prepositions: on the "sich …" reading of an also-reflexive verb only; shown joined', () => {
+    expect(entryFields(treffen, 'ru').preps).toBeUndefined();
+    expect(entryFields(asReflexive(treffen), 'ru')).toMatchObject({ term: 'sich treffen', preps: 'mit + Dat' });
+    expect(entryFields(beeilen, 'ru').preps).toBe('mit + Dat');
+    expect(prepsText('auf + Akk; über + Akk')).toBe('auf + Akk · über + Akk');
+    expect(prepsText(undefined)).toBe('');
   });
 });

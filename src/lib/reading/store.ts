@@ -2,6 +2,7 @@ import { db } from '../db/schema';
 import { addFolder, addSet, emptyCard, saveCard } from '../db/repo';
 import type { Card, Lang, LookupResult } from '../types';
 import type { LexEntry } from '../dict/types';
+import { isReflexiveTerm } from '../german/reflexive';
 import type { LevelCode } from '../levels/types';
 import type { Article, SavedArticle } from './types';
 import { plainToParagraphs } from './text';
@@ -147,8 +148,13 @@ export async function ensureArticleSet(article: Article): Promise<number> {
   return setId;
 }
 
-/** Card fields from the offline dictionary. */
+/**
+ * Card fields from the offline dictionary. Its prepositions go along, except to the plain verb
+ * of a verb that is also reflexive: there they are the "sich …" reading's (see lookup.ts).
+ */
 export function fieldsFromEntry(entry: LexEntry, lang: Lang): Partial<Card> {
+  const preps = (entry.preps ?? '').trim();
+  const ownPreps = !!preps && (entry.reflexive !== 'also' || isReflexiveTerm(entry.term));
   return {
     term: entry.term,
     pos: entry.pos,
@@ -158,10 +164,11 @@ export function fieldsFromEntry(entry: LexEntry, lang: Lang): Partial<Card> {
     partizip2: entry.partizip2,
     auxiliary: entry.auxiliary,
     translation: entry.tr[lang] ?? '',
+    ...(ownPreps ? { preps } : {}),
   };
 }
 
-/** Card fields from an online lookup. */
+/** Card fields from an online lookup (its own reading: "sich beeilen" keeps its "sich"). */
 export function fieldsFromLookup(r: LookupResult): Partial<Card> {
   return {
     term: r.term,
@@ -173,12 +180,15 @@ export function fieldsFromLookup(r: LookupResult): Partial<Card> {
     auxiliary: r.auxiliary,
     translation: r.translation,
     examples: r.examples.map((e) => ({ ...e })),
+    ...(r.preps ? { preps: r.preps } : {}),
   };
 }
 
 /** A card for the article's set; `context` (the sentence it was read in) becomes the first example. */
 export function buildCard(setId: number, fields: Partial<Card>, context?: string): Card {
   const card: Card = { ...emptyCard(setId), ...fields, setId };
+  // Prepositions are optional: a card without them has none (not an empty field).
+  if (!card.preps?.trim()) delete card.preps;
   if (context && !card.examples.some((e) => e.de === context)) card.examples = [{ de: context }, ...card.examples].slice(0, 3);
   card.needsFill = card.translation.trim() ? 0 : 1;
   return card;

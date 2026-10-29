@@ -1,8 +1,15 @@
 import type { Auxiliary, Gender, Pos } from '../types';
 import { GENDER_OF_ARTICLE } from './articles';
+import { baseOfReflexive, isReflexiveTerm, withSich } from './reflexive';
 
 export interface ParsedTerm {
+  /** The word as a card stores it: no article; a reflexive verb keeps "sich" ("sich treffen"). */
   term: string;
+  /**
+   * "sich treffen": a reflexive verb. `term` keeps "sich"; dictionaries are asked for the verb
+   * (baseOfReflexive(term)). Only for "sich" + one word, not "sich Sorgen machen".
+   */
+  reflexive?: true;
   pos?: Pos;
   genders: Gender[];
   plural?: string;
@@ -45,9 +52,17 @@ function pluralOf(noun: string, part: string): string | undefined {
  *   "der/das Teil"                → noun, m+n
  *   "das Haus, die Häuser"        → noun, n, plural Häuser (also "Häuser", "-¨er", "en": see pluralOf)
  *   "gehen, ging, ist gegangen"   → verb with forms
+ *   "sich treffen"                → term "sich treffen", reflexive (also with verb forms)
  *   "gehen"                       → term only
  */
 export function parseGermanInput(raw: string): ParsedTerm {
+  const p = parseTerm(raw);
+  const base = baseOfReflexive(p.term);
+  // "Sich treffen" → "sich treffen"; one verb after "sich", not a phrase.
+  return isReflexiveTerm(p.term) && p.pos !== 'noun' && /^\S+$/.test(base) ? { ...p, term: withSich(base), reflexive: true } : p;
+}
+
+function parseTerm(raw: string): ParsedTerm {
   const text = raw.trim().replace(/\s+/g, ' ');
 
   const article = text.match(/^((?:der|die|das)(?:\s*\/\s*(?:der|die|das))*)\s+(.+)$/i);

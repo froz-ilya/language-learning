@@ -65,3 +65,15 @@ export function phrasesToAdd(examples: Example[], phrases: Example[] | undefined
   }
   return out;
 }
+
+const SICH = /(^|\s)sich(\s|$)/i;
+
+/**
+ * A verb's set phrases for one of its readings (CardEditor's treffen / sich treffen switch): the
+ * "sich" reading keeps only phrases with "sich" ("sich mit jemandem treffen"); the plain verb
+ * keeps them all, as before the switch existed.
+ */
+export function phrasesForReading(phrases: Example[] | undefined, reflexive: boolean): Example[] {
+  const list = phrases ?? [];
+  return reflexive ? list.filter((p) => SICH.test(p.de)) : [...list];
+}

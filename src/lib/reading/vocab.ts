@@ -1,5 +1,6 @@
 import { db } from '../db/schema';
 import type { LexEntry } from '../dict/types';
+import { withSich } from '../german/reflexive';
 import { reviewsFor, statusOf, type WordStatus } from '../progress';
 export { lemmaMap } from './rate';
 
@@ -35,7 +36,21 @@ export function lemmaOf(token: string, lemmas: Map<string, LexEntry | null>): st
   return lemmas.get(token)?.term ?? token;
 }
 
-/** Cards matching a token: by its lemma, else by the token as written (case-insensitive). */
+/**
+ * Cards matching a token: by its lemma (for a verb used only with "sich", also its "sich …"
+ * card), else by the token as written (case-insensitive).
+ */
 export function cardsFor(token: string, lemmas: Map<string, LexEntry | null>, vocab: Map<string, CardRef[]>): CardRef[] {
-  return vocab.get(lemmaOf(token, lemmas).toLowerCase()) ?? vocab.get(token.toLowerCase()) ?? [];
+  const e = lemmas.get(token);
+  const lemma = lemmaOf(token, lemmas).toLowerCase();
+  return (
+    vocab.get(lemma) ??
+    (e?.reflexive === 'only' ? vocab.get(withSich(lemma)) : undefined) ??
+    vocab.get(token.toLowerCase()) ??
+    []
+  );
 }
+
+/** Cards for a dictionary entry itself (a split verb's anrufen, "sich treffen"), not via the text's lemmas. */
+export const cardsOfTerm = (term: string, vocab: Map<string, CardRef[]> | undefined): CardRef[] =>
+  vocab?.get(term.trim().toLowerCase()) ?? [];

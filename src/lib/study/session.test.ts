@@ -4,11 +4,13 @@ import {
   endOfDay,
   filterByScope,
   isDueOrNew,
+  isStudyMode,
   modeApplies,
   modeAvailability,
   resolveDirection,
   Session,
   shuffle,
+  STUDY_MODES,
 } from './session';
 import { choiceOptions, matchRounds } from './quiz';
 
@@ -249,5 +251,15 @@ describe('matchRounds', () => {
     expect(matchRounds(cards(13)).map((r) => r.length)).toEqual([6, 7]);
     expect(matchRounds(cards(9)).map((r) => r.length)).toEqual([6, 3]);
     expect(matchRounds(cards(2)).map((r) => r.length)).toEqual([2]);
+  });
+});
+
+describe('isStudyMode', () => {
+  it('accepts every mode and rejects unknown saved values', () => {
+    for (const m of STUDY_MODES) expect(isStudyMode(m)).toBe(true);
+    expect(isStudyMode('pronouns')).toBe(true);
+    expect(isStudyMode('dictation')).toBe(false);
+    expect(isStudyMode(undefined)).toBe(false);
+    expect(isStudyMode('')).toBe(false);
   });
 });

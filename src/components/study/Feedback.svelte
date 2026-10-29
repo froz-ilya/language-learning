@@ -4,15 +4,18 @@
   import { feedbackFx } from '../../lib/study/fx';
   import ResultIcon from './ResultIcon.svelte';
   import { displayTerm, speakableTerm } from '../../lib/german/articles';
+  import { withSich } from '../../lib/german/reflexive';
   import Term from '../Term.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import Examples from './Examples.svelte';
   import NoteHint from './NoteHint.svelte';
+  import Preps from './Preps.svelte';
 
   /** Result panel for typed answers (Write, Listen). */
   let {
     verdict,
     articleProblem,
+    reflexiveProblem,
     card,
     answerGerman,
     given = '',
@@ -20,6 +23,7 @@
   }: {
     verdict: Verdict;
     articleProblem?: 'missing' | 'wrong';
+    reflexiveProblem?: 'missing' | 'form';
     card: Card;
     answerGerman: boolean;
     given?: string;
@@ -34,7 +38,9 @@
   <div class="head row">
     <ResultIcon ok={verdict !== 'wrong'} />
     <span>
-      {#if verdict === 'correct'}
+      {#if reflexiveProblem === 'missing' && verdict !== 'wrong'}
+        Don't forget “sich”: <span class="answer">{withSich(card.term)}</span>
+      {:else if verdict === 'correct'}
         Correct!
       {:else if verdict === 'typo'}
         Accepted — check spelling: <span class="answer">{expected}</span>
@@ -54,6 +60,10 @@
     </div>
     {#if answerGerman}<SpeakButton text={speakableTerm(card)} />{/if}
   </div>
+  {#if reflexiveProblem === 'form' && verdict !== 'wrong'}
+    <div class="small muted">Dictionary form: <span lang="de">{withSich(card.term)}</span></div>
+  {/if}
+  <Preps preps={card.preps} />
   {#if showTranslation || (!answerGerman && verdict !== 'correct')}
     <div class="muted small">
       {#if answerGerman}{card.translation}{:else}<Term {card} />{/if}

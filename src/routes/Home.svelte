@@ -13,7 +13,8 @@
   import { live } from '../lib/live.svelte';
   import { dur } from '../lib/motion';
   import { settings } from '../lib/settings.svelte';
-  import { smartCounts, type SmartId } from '../lib/study/sources';
+  import { newForSession } from '../lib/study/smart';
+  import { newStudiedToday, smartCounts, type SmartId } from '../lib/study/sources';
   import {
     dismissInstallBanner,
     install,
@@ -27,8 +28,8 @@
 
   const data = live(async () => {
     const focus = settings.focus; // read synchronously so a focus change re-runs the query
-    const [counts, info] = await Promise.all([smartCounts(), focus ? focusInfo(focus) : null]);
-    return { counts, info, focus };
+    const [counts, info, studied] = await Promise.all([smartCounts(), focus ? focusInfo(focus) : null, newStudiedToday()]);
+    return { counts, info, focus, studied };
   });
 
   /** Most recent article that was started but not finished. */
@@ -69,7 +70,8 @@
 
   const due = $derived(counts?.due ?? 0);
   const newAvailable = $derived(info ? info.fresh : (counts?.new ?? 0));
-  const newToday = $derived(Math.min(newAvailable, settings.newPerSession));
+  const newToday = $derived(Math.min(newAvailable, newForSession(settings.newPerSession, settings.newPerDay, data.value?.studied ?? 0)));
+  const limitReached = $derived(newAvailable > 0 && newToday === 0);
   const total = $derived(due + newToday);
   const minutes = $derived(Math.max(1, Math.round((total * SECONDS_PER_WORD) / 60)));
 
@@ -200,10 +202,15 @@
         <section class="hero done" in:fly|global={{ y: 12, duration: dur(260) }}>
           <span class="done-icon"><Icon name="check" size={30} /></span>
           <div class="hero-count">{t('home.allDone')}</div>
-          <div class="hero-time">{t('home.nothingDue')}</div>
-          <button class="btn btn-lg btn-block start" onclick={() => go('/levels')}>
-            <Icon name="sparkle" size={20} /> {t('home.learnNew')}
-          </button>
+          {#if limitReached}
+            <div class="hero-time">{t('home.limitReached', { n: settings.newPerDay })}</div>
+            <button class="btn btn-lg btn-block start" onclick={() => go('/learn/smart/today', { more: '1' })}>{t('study.learn.anyway')}</button>
+          {:else}
+            <div class="hero-time">{t('home.nothingDue')}</div>
+            <button class="btn btn-lg btn-block start" onclick={() => go('/levels')}>
+              <Icon name="sparkle" size={20} /> {t('home.learnNew')}
+            </button>
+          {/if}
         </section>
       {/if}
 

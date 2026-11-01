@@ -16,7 +16,9 @@ export const en = {
 
   'settings.learning.title': 'Learning',
   'settings.learning.newPerSession': 'New words per session',
-  'settings.learning.hint': 'How many never-seen words a session mixes in with your reviews. Fewer = calmer, more = faster.',
+  'settings.learning.newPerDay': 'New words per day',
+  'settings.learning.noLimit': 'No limit',
+  'settings.learning.hint': 'How many never-seen words a session mixes in with your reviews, and how many you start in a day. Fewer = calmer, more = faster, but every new word brings reviews in the next days.',
 
   'settings.translations.title': 'Translations',
   'settings.translations.hint': 'Language for new translations and dictionary look-ups.',
@@ -148,7 +150,9 @@ export const de: Translation<typeof en> = {
 
   'settings.learning.title': 'Lernen',
   'settings.learning.newPerSession': 'Neue Wörter pro Sitzung',
-  'settings.learning.hint': 'So viele noch nie gesehene Wörter mischt eine Sitzung unter deine Wiederholungen. Weniger = ruhiger, mehr = schneller.',
+  'settings.learning.newPerDay': 'Neue Wörter pro Tag',
+  'settings.learning.noLimit': 'Kein Limit',
+  'settings.learning.hint': 'So viele noch nie gesehene Wörter mischt eine Sitzung unter deine Wiederholungen, und so viele beginnst du pro Tag. Weniger = ruhiger, mehr = schneller, aber jedes neue Wort bringt Wiederholungen in den nächsten Tagen.',
 
   'settings.translations.title': 'Übersetzungen',
   'settings.translations.hint': 'Sprache für neue Übersetzungen und die Suche im Wörterbuch.',

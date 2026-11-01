@@ -64,6 +64,22 @@ describe('applyGrade', () => {
     expect(easy.due - now.getTime()).toBeGreaterThanOrEqual(DAY);
     expect(easy.lastWrong).toBe(0);
   });
+  it('remembers when a word was first studied', () => {
+    const first = applyGrade(undefined, 5, Rating.Good, now);
+    expect(first.firstAt).toBe(now.getTime());
+    const later = applyGrade(first, 5, Rating.Good, new Date(now.getTime() + DAY));
+    expect(later.firstAt).toBe(now.getTime());
+  });
+  it('a word studied before firstAt existed does not look new today', () => {
+    const { firstAt: _, ...old } = applyGrade(undefined, 5, Rating.Good, now);
+    expect(applyGrade(old, 5, Rating.Good, new Date(now.getTime() + DAY)).firstAt).toBeUndefined();
+  });
+  it('a match-mode mistake on a new word is not its first study', async () => {
+    await recordMistake(6, now);
+    expect(store.get(6)?.firstAt).toBeUndefined();
+    const t = new Date(now.getTime() + 1000);
+    expect((await recordAnswer(6, Rating.Good, t)).firstAt).toBe(t.getTime());
+  });
 });
 
 describe('persistence', () => {

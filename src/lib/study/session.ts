@@ -44,9 +44,25 @@ export function endOfDay(now: Date | number = Date.now()): number {
   return d.getTime();
 }
 
-/** Never reviewed, or due by the end of today. */
+export function startOfDay(now: Date | number = Date.now()): number {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/**
+ * Due by the end of today and not answered yet today. A word answered today comes back tomorrow
+ * at the earliest: a repeat minutes later would stand in for the check that memory held overnight.
+ */
+export function isDueToday(review: Review, now: Date | number = Date.now()): boolean {
+  if (review.due > endOfDay(now)) return false;
+  const last = review.fsrs?.last_review;
+  return !last || new Date(last).getTime() < startOfDay(now);
+}
+
+/** Never reviewed, or waiting for a review today. */
 export function isDueOrNew(review: Review | undefined, now: Date | number = Date.now()): boolean {
-  return !review || review.due <= endOfDay(now);
+  return !review || isDueToday(review, now);
 }
 
 export function filterByScope(

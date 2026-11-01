@@ -31,6 +31,8 @@ export function applyGrade(prev: Review | undefined, cardId: number, grade: Grad
     fsrs: card,
     mistakes: (prev?.mistakes ?? 0) + (wrong ? 1 : 0),
     lastWrong: wrong ? now.getTime() : (prev?.lastWrong ?? 0),
+    // A review studied before firstAt existed stays without one: its first day isn't known.
+    firstAt: prev?.firstAt ?? (prev?.fsrs?.reps ? undefined : now.getTime()),
   };
 }
 

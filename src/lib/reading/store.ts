@@ -192,7 +192,10 @@ export function fieldsFromLookup(r: LookupResult): Partial<Card> {
   };
 }
 
-/** A card for the article's set; `context` (the sentence it was read in) becomes the first example. */
+/**
+ * A card for the article's set; `context` (the sentence it was read in) becomes the first example.
+ * Its translation comes later, see translateArticleExamples.
+ */
 export function buildCard(setId: number, fields: Partial<Card>, context?: string): Card {
   const card: Card = { ...emptyCard(setId), ...fields, setId };
   // Prepositions are optional: a card without them has none (not an empty field).

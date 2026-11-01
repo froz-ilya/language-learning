@@ -115,7 +115,7 @@ export const en = {
   'reading.paste.textPlaceholder': 'Paste or type German text here. Blank lines start a new paragraph.',
   'reading.paste.max': 'at most {n}',
   'reading.paste.read': 'Read',
-  'reading.paste.hint': 'The text stays on this device. Tap any word in the reader to see its translation and add it to a word set.',
+  'reading.paste.hint': 'The text stays on this device; only the sentences of words you add go to an online translation service. Tap any word in the reader to see its translation and add it to a word set.',
 
   'reading.word.added': 'Added to «{set}»',
   'reading.word.addedTerm': 'Added “{term}” to «{set}»',
@@ -251,7 +251,7 @@ export const de: Translation<typeof en> = {
   'reading.paste.textPlaceholder': 'Füge hier deutschen Text ein oder tippe ihn ein. Leerzeilen beginnen einen neuen Absatz.',
   'reading.paste.max': 'höchstens {n}',
   'reading.paste.read': 'Lesen',
-  'reading.paste.hint': 'Der Text bleibt auf diesem Gerät. Tippe beim Lesen auf ein Wort, um die Übersetzung zu sehen und es einem Set hinzuzufügen.',
+  'reading.paste.hint': 'Der Text bleibt auf diesem Gerät; nur die Sätze der Wörter, die du hinzufügst, gehen zum Übersetzen an einen Online-Dienst. Tippe beim Lesen auf ein Wort, um die Übersetzung zu sehen und es einem Set hinzuzufügen.',
 
   'reading.word.added': 'Zu „{set}“ hinzugefügt',
   'reading.word.addedTerm': '„{term}“ zu „{set}“ hinzugefügt',

@@ -125,6 +125,22 @@ describe('upgrading the database', () => {
     }
   });
 
+  it('reviews saved before firstAt keep working and do not count as new today', async () => {
+    await seedV1();
+    const { db } = await import('./schema');
+    const { recordAnswer, Rating } = await import('../srs/fsrs');
+    const { newStudiedToday } = await import('../study/sources');
+    expect((await db.reviews.get(1))?.firstAt).toBeUndefined();
+    expect(await newStudiedToday()).toBe(0);
+    // Studying the old word again doesn't make it a new word…
+    await recordAnswer(1, Rating.Good);
+    expect((await db.reviews.get(1))?.mistakes).toBe(6);
+    expect(await newStudiedToday()).toBe(0);
+    // …while a word studied for the first time counts.
+    await recordAnswer(2, Rating.Good);
+    expect(await newStudiedToday()).toBe(1);
+  });
+
   it('settings saved before the interface language existed follow the phone', async () => {
     await seedV1();
     const { settings, loadSettings } = await import('../settings.svelte');

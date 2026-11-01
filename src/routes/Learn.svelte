@@ -17,14 +17,17 @@
   import { slideIn, slideOut } from '../lib/study/fx';
   import { distractorPool, loadReviews } from '../lib/study/load';
   import { modeApplies } from '../lib/study/session';
-  import { planSmartQueue, SmartSession, type SmartItem } from '../lib/study/smart';
-  import { cardsForSource, sourceTitle, type SourceKind } from '../lib/study/sources';
+  import { newForSession, planSmartQueue, SmartSession, type SmartItem } from '../lib/study/smart';
+  import { cardsForSource, isChosenList, newStudiedToday, sourceTitle, type SourceKind } from '../lib/study/sources';
   import type { Card, Review } from '../lib/types';
   import { newlyHard } from '../lib/progress';
 
-  // Route: #/learn/<kind>/<id> — the smart session (constant: remounted on navigation).
+  // Route: #/learn/<kind>/<id>[?more=1] — the smart session (constant: remounted on navigation).
   const kind = (route.parts[1] ?? 'smart') as SourceKind;
   const sourceId = route.parts[2] ?? 'today';
+  const chosenList = isChosenList(kind, sourceId);
+  /** Home's "Learn new words anyway": the first session goes past the daily limit, later ones ask again. */
+  let pastLimit = route.query.get('more') === '1';
   const backTo =
     kind === 'set' ? `/set/${sourceId}` : kind === 'folder' ? `/folder/${sourceId}` : kind === 'level' ? `/level/${sourceId}` : '/';
   const modesPath = `/modes/${kind}/${sourceId}`;
@@ -42,6 +45,8 @@
   let phase = $state<Phase>('loading');
   let title = $state('');
   let noWords = $state(false);
+  /** Nothing to do because the day's new words are used up (other new words are waiting). */
+  let limitReached = $state(false);
 
   let session: SmartSession | null = null;
   let item = $state.raw<SmartItem | undefined>();
@@ -65,10 +70,18 @@
 
   const newCount = () => Math.max(5, settings.newPerSession);
 
+  /** New words for a regular session: what the session size and the daily limit allow. */
+  async function newAllowed() {
+    if (pastLimit) return newCount();
+    if (chosenList) return settings.newPerSession;
+    return newForSession(settings.newPerSession, settings.newPerDay, await newStudiedToday());
+  }
+
   function build(cards: Card[], reviews: Map<number, Review>, newPerSession: number) {
     missesBefore = new Map([...reviews].map(([id, r]) => [id, r.mistakes]));
     return new SmartSession(cards, reviews, {
       newPerSession,
+      sameDay: chosenList,
       poolSize: pool.length,
       canListen: isSpeechSupported(),
     });
@@ -82,9 +95,12 @@
       const cards = await cardsForSource(kind, sourceId, settings.focus);
       const reviews = await loadReviews(cards);
       pool = await distractorPool(cards.filter((c) => modeApplies('choice', c)));
-      const s = build(cards, reviews, settings.newPerSession);
+      const allowed = await newAllowed();
+      pastLimit = false;
+      const s = build(cards, reviews, allowed);
       if (!s.empty) return begin(s);
       noWords = cards.filter((c) => !c.known).length === 0;
+      limitReached = allowed === 0 && s.plan.moreNew > 0;
       anyway = await findNewWords(cards, reviews, s);
       phase = 'empty';
     } catch (e) {
@@ -203,7 +219,7 @@
       {:else}
         <div class="emoji" aria-hidden="true">🎉</div>
         <div class="big-msg">{t('study.learn.caughtUp')}</div>
-        <div class="muted">{t('study.learn.nothingDue')}</div>
+        <div class="muted">{limitReached ? t('study.learn.limitReached', { n: settings.newPerDay }) : t('study.learn.nothingDue')}</div>
         {#if anyway}
           <button class="btn btn-primary btn-lg btn-block" onclick={learnAnyway}>{t('study.learn.anyway')}</button>
         {/if}

@@ -17,8 +17,9 @@
   import { setKnown, STATUS_LABELS } from '../../lib/progress';
   import type { ArticleVariant, Card, Gender, LookupResult } from '../../lib/types';
   import type { Article } from '../../lib/reading/types';
-  import type { CardRef } from '../../lib/reading/vocab';
+  import { mergeCards, type CardRef } from '../../lib/reading/vocab';
   import { addWordToArticle, articleSetName, articleTitle, buildCard, ensureArticleSet } from '../../lib/reading/store';
+  import { translateArticleExamples } from '../../lib/reading/exampleTranslations';
   import {
     articleCardFields,
     articleRowsOf,
@@ -143,7 +144,9 @@
   const articleRows = $derived(articleRowsOf(lookup.local, lookup.localArticles, lookup.remote, lang));
 
   /** The user's cards spelled like the reading shown (the opening one's are the caller's `cards`). */
-  const termCards = $derived(chosen || given ? (cardsOfTerm?.(current) ?? (chosen ? [] : cards)) : cards);
+  const givenCards = $derived(chosen || given ? (cardsOfTerm?.(current) ?? (chosen ? [] : cards)) : cards);
+  /** With those of the word shown: the caller goes by the text, only a lookup may know "Daunen" is Daune. */
+  const termCards = $derived(mergeCards(givenCards, display ? (cardsOfTerm?.(display.term) ?? []) : []));
   /** Those cards' details (which article is in the set already, which reading they are). */
   let cardRows = $state(new Map<number, Pick<Card, 'genders' | 'pos'>>());
   $effect(() => {
@@ -188,6 +191,7 @@
     try {
       const f = fields();
       const r = await addWordToArticle(article, f, context);
+      if (r.created) void translateArticleExamples(settings.lang);
       const term = options.length > 1 ? (display ? displayTerm(display) : f.term) : '';
       const message = term
         ? t(r.created ? 'reading.word.addedTerm' : 'reading.word.alreadyTerm', { term, set: setName })
@@ -216,6 +220,7 @@
       const fields = articleCardFields(display.term, a);
       const existing = findDuplicate(await db.cards.where('setId').equals(setId).toArray(), fields);
       const cardId = existing?.id ?? (await saveCard(buildCard(setId, fields, context)));
+      if (!existing) void translateArticleExamples(settings.lang);
       showToast(t(existing ? 'reading.word.articleAlready' : 'reading.word.articleAdded', { label, set: setName }), {
         actionLabel: t('reading.openSet'),
         onAction: () => go(`/set/${setId}`),

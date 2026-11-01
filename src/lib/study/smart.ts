@@ -1,11 +1,12 @@
 import type { Card, Review } from '../types';
-import { endOfDay, isArticleCard, isVerbCard, modeApplies, type QuestionDir, type Rng, type StudyItem, type StudyMode } from './session';
+import { endOfDay, isArticleCard, isDueToday, isVerbCard, modeApplies, type QuestionDir, type Rng, type StudyItem, type StudyMode } from './session';
 
 /**
  * The smart ("Learn") session: pure queue logic, no DB/DOM, unit tested in smart.test.ts.
  *
  * Queue: due/overdue reviewed cards first (most overdue first, capped), then up to
- * `newPerSession` never-studied cards in source order. Known cards are skipped.
+ * `newPerSession` never-studied cards in source order. Known cards are skipped, and so are cards
+ * already answered today (see isDueToday), so a day's work can be finished.
  *
  * Each item gets a mode picked from the card's state:
  *   new       → intro (full card, "Got it"); the same card comes back later as multiple choice
@@ -41,14 +42,21 @@ export function sourceOrder(a: Card, b: Card): number {
   return a.createdAt - b.createdAt || (a.id ?? 0) - (b.id ?? 0);
 }
 
+/** New words a session may add: the session size, within what's left of the daily limit. */
+export function newForSession(perSession: number, perDay: number, studiedToday: number): number {
+  return perDay > 0 ? Math.min(perSession, Math.max(0, perDay - studiedToday)) : perSession;
+}
+
 export interface PlanOptions {
   newPerSession: number;
   maxDue?: number;
   now?: Date | number;
+  /** Also ask cards already answered today (a list opened on purpose, see isChosenList). */
+  sameDay?: boolean;
 }
 
 export interface SmartPlan {
-  /** Reviewed cards due by the end of today, most overdue first (capped). */
+  /** Reviewed cards waiting for a review today, most overdue first (capped). */
   due: Card[];
   /** Never-studied cards for this session, in source order. */
   fresh: Card[];
@@ -64,7 +72,8 @@ export function planSmartQueue(
   reviews: ReadonlyMap<number, Review>,
   opts: PlanOptions,
 ): SmartPlan {
-  const eod = endOfDay(opts.now ?? Date.now());
+  const now = opts.now ?? Date.now();
+  const eod = endOfDay(now);
   const seen = new Set<number>();
   const due: { card: Card; at: number }[] = [];
   const fresh: Card[] = [];
@@ -76,7 +85,7 @@ export function planSmartQueue(
     }
     const r = c.id == null ? undefined : reviews.get(c.id);
     if (!r) fresh.push(c);
-    else if (r.due <= eod) due.push({ card: c, at: r.due });
+    else if (opts.sameDay ? r.due <= eod : isDueToday(r, now)) due.push({ card: c, at: r.due });
   }
   due.sort((a, b) => a.at - b.at);
   fresh.sort(sourceOrder);

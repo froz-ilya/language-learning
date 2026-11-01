@@ -38,3 +38,7 @@ Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`
 - Translation fallbacks: Google Translate (unofficial free endpoint), [MyMemory](https://mymemory.translated.net)
 
 Generated data is committed; rebuild it with `npm run data:levels`, `npm run data:dict`, `npm run data:reading` (each reads its download cache under `scripts/*/.cache`). The Klexikon/MiniKlexikon level catalog (`public/reading/klexikon.json`, every article rated with the reader's own level estimate) was downloaded once (`npm run data:klexikon:full`, batched, rate-limited API requests) and is re-rated from that cache by `npm run data:reading`. `npm run data:klexikon` fetches only what changed on the sites since the last sync; the monthly *Update reading list* workflow runs it and opens a pull request (needs "Allow GitHub Actions to create and approve pull requests" in Settings → Actions → General).
+
+## License
+
+The code is licensed under [Apache-2.0](LICENSE). Third-party data, including the dictionary, word levels and font, keeps its own terms: see [DATA_LICENSES.md](DATA_LICENSES.md).

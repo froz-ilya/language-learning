@@ -7,34 +7,40 @@
   import SpeakButton from '../SpeakButton.svelte';
   import Skeleton from '../Skeleton.svelte';
   import ArticleChoices from '../ArticleChoices.svelte';
+  import ReadingSwitch from '../ReadingSwitch.svelte';
   import { go } from '../../lib/router.svelte';
   import { dur } from '../../lib/motion';
   import { online } from '../../lib/online.svelte';
   import { settings } from '../../lib/settings.svelte';
+  import { db } from '../../lib/db/schema';
   import type { LexEntry } from '../../lib/dict/types';
-  import { asReflexive } from '../../lib/german/reflexive';
   import { ARTICLE, displayTerm, speakableTerm } from '../../lib/german/articles';
   import { parseGermanInput } from '../../lib/german/parseTerm';
   import { STATUS_LABELS } from '../../lib/progress';
-  import type { ArticleVariant, Gender } from '../../lib/types';
+  import type { ArticleVariant, Gender, LookupResult } from '../../lib/types';
   import { ownedCards, type OwnedCard } from '../../lib/search/addToSet';
   import {
     articleCardFields,
     articleRowsOf,
+    cardIsReading,
     displayOf,
     formsOf,
+    hasHomographs,
     initialWordLookup,
     loadWordInfo,
     mergeInfo,
+    openingReadingId,
     prepsText,
-    reflexiveReadingOf,
+    wordReadings,
     type WordFields,
+    type WordReading,
   } from '../../lib/search/wordInfo';
 
   /**
    * A looked-up word on the search screen: term with article, forms, meanings, an example,
-   * pronunciation, whether the user has it (and how well), and "Add to set". Uses the same
-   * lookup as the reader's word sheet (lib/search/wordInfo).
+   * pronunciation, whether the user has it (and how well), and "Add to set". A word with several
+   * readings (sein, treffen / sich treffen) gets a switcher; everything follows the reading
+   * shown. Uses the same lookup as the reader's word sheet (lib/search/wordInfo).
    */
   let {
     word,
@@ -47,7 +53,7 @@
     word: string;
     /** Article to select for a noun whose articles differ in meaning. */
     want?: Gender | null;
-    /** Offline entry the result row came from (used when the lookup finds nothing). */
+    /** Offline entry the result row came from: the reading to open on (used when the lookup finds nothing). */
     entry?: LexEntry | null;
     /** "Add to set" (or + on an article row): the card fields and how to name the word. */
     onadd: (fields: WordFields, label: string) => void;
@@ -58,25 +64,43 @@
   const lang = $derived(settings.lang);
   let lookup = $state(initialWordLookup());
 
-  /**
-   * Switched to the verb's reflexive reading from its row ("sich treffen"): what is looked up
-   * instead, and the plain reading to switch back to.
-   */
-  let switched = $state<{ term: string; entry: LexEntry | null; back: { term: string; translation: string } } | null>(null);
+  /** Reading picked in the switcher; null = the word as it opened. */
+  let chosen = $state.raw<WordReading | null>(null);
+  /** The word shown: the reading picked, else what was typed. */
+  const current = $derived(chosen?.term ?? word);
+  /** The word as it opened: its readings stay on offer while another one is shown. */
+  let opening = $state.raw(initialWordLookup());
+  /** Lookups answered so far: a verb's "sich …" reading may be known only from one. */
+  let remotes = $state.raw<LookupResult[]>([]);
 
   // Offline dictionary first, online only when needed; runs again when the connection comes back.
+  // Switching away aborts the reading's lookup; a finished one comes from the lookup's cache.
   $effect(() => {
     void online.value;
+    const pick = chosen;
     const ctrl = new AbortController();
-    void loadWordInfo(switched?.term ?? word, {
-      entry: switched ? switched.entry : entry,
+    void loadWordInfo(pick?.term ?? word, {
+      entry: pick ? pick.entry : entry,
+      fixed: !!pick?.entry,
+      want,
       lang: settings.lang,
       isOnline: () => online.value,
       signal: ctrl.signal,
-      onchange: (s) => (lookup = s),
+      onchange: (s) => {
+        lookup = s;
+        if (!pick) opening = s;
+        if (s.remote) remotes = [...remotes, s.remote];
+      },
     });
     return () => ctrl.abort();
   });
+
+  const options = $derived(wordReadings(opening.readings, settings.lang, remotes));
+  const openingId = $derived(openingReadingId(opening));
+
+  function pickReading(id: string) {
+    chosen = id === openingId ? null : (options.find((o) => o.id === id) ?? null);
+  }
 
   const info = $derived(mergeInfo(lookup.local, lookup.remote, lang));
   const display = $derived(displayOf(info));
@@ -85,17 +109,6 @@
   const lookingUp = $derived(!lookup.localDone || lookup.remoteState === 'loading');
   const translation = $derived(info?.translation?.trim() ?? '');
   const preps = $derived(split ? '' : prepsText(info?.preps));
-
-  /** A plain verb's reflexive reading ("sich treffen — встречаться"): a row to switch to or add. */
-  const reflexive = $derived(switched ? null : reflexiveReadingOf(lookup.local, lookup.remote, lang));
-  /** Its translation, unless it's just the plain verb's again. */
-  const reflexiveTr = $derived(reflexive?.translation && reflexive.translation !== translation ? reflexive.translation : '');
-
-  function switchToReflexive() {
-    if (!reflexive) return;
-    const local = lookup.local;
-    switched = { term: reflexive.term, entry: local ? asReflexive(local) : null, back: { term: display?.term ?? word, translation } };
-  }
 
   // ---------- Article (nouns whose articles differ in meaning) ----------
 
@@ -129,14 +142,23 @@
   // ---------- The user's cards ----------
 
   const lemma = $derived(display?.term ?? '');
+  /** Only the reading shown counts when others are spelled the same (a card "sein" isn't "das Sein"). */
+  const ownedPos = $derived(display && hasHomographs(options, display.term) ? display.pos : null);
   let owned = $state<OwnedCard[]>([]);
   $effect(() => {
     const t = lemma;
+    const pos = ownedPos;
     if (!t) {
       owned = [];
       return;
     }
-    const sub = liveQuery(() => ownedCards(t)).subscribe({ next: (v) => (owned = v), error: (e) => console.error(e) });
+    const cards = async () => {
+      const list = await ownedCards(t);
+      if (!pos) return list;
+      const rows = await db.cards.bulkGet(list.map((c) => c.id));
+      return list.filter((_, i) => cardIsReading(rows[i]?.pos, pos));
+    };
+    const sub = liveQuery(cards).subscribe({ next: (v) => (owned = v), error: (e) => console.error(e) });
     return () => sub.unsubscribe();
   });
   /** A card with no article, or this one, counts as this article. */
@@ -151,8 +173,8 @@
     if (split && selectedRow && display) return addArticle(selectedRow);
     if (info) return onadd(info, label);
     // Not found: the word as typed; the details are filled in later (online).
-    const p = parseGermanInput(word);
-    const fields: WordFields = p.genders.length ? { term: p.term, pos: 'noun', genders: p.genders } : { term: p.term || word.trim() };
+    const p = parseGermanInput(current);
+    const fields: WordFields = p.genders.length ? { term: p.term, pos: 'noun', genders: p.genders } : { term: p.term || current.trim() };
     onadd(fields, p.genders.length ? `${ARTICLE[p.genders[0]]} ${p.term}` : fields.term);
   }
 
@@ -165,12 +187,15 @@
 <div class="card details" lang="de" in:fade={{ duration: dur(150) }}>
   <div class="head">
     <div class="lemma">
-      {#if head}<Term card={head} />{:else}<span class:muted={lookingUp}>{word}</span>{/if}
+      {#if head}<Term card={head} />{:else}<span class:muted={lookingUp}>{current}</span>{/if}
     </div>
     {#if head || !lookingUp}
-      <SpeakButton text={head ? speakableTerm(head) : word} size={26} />
+      <SpeakButton text={head ? speakableTerm(head) : current} size={26} />
     {/if}
   </div>
+  {#if options.length > 1}
+    <ReadingSwitch {options} selected={chosen?.id ?? openingId} onpick={pickReading} />
+  {/if}
   {#if formNote}<div class="row"><span class="chip">{formNote}</span></div>{/if}
 
   {#if lookingUp && !info}
@@ -180,11 +205,11 @@
       <Icon name={online.value ? 'search' : 'refresh'} size={20} />
       <div>
         {#if !online.value}
-          <strong>Needs internet.</strong> “{word}” isn’t in the offline dictionary — connect to look it up.
+          <strong>Needs internet.</strong> “{current}” isn’t in the offline dictionary — connect to look it up.
         {:else if lookup.remoteState === 'failed'}
           The dictionary didn’t answer. Try again in a moment.
         {:else}
-          Couldn’t find “{word}” in the dictionary.
+          Couldn’t find “{current}” in the dictionary.
         {/if}
       </div>
     </div>
@@ -222,25 +247,6 @@
     {/if}
   {/if}
 
-  {#if reflexive}
-    <div class="alt">
-      <button type="button" class="alt-main" onclick={switchToReflexive}>
-        <span class="alt-term">{reflexive.term}</span>{#if reflexiveTr}<span class="alt-tr" lang={lang}>— {reflexiveTr}</span>{/if}
-      </button>
-      <button
-        type="button"
-        class="alt-add"
-        aria-label="Add {reflexive.term} to a set"
-        disabled={lookingUp}
-        onclick={() => reflexive && onadd(reflexive, reflexive.term)}><Icon name="plus" size={18} /></button
-      >
-    </div>
-  {:else if switched}
-    <button type="button" class="alt alt-main back" onclick={() => (switched = null)}>
-      <span class="alt-term">{switched.back.term}</span>{#if switched.back.translation}<span class="alt-tr" lang={lang}>— {switched.back.translation}</span>{/if}
-    </button>
-  {/if}
-
   {#if example}
     <div class="example">
       <div class="ex-text">
@@ -272,7 +278,7 @@
     <button type="button" class="btn btn-block" class:btn-primary={!shownOwned.length} lang="en" onclick={addSelected} disabled={lookingUp}>
       <Icon name="plus" size={20} />
       <span class="ellipsis">
-        {#if split && label}Add <span lang="de">{label}</span> to a set{:else if shownOwned.length}Add to another set{:else}Add to a set{/if}
+        {#if (split || options.length > 1) && label}Add <span lang="de">{label}</span> to {shownOwned.length ? 'another' : 'a'} set{:else if shownOwned.length}Add to another set{:else}Add to a set{/if}
       </span>
     </button>
   {/if}
@@ -307,58 +313,6 @@
   }
   .preps {
     margin-top: -6px;
-  }
-  .alt {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 40px;
-    border-radius: var(--radius-sm);
-    background: var(--inset-bg);
-    box-shadow: inset 0 0 0 1px var(--hairline);
-  }
-  .alt-main {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 12px;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    font-size: 15px;
-    text-align: left;
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .alt.back {
-    display: block;
-    width: 100%;
-  }
-  .alt-term {
-    font-family: var(--font-display);
-    font-weight: 800;
-  }
-  .alt-tr {
-    margin-left: 0.3em;
-    color: var(--text-2);
-  }
-  .alt-add {
-    flex-shrink: 0;
-    display: inline-grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    margin-right: 2px;
-    border: 0;
-    border-radius: 50%;
-    color: var(--accent);
-    background: color-mix(in srgb, currentColor 12%, var(--surface));
-    cursor: pointer;
-  }
-  .alt-add:disabled {
-    opacity: 0.5;
   }
   .translation {
     font-size: 19px;

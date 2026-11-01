@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../db/schema';
 import { addSet, emptyCard, saveCard } from '../db/repo';
 import type { Folder, Gender, Pos, WordSet } from '../types';
+import { addWordToArticle } from '../reading/store';
+import type { Article } from '../reading/types';
 import { addWordToSet, findDuplicate, isSameWord, orderSetChoices, ownedCards, quickAddDuplicate } from './addToSet';
 
 beforeEach(async () => {
@@ -25,6 +27,15 @@ describe('isSameWord', () => {
     expect(isSameWord(derSee, 'See', [])).toBe(true);
     // der/das Teil overlaps with das Teil.
     expect(isSameWord({ term: 'Teil', genders: ['m', 'n'] }, 'Teil', ['n'])).toBe(true);
+  });
+
+  it('tells words of different parts of speech apart', () => {
+    const treffenNoun = { term: 'Treffen', genders: ['n' as const], pos: 'noun' as const };
+    expect(isSameWord(treffenNoun, 'treffen', [], 'verb')).toBe(false);
+    expect(isSameWord(treffenNoun, 'Treffen', ['n'], 'noun')).toBe(true);
+    // Unknown on either side (a card not filled in yet, an import): still the same word.
+    expect(isSameWord({ ...treffenNoun, pos: 'other' }, 'treffen', [], 'verb')).toBe(true);
+    expect(isSameWord(treffenNoun, 'treffen')).toBe(true);
   });
 
   it('findDuplicate', () => {
@@ -139,5 +150,16 @@ describe('ownedCards', () => {
       ['Mine', ['m'], 'new'],
     ]);
     expect(await ownedCards('')).toEqual([]);
+  });
+});
+
+describe('addWordToArticle', () => {
+  const article: Article = { id: 'a1', source: 'paste', title: 'Text', paragraphs: ['Text'], url: '', license: '', attribution: '' };
+
+  it('adds another word spelled the same, not the same word twice', async () => {
+    const noun = await addWordToArticle(article, { term: 'Treffen', pos: 'noun', genders: ['n'] });
+    expect(noun.created).toBe(true);
+    expect((await addWordToArticle(article, { term: 'treffen', pos: 'verb' })).created).toBe(true);
+    expect(await addWordToArticle(article, { term: 'Treffen', pos: 'noun', genders: ['n'] })).toMatchObject({ created: false, cardId: noun.cardId });
   });
 });

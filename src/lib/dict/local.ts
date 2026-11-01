@@ -2,6 +2,9 @@
 // scripts/dict/build.mjs). A piece is { lemmas: { [id]: RawEntry }, forms: { [formLower]: id[] } };
 // ids are the lemma ("Haus"), lemma#pos for the rarer homograph ("sein#other"), or id#gender for
 // another article of a noun whose articles differ in meaning ("See#f" = die See next to der See).
+// public/dict/sep/ is an extra layer of the same format: rare separable verbs and the base verbs
+// they need, read only when the main pieces have no verb for a word (see addExtra). A particle
+// verb's particle is the end of its Präteritum ("fächerte auf").
 import type { Auxiliary, Gender, Pos } from '../types';
 import { LEVELS } from '../levels/types';
 import { asReflexive, baseOfReflexive, isReflexiveTerm } from '../german/reflexive';
@@ -39,6 +42,13 @@ interface DictIndex {
   count: number;
   /** Prefix of normalizeKey (2 letters; 3–4 where a prefix was split) → file name. */
   pieces: Record<string, string>;
+  /** Extra layer; absent in older indexes. */
+  sep?: {
+    /** As `pieces`, for the files in dict/sep/. */
+    pieces: Record<string, string>;
+    /** Space-separated words the extra layer knows although the main pieces have a hit for them. */
+    gate: string;
+  };
 }
 
 interface Piece {
@@ -166,10 +176,10 @@ function loadFile(file: string): Promise<Piece | null> {
 }
 
 /** File of the piece holding a word: the longest index key (4…1 letters of normalizeKey) it starts with. */
-function fileFor(index: DictIndex, word: string): string | undefined {
+function fileFor(pieces: Record<string, string>, word: string): string | undefined {
   const k = normalizeKey(word);
   for (let n = Math.min(4, k.length); n >= 1; n--) {
-    const f = index.pieces[k.slice(0, n)];
+    const f = pieces[k.slice(0, n)];
     if (f) return f;
   }
   return undefined;
@@ -177,14 +187,71 @@ function fileFor(index: DictIndex, word: string): string | undefined {
 
 async function pieceFor(word: string): Promise<Piece | null> {
   const index = await loadIndex();
-  const file = index && word ? fileFor(index, word) : undefined;
+  const file = index && word ? fileFor(index.pieces, word) : undefined;
   return file ? loadFile(file) : null;
+}
+
+async function extraPieceFor(word: string): Promise<Piece | null> {
+  const sep = (await loadIndex())?.sep;
+  const file = sep && word ? fileFor(sep.pieces, word) : undefined;
+  return file ? loadFile(`sep/${file}`) : null;
 }
 
 /** Entry for an id ("Haus", "sein#other"), from whichever piece holds it. */
 async function entryOf(id: string): Promise<LexEntry | null> {
   const piece = await pieceFor(id.split('#')[0]);
   return piece?.lemmas.get(id) ?? null;
+}
+
+/** Entry for an id of the extra layer; a base verb there can also point into the main pieces. */
+async function extraEntryOf(id: string): Promise<LexEntry | null> {
+  const piece = await extraPieceFor(id.split('#')[0]);
+  return piece?.lemmas.get(id) ?? entryOf(id);
+}
+
+let extraGate: Set<string> | null = null;
+
+/** Endings only a verb has: the rest of the ending rules also fit nouns and adjectives. */
+const VERB_ENDINGS = ['t', 'st', 'et', 'est', 'te', 'ten', 'test', 'tet', 'ete', 'eten', 'etest', 'etet'];
+
+/**
+ * May the extra layer know a word the main pieces have a non-verb hit for? Only one in its gate:
+ * the word itself ("fächern"), or a verbal ending on a verb there ("fächerte" next to Fächer,
+ * "deutschte" with "deutschen*", which alone is the adjective). So an ordinary word loads no extra
+ * file. Only in lower case: a capitalised one is that noun.
+ */
+async function extraMayKnow(w: string, lower: string): Promise<boolean> {
+  const sep = (await loadIndex())?.sep;
+  if (!sep || w !== lower) return false;
+  const gate = (extraGate ??= new Set(sep.gate.split(' ')));
+  if (gate.has(lower)) return true;
+  return VERB_ENDINGS.some((e) => {
+    if (!lower.endsWith(e)) return false;
+    const stem = lower.slice(0, -e.length);
+    return [`${stem}en`, `${stem}n`].some((c) => gate.has(c) || gate.has(`${c}*`));
+  });
+}
+
+/**
+ * Adds what the extra layer has for a word: the verb itself, a stored form, else a verb the ending
+ * rules find. A base verb brings its particle verbs along ("fächerte" → fächern, auffächern), which
+ * the build keeps under the base verb's own key in `forms`.
+ */
+async function addExtra(w: string, lower: string, push: (id: string, entry: LexEntry | null | undefined, tier: number, form?: string) => void) {
+  const piece = await extraPieceFor(lower);
+  const lemmas = piece?.byLower.get(lower) ?? [];
+  const ids = [...lemmas, ...(piece?.forms[lower] ?? [])];
+  if (!ids.length) {
+    for (const c of ruleCandidates(lower)) {
+      const p = await extraPieceFor(c);
+      for (const id of p?.byLower.get(c) ?? []) ids.push(id, ...(p?.forms[c] ?? []));
+    }
+  }
+  for (const id of ids) {
+    const entry = await extraEntryOf(id);
+    if (lemmas.includes(id)) push(id, entry, entry?.term === w ? 0 : 1);
+    else push(id, entry, 1, w);
+  }
 }
 
 const ARTICLE = /^(der|die|das|den|dem|des|ein|eine|einen|einem|einer|eines)\s+/i;
@@ -203,13 +270,18 @@ function clean(word: string): string {
  * any capitalisation, with or without an article ("der Tisch"). Several hits when ambiguous,
  * best first. [] when unknown or the dictionary piece can't be loaded. A reflexive verb
  * ("sich treffen", any case) → its verb's hits read as the reflexive verb (see lookupReflexive).
+ * Without a verb among the hits, rare separable verbs and their base verbs come from the extra
+ * layer (see extraMayKnow, addExtra).
  */
-export async function lookupLocal(word: string): Promise<LocalHit[]> {
+export function lookupLocal(word: string): Promise<LocalHit[]> {
+  return lookup(word, true);
+}
+
+async function lookup(word: string, withExtra: boolean): Promise<LocalHit[]> {
   const w = clean(word);
   if (!w) return [];
   if (isReflexiveTerm(w)) return lookupReflexive(w);
   const piece = await pieceFor(w);
-  if (!piece) return [];
   const lower = w.toLowerCase();
   const cap = lower[0].toUpperCase() + lower.slice(1);
   // Tier 0: the lemma as typed; tier 1: the lemma in another case, inflected forms.
@@ -218,8 +290,8 @@ export async function lookupLocal(word: string): Promise<LocalHit[]> {
     if (!entry || hits.some((h) => h.id === id)) return;
     hits.push({ id, tier, hit: form ? { entry, form } : { entry } });
   };
-  for (const id of piece.byLower.get(lower) ?? []) {
-    const entry = piece.lemmas.get(id);
+  for (const id of piece?.byLower.get(lower) ?? []) {
+    const entry = piece?.lemmas.get(id);
     if (entry?.term === w) push(id, entry, 0);
     else if (entry && (entry.term === cap || entry.term === lower)) push(id, entry, 1);
   }
@@ -230,7 +302,7 @@ export async function lookupLocal(word: string): Promise<LocalHit[]> {
     const best = Math.min(...hits.filter((h) => h.tier === 0).map((h) => h.hit.entry.rank));
     for (const h of hits) if (h.tier === 1 && h.hit.entry.term === lower && h.hit.entry.rank * 10 < best) h.tier = 0;
   }
-  const formIds = piece.forms[lower];
+  const formIds = piece?.forms[lower];
   if (formIds) {
     for (const id of formIds) push(id, await entryOf(id), 1, w);
   } else if (!hits.length) {
@@ -239,6 +311,9 @@ export async function lookupLocal(word: string): Promise<LocalHit[]> {
       const p = await pieceFor(c);
       for (const id of p?.byLower.get(c) ?? []) push(id, p?.lemmas.get(id), 1, w);
     }
+  }
+  if (withExtra && !hits.some((h) => h.hit.entry.pos === 'verb') && (!hits.length || (await extraMayKnow(w, lower)))) {
+    await addExtra(w, lower, push);
   }
   hits.sort((a, b) => a.tier - b.tier || a.hit.entry.rank - b.hit.entry.rank);
   return hits.map((h) => h.hit);
@@ -277,9 +352,12 @@ export async function articleVariants(entry: LexEntry): Promise<LexEntry[]> {
   return out.sort((a, b) => a.rank - b.rank);
 }
 
-/** Lemma for a token in running text (best guess), or null. */
+/**
+ * Lemma for a token in running text (best guess), or null. Main pieces only: it runs over whole
+ * texts (rating them), and a word that rare counts as unknown there anyway.
+ */
 export async function lemmatize(token: string): Promise<LexEntry | null> {
-  return (await lookupLocal(token))[0]?.entry ?? null;
+  return (await lookup(token, false))[0]?.entry ?? null;
 }
 
 /** Up to `limit` lemmas starting with `prefix`, most frequent first. */
@@ -290,7 +368,7 @@ export async function prefixLocal(prefix: string, limit = 8): Promise<LexEntry[]
   if (!index) return [];
   // The piece of the prefix itself plus any split-off pieces under it ("sc" → "sch", "scha", …).
   const files = new Set<string>();
-  const own = fileFor(index, norm);
+  const own = fileFor(index.pieces, norm);
   if (own) files.add(own);
   for (const [k, f] of Object.entries(index.pieces)) if (k.length > norm.length && k.startsWith(norm)) files.add(f);
   const pieces = await Promise.all([...files].map(loadFile));

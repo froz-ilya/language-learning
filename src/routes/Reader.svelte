@@ -20,12 +20,14 @@
   import { nextPart } from '../lib/reading/sources/gutenberg';
   import { isRemovedError } from '../lib/reading/sources/klexikon';
   import { headingText, isHeading, sentenceAt, tokenize, countWords, type Token } from '../lib/reading/text';
-  import { comfortRank, estimateLevel, isFunctionWord, knownShare } from '../lib/reading/level';
+  import { comfortRank, estimateLevel, isFunctionWord, knownShare, UNKNOWN_RANK } from '../lib/reading/level';
   import { rankLookup } from '../lib/reading/rate';
-  import { splitVerbs, type SplitVerb } from '../lib/reading/separable';
+  import { splitGuess, splitVerbs, type SplitGuess, type SplitVerb } from '../lib/reading/separable';
   import { groupText, reflexiveVerbs, verbGroups, type ReflexiveVerb, type VerbGroup } from '../lib/reading/reflexive';
-  import { cardsFor, cardsOfTerm, lemmaMap, loadVocab, type CardRef } from '../lib/reading/vocab';
+  import { cardsFor, cardsOfReading, cardsOfTerm, lemmaMap, loadVocab, type CardRef } from '../lib/reading/vocab';
+  import { tokenReadings } from '../lib/reading/wordSense';
   import { asReflexive } from '../lib/german/reflexive';
+  import { lookupWord } from '../lib/lookup/lookup';
   import { entryFields } from '../lib/search/wordInfo';
   import {
     articleIdFromParts,
@@ -132,22 +134,62 @@
     };
   });
 
+  /** Rare split verbs confirmed online after a tap, by paragraph. */
+  let found = $state.raw<Record<number, VerbGroup[]>>({});
+
   /** Verbs written as several tokens, per paragraph: a reflexive verb wins over a split one sharing a token. */
-  const groups = $derived(splits ? splits.map((m, p) => verbGroups(m, reflexives?.[p])) : null);
+  const groups = $derived(
+    splits?.map((m, p) => {
+      const out = verbGroups(m, reflexives?.[p]);
+      for (const g of found[p] ?? []) for (const t of g.tokens) out.set(t, g);
+      return out;
+    }) ?? null,
+  );
 
   /** The split or reflexive verb a token belongs to (as the verb, the particle or the pronoun). */
   const groupAt = (p: number, t: number): VerbGroup | undefined => groups?.[p]?.get(t);
+
+  /** What each word means at its position (token index → readings, best first), for words with several; null until found. */
+  let readings = $state.raw<Map<number, LexEntry[]>[] | null>(null);
+
+  $effect(() => {
+    const t = tokens;
+    readings = null;
+    if (!t.length) return;
+    let cancelled = false;
+    void tokenReadings(t).then((r) => {
+      if (!cancelled) readings = r;
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  /** The word's reading at this position, when it has several (else the spelling's entry in `lemmas` holds). */
+  const readingAt = (p: number, t: number): LexEntry | undefined => readings?.[p]?.get(t)?.[0];
 
   const NO_LEMMAS = new Map<string, LexEntry | null>();
   const cardsOf = (w: string): CardRef[] => (vocab.value ? cardsFor(w, lemmas ?? NO_LEMMAS, vocab.value) : []);
   /** Cards for a term itself (a split verb's anrufen, "sich treffen"), not via the text's lemmas. */
   const cardsOfWord = (term: string): CardRef[] => cardsOfTerm(term, vocab.value);
   const cardsOfEntry = (e: LexEntry): CardRef[] => cardsOfWord(e.term);
+  /** Cards for the word at a position, read as that position's best reading. */
+  const cardsAt = (p: number, t: number, word: string): CardRef[] => {
+    const e = readingAt(p, t);
+    return e && vocab.value ? cardsOfReading(word, e, vocab.value) : cardsOf(word);
+  };
 
   /** Words up to this rank count as familiar (the user's level); rarer ones are highlighted as new. */
   const comfort = $derived(comfortRank(settings.focus));
   const isNewWord = (e: LexEntry | null | undefined, word: string) =>
     e ? !isFunctionWord(e) && e.rank > comfort : /^\p{Ll}/u.test(word) && word.length > 2;
+
+  /**
+   * The class of a word from its cards and entry. Tint only words being studied; a card that's in
+   * a set but never studied (e.g. a whole installed level) shouldn't light up every common word.
+   */
+  const colourOf = (refs: CardRef[], e: LexEntry | null | undefined, word: string) =>
+    refs.length ? (refs[0].status === 'learning' ? 'l' : '') : isNewWord(e, word) ? 'u' : '';
 
   /** CSS class per distinct word: 'u' new (dotted), 'l' learning (tinted), '' familiar/known/function word. */
   const classes = $derived.by(() => {
@@ -156,12 +198,7 @@
     for (const t of allTokens) {
       if (!t.word || map.has(t.text)) continue;
       const refs = cardsOf(t.text);
-      let cls = '';
-      // Tint only words being studied; a card that's in a set but never studied (e.g. a whole
-      // installed level) shouldn't light up every common word.
-      if (refs.length) cls = refs[0].status === 'learning' ? 'l' : '';
-      else if (lemmas && isNewWord(lemmas.get(t.text), t.text)) cls = 'u';
-      map.set(t.text, cls);
+      map.set(t.text, refs.length || lemmas ? colourOf(refs, lemmas?.get(t.text), t.text) : '');
     }
     return map;
   });
@@ -172,15 +209,33 @@
     return groups.map((m) => {
       const out = new Map<number, string>();
       for (const g of new Set(m.values())) {
-        const refs = cardsOfEntry(g.entry);
-        const cls = refs.length ? (refs[0].status === 'learning' ? 'l' : '') : isNewWord(g.entry, g.entry.term) ? 'u' : '';
+        const cls = colourOf(cardsOfEntry(g.entry), g.entry, g.entry.term);
         for (const t of g.tokens) out.set(t, cls);
       }
       return out;
     });
   });
 
-  const classOf = (p: number, t: number, text: string) => groupClasses?.[p]?.get(t) ?? classes.get(text) ?? '';
+  /** Classes of words read differently here than the spelling's usual reading, by paragraph and token index. */
+  const readingClasses = $derived.by(() => {
+    if (!readings || !lemmas || !vocab.value) return null;
+    return readings.map((m, p) => {
+      const out = new Map<number, string>();
+      for (const [t, list] of m) {
+        const text = tokens[p][t].text;
+        const usual = lemmas!.get(text);
+        if (list[0].term === usual?.term && list[0].pos === usual.pos) continue;
+        out.set(t, colourOf(cardsAt(p, t, text), list[0], text));
+      }
+      return out;
+    });
+  });
+
+  /** A verb group wins over the reading at the position, which wins over the spelling. 'g' marks a group's tokens. */
+  const classOf = (p: number, t: number, text: string) => {
+    const cls = groupClasses?.[p]?.get(t) ?? readingClasses?.[p]?.get(t) ?? classes.get(text) ?? '';
+    return groupAt(p, t) ? `${cls} g` : cls;
+  };
 
   const share = $derived(vocab.value ? knownShare(allTokens, (w) => cardsOf(w)[0]?.status) : null);
 
@@ -223,7 +278,7 @@
         // A split or reflexive verb counts once, as the joined verb at its verb token; its particle
         // and pronoun not at all. A verb used only with "sich" counts as "sich beeilen".
         const group = groupAt(pi, ti);
-        const lemma = t.word ? lemmas!.get(t.text) : null;
+        const lemma = t.word ? (readingAt(pi, ti) ?? lemmas!.get(t.text)) : null;
         const e = group ? (group.verb === ti ? group.entry : null) : lemma?.reflexive === 'only' ? asReflexive(lemma) : lemma;
         if (e && isNewWord(e, t.text)) {
           const key = e.term.toLowerCase();
@@ -246,6 +301,53 @@
 
   const isSel = (p: number, t: number) => sheetOpen && sel?.p === p && (sel.t === t || !!sel.group?.tokens.includes(t));
 
+  /** The readings of the tapped word at its position (none for a verb group). */
+  const selReadings = $derived(sel && !sel.group ? readings?.[sel.p]?.get(sel.t) : undefined);
+
+  /** The sentence of a token, for the sheet. */
+  function contextAt(p: number, t: number) {
+    const offset = tokens[p].slice(0, t).reduce((n, x) => n + x.text.length, 0);
+    return sentenceAt(headingText(paragraphs[p]), offset);
+  }
+
+  /** Answers of the online lookup for a guessed split verb, by paragraph and tokens: asked once per article. */
+  const guesses = new Map<string, Promise<VerbGroup | null>>();
+
+  /** The guess as a verb group, when an online dictionary knows the verb. Failures count as not found. */
+  function confirmGuess(p: number, guess: SplitGuess): Promise<VerbGroup | null> {
+    const key = `${p}:${guess.verb}:${guess.particle}`;
+    let answer = guesses.get(key);
+    if (!answer) {
+      const ids = [guess.verb, guess.particle, ...(guess.pronoun === undefined ? [] : [guess.pronoun])].sort((a, b) => a - b);
+      answer = lookupWord(guess.term, settings.lang)
+        .then((r) => {
+          // A translation-only answer (Google) proves nothing: it translates any made-up verb.
+          if (r?.pos !== 'verb' || r.source === 'google' || ids.some((t) => groupAt(p, t))) return null;
+          const g: VerbGroup = {
+            verb: guess.verb,
+            tokens: ids,
+            // No translation here: the sheet fills in everything from the cached online lookup.
+            entry: { term: r.term, pos: 'verb', genders: [], plural: '', praeteritum: r.praeteritum, partizip2: r.partizip2, auxiliary: r.auxiliary, tr: { ru: '', en: '' }, rank: UNKNOWN_RANK },
+          };
+          found = { ...found, [p]: [...(found[p] ?? []), g] };
+          return g;
+        })
+        .catch(() => null);
+      guesses.set(key, answer);
+    }
+    return answer;
+  }
+
+  /** A word without a verb group may be a split verb too rare for the offline dictionary: try it, quietly. */
+  async function tryGuess(p: number, t: number, key: number) {
+    // Until the offline detectors are done, a guess could be a verb they are about to find.
+    if (!reflexives) return;
+    const guess = splitGuess(tokens[p], t);
+    if (!guess || !(online.value || guesses.has(`${p}:${guess.verb}:${guess.particle}`))) return;
+    const group = await confirmGuess(p, guess);
+    if (group && key === selKey && sheetOpen) sel = { p, t, word: group.entry.term, group, context: contextAt(p, group.verb), key: ++selKey };
+  }
+
   function onTap(e: MouseEvent) {
     const span = (e.target as Element | null)?.closest?.<HTMLElement>('[data-t]');
     const para = span?.closest<HTMLElement>('[data-p]');
@@ -256,11 +358,11 @@
     if (!tok?.word) return;
     const group = groupAt(p, t) ?? null;
     // The context is the verb's sentence, whichever token of the group was tapped.
-    const at = group ? group.verb : t;
-    const offset = tokens[p].slice(0, at).reduce((n, x) => n + x.text.length, 0);
-    const context = sentenceAt(headingText(paragraphs[p]), offset);
-    sel = { p, t, word: group ? group.entry.term : tok.text, group, context, key: ++selKey };
+    const context = contextAt(p, group ? group.verb : t);
+    const key = ++selKey;
+    sel = { p, t, word: group ? group.entry.term : tok.text, group, context, key };
     sheetOpen = true;
+    if (!group) void tryGuess(p, t, key);
   }
 
   // ---------- Reading position ----------
@@ -519,11 +621,12 @@
       <WordSheet
         word={sel.word}
         written={sel.group ? groupText(tokens[sel.p], sel.group) : undefined}
-        entry={sel.group ? sel.group.entry : (lemmas?.get(sel.word) ?? null)}
+        entry={sel.group ? sel.group.entry : (selReadings?.[0] ?? lemmas?.get(sel.word) ?? null)}
+        readings={selReadings}
         context={sel.context}
         {article}
         {setId}
-        cards={sel.group ? cardsOfEntry(sel.group.entry) : cardsOf(sel.word)}
+        cards={sel.group ? cardsOfEntry(sel.group.entry) : cardsAt(sel.p, sel.t, sel.word)}
         cardsOfTerm={cardsOfWord}
         onclose={() => (sheetOpen = false)}
       />
@@ -624,6 +727,21 @@
     color: var(--text);
     background: color-mix(in srgb, var(--accent) 28%, transparent);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+  /* One verb in several words: a thin solid line under each, drawn as a background so it stays
+     next to the dotted 'u' underline and the 'l' tint and takes no space. */
+  .w.g:not(.sel) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .w.g {
+    background-image: linear-gradient(color-mix(in srgb, var(--accent) 60%, transparent) 0 0);
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 100% 1.5px;
+  }
+  .w.g.u {
+    text-underline-offset: 2px;
   }
   .say {
     display: inline-flex;

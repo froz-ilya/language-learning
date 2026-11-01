@@ -20,9 +20,13 @@ const {
   loadWordInfo,
   mergeInfo,
   needsRemote,
+  openingReadingId,
   prepsText,
   reflexiveReadingOf,
   remoteFor,
+  wordReadings,
+  cardIsReading,
+  hasHomographs,
 } = await import('./wordInfo');
 const { asReflexive } = await import('../german/reflexive');
 
@@ -272,5 +276,140 @@ describe('reflexive verbs', () => {
     expect(entryFields(beeilen, 'ru').preps).toBe('mit + Dat');
     expect(prepsText('auf + Akk; über + Akk')).toBe('auf + Akk · über + Akk');
     expect(prepsText(undefined)).toBe('');
+  });
+});
+
+describe('word readings', () => {
+  const seinVerb = lex('sein', { pos: 'verb', praeteritum: 'war', partizip2: 'gewesen', auxiliary: 'sein', tr: { ru: 'быть; существовать', en: 'be; exist' }, rank: 2 });
+  const seinPoss = lex('sein', { tr: { ru: 'его, свой', en: 'his; its' }, rank: 57 });
+  const seinNoun = lex('Sein', { pos: 'noun', genders: ['n'], tr: { ru: 'бытие', en: 'being' }, rank: 57 });
+  const treffen = lex('treffen', { pos: 'verb', tr: { ru: 'встретить', en: 'meet' }, reflexive: 'also', trRefl: { ru: 'встречаться', en: 'meet up' } });
+  const treffenNoun = lex('Treffen', { pos: 'noun', genders: ['n'], tr: { ru: 'встреча', en: 'meeting' }, rank: 10950 });
+  const eintreffen = lex('eintreffen', { pos: 'verb', tr: { ru: 'прибывать', en: 'arrive' } });
+  const morgenM = lex('Morgen', { pos: 'noun', genders: ['m'], tr: { ru: 'утро', en: 'morning' } });
+  const morgenN = lex('Morgen', { pos: 'noun', genders: ['n'], tr: { ru: 'завтра', en: 'morrow' } });
+  const morgen = lex('morgen', { tr: { ru: 'завтра', en: 'tomorrow' } });
+  const lautAdj = lex('laut', { pos: 'adj', tr: { ru: 'громкий', en: 'loud' } });
+  const lautPrep = lex('laut', { tr: { ru: 'согласно', en: 'according to' } });
+  const labels = (entries: LexEntry[], remotes: LookupResult[] = [], lang: Lang = 'ru') => wordReadings(entries, lang, remotes).map((r) => r.label);
+
+  it('homographs get a part of speech, other words their article', () => {
+    const r = wordReadings([seinVerb, seinPoss, seinNoun], 'ru');
+    expect(r.map((o) => o.label)).toEqual(['sein (verb)', 'sein (possessive)', 'das Sein']);
+    expect(r.map((o) => o.entry)).toEqual([seinVerb, seinPoss, seinNoun]);
+    expect(new Set(r.map((o) => o.id)).size).toBe(3);
+  });
+
+  it('nothing to switch for one plain reading', () => {
+    expect(labels([gehen])).toEqual(['gehen']);
+    expect(labels([])).toEqual([]);
+  });
+
+  it('a verb\'s "sich …" reading sits right after it, no second row of options', () => {
+    expect(labels([treffen])).toEqual(['treffen', 'sich treffen']);
+    const r = wordReadings([treffen, treffenNoun], 'ru');
+    expect(r.map((o) => o.label)).toEqual(['treffen', 'sich treffen', 'das Treffen']);
+    expect(r[1]).toMatchObject({ term: 'sich treffen', pos: 'verb', entry: asReflexive(treffen) });
+  });
+
+  it('a "sich …" reading known only from a lookup is offered, and looked up by its term', () => {
+    const plain = lex('treffen', { pos: 'verb', tr: { ru: 'встретить', en: 'meet' } });
+    const remote = result('treffen', { pos: 'verb', reflexive: { translation: 'встречаться', examples: [] } });
+    expect(labels([plain])).toEqual(['treffen']);
+    expect(wordReadings([plain], 'ru', [remote])[1]).toMatchObject({ label: 'sich treffen', entry: null });
+  });
+
+  it('a reflexive-only verb is one reading, as "sich …"', () => {
+    const beeilen = lex('beeilen', { pos: 'verb', tr: { ru: 'торопиться', en: 'hurry' }, reflexive: 'only' });
+    expect(labels([beeilen, asReflexive(beeilen)])).toEqual(['sich beeilen']);
+  });
+
+  it('the articles of a noun stay one reading (its article rows choose)', () => {
+    expect(labels([seeM, seeF])).toEqual(['der/die See']);
+    expect(labels([morgenM, morgen, morgenN])).toEqual(['der/das Morgen', 'morgen']);
+  });
+
+  it('pos "other" homographs are named by their first meaning', () => {
+    const r = wordReadings([lautAdj, lautPrep], 'ru');
+    expect(r.map((o) => o.label)).toEqual(['laut (adjective)', 'laut (согласно)']);
+    expect(labels([lautAdj, lautPrep], [], 'en')).toEqual(['laut (adjective)', 'laut (according to)']);
+    expect(labels([lex('halb', { pos: 'adj' }), lex('halb')])).toEqual(['halb (adjective)', 'halb (other)']);
+  });
+
+  it('labels stay distinct when only the case differs', () => {
+    const noArticle = lex('Halt', { pos: 'noun' });
+    expect(labels([lex('halt'), noArticle])).toEqual(['halt (other)', 'Halt (noun)']);
+  });
+
+  it('loadWordInfo: same-spelled lemmas are readings, inflected forms of other words are not', async () => {
+    mocks.lookupLocal.mockResolvedValue([{ entry: treffen }, { entry: treffenNoun }, { entry: eintreffen, form: 'treffen' }]);
+    const s = await loadWordInfo('treffen', { lang: 'ru', isOnline: () => false, signal: new AbortController().signal });
+    expect(s.readings).toEqual([treffen, treffenNoun]);
+    expect(wordReadings(s.readings, 'ru').map((r) => r.label)).toEqual(['treffen', 'sich treffen', 'das Treffen']);
+    expect(openingReadingId(s)).toBe('treffen|verb');
+  });
+
+  it('loadWordInfo opens on the tapped row\'s entry, then on the wanted article', async () => {
+    mocks.lookupLocal.mockResolvedValue([{ entry: seinVerb }, { entry: seinPoss }, { entry: seinNoun }]);
+    const opts = { lang: 'ru' as Lang, isOnline: () => false, signal: new AbortController().signal };
+    expect((await loadWordInfo('Sein', { ...opts, entry: { ...seinNoun } })).local).toBe(seinNoun);
+    expect((await loadWordInfo('das Sein', { ...opts, want: 'n' })).local).toBe(seinNoun);
+    expect((await loadWordInfo('sein', { ...opts, want: null })).local).toBe(seinVerb);
+    // Every reading is on offer from any of them, the opening one first.
+    const s = await loadWordInfo('Sein', { ...opts, entry: seinNoun });
+    expect(wordReadings(s.readings, 'ru').map((r) => r.label)).toEqual(['das Sein', 'sein (verb)', 'sein (possessive)']);
+  });
+
+  it('loadWordInfo with a fixed entry shows that reading, whatever the dictionary ranks first', async () => {
+    mocks.lookupLocal.mockResolvedValue([{ entry: seinVerb }, { entry: seinPoss }]);
+    const s = await loadWordInfo('sein', { entry: seinPoss, fixed: true, lang: 'ru', isOnline: () => true, signal: new AbortController().signal });
+    expect(s.local).toBe(seinPoss);
+    expect(s.readings).toEqual([seinPoss]);
+    expect(mergeInfo(s.local, s.remote, 'ru')).toMatchObject({ translation: 'его, свой', pos: 'other' });
+    expect(mocks.lookupLocal).not.toHaveBeenCalled();
+    expect(mocks.lookupWord).not.toHaveBeenCalled();
+  });
+
+  it('a fixed reading without a translation asks for itself and ignores another word', async () => {
+    const laufen = lex('Laufen', { pos: 'noun', genders: ['n'] });
+    const opts = { entry: laufen, fixed: true, lang: 'ru' as Lang, isOnline: () => true, signal: new AbortController().signal };
+    mocks.lookupWord.mockResolvedValue(result('laufen', { pos: 'verb', translation: 'бежать' }));
+    const s = await loadWordInfo('Laufen', opts);
+    expect(mocks.lookupWord).toHaveBeenCalledWith('das Laufen', 'ru', expect.anything());
+    expect(s).toMatchObject({ remote: null, remoteState: 'done' });
+    const own = result('Laufen', { pos: 'noun', translation: 'бег' });
+    mocks.lookupWord.mockResolvedValue(own);
+    expect((await loadWordInfo('Laufen', opts)).remote).toBe(own);
+    const fromTranslator = result('Laufen', { translation: 'бег' });
+    mocks.lookupWord.mockResolvedValue(fromTranslator);
+    expect((await loadWordInfo('Laufen', opts)).remote).toBe(fromTranslator);
+  });
+
+  it('a "sich …" word offers its plain verb', async () => {
+    mocks.lookupLocal.mockImplementation(async (w) => (w === 'treffen' ? [{ entry: treffen }, { entry: treffenNoun }] : [{ entry: asReflexive(treffen) }]));
+    const s = await loadWordInfo('sich treffen', { lang: 'ru', isOnline: () => false, signal: new AbortController().signal });
+    expect(s.local?.term).toBe('sich treffen');
+    expect(s.readings).toEqual([treffen]);
+    expect(wordReadings(s.readings, 'ru').map((r) => r.label)).toEqual(['treffen', 'sich treffen']);
+    expect(openingReadingId(s)).toBe('sich treffen|verb');
+  });
+
+  it('a word only the lookup knows still offers its "sich …" reading', async () => {
+    mocks.lookupLocal.mockResolvedValue([]);
+    const remote = result('verlieben', { pos: 'verb', translation: 'влюблять', reflexive: { translation: 'влюбиться', examples: [] } });
+    mocks.lookupWord.mockResolvedValue(remote);
+    const s = await loadWordInfo('verlieben', { lang: 'ru', isOnline: () => true, signal: new AbortController().signal });
+    expect(openingReadingId(s)).toBe('verlieben|verb');
+    expect(wordReadings(s.readings, 'ru', [remote]).map((r) => r.label)).toEqual(['verlieben', 'sich verlieben']);
+  });
+
+  it('cards of homographs are told apart by part of speech', () => {
+    const r = wordReadings([seinVerb, seinPoss, seinNoun, treffen], 'ru');
+    expect(hasHomographs(r, 'Sein')).toBe(true);
+    expect(hasHomographs(r, 'sich treffen')).toBe(false);
+    expect(cardIsReading('verb', 'verb')).toBe(true);
+    expect(cardIsReading('verb', 'noun')).toBe(false);
+    expect(cardIsReading('other', 'noun')).toBe(true);
+    expect(cardIsReading(undefined, 'noun')).toBe(true);
   });
 });

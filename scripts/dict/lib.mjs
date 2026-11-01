@@ -31,12 +31,14 @@ const PRONOUNS = new Set(['ich', 'du', 'er', 'sie', 'es', 'er/sie/es', 'wir', 'i
  * Inflected forms of a kaikki lemma entry, lower-cased: the single-word forms of the level
  * pipeline (noun cases and plurals, conjugations, Partizip II, adjective declensions and
  * comparatives) plus zu-infinitives ("anzurufen"); `separable` holds the finite verb of
- * split forms ("rief an" → "rief", "ich rufe an" → "rufe").
- * @returns {{forms: string[], separable: string[]}}
+ * split forms ("rief an" → "rief", "ich rufe an" → "rufe") that isn't a form of its own, `split`
+ * all of them, and `particle` the separable particle of the verb ('' when it has none).
+ * @returns {{forms: string[], separable: string[], split: string[], particle: string}}
  */
 export function formsOfEntry(entry) {
   const out = new Set(inflectedForms(entry));
   const separable = new Set();
+  let particle = '';
   const word = entry.word ?? '';
   if (entry.pos === 'verb') {
     for (const f of entry.forms ?? []) {
@@ -55,13 +57,59 @@ export function formsOfEntry(entry) {
         if ((finite && !tags.some((t) => /passive|perfect/.test(t))) || zu) out.add(parts[0].toLowerCase());
       } else if (parts.length === 2) {
         // Separable verb: "rief an" of anrufen. The particle must be the start of the lemma.
-        const [verb, particle] = parts;
-        if (particle.length >= 2 && word.startsWith(particle) && word.length > particle.length + 2) separable.add(verb.toLowerCase());
+        const [verb, part] = parts;
+        if (part.length < 2 || !word.startsWith(part) || word.length <= part.length + 2) continue;
+        separable.add(verb.toLowerCase());
+        if (part.length > particle.length) particle = part;
       }
     }
   }
   const ok = (set) => [...set].filter((f) => plausibleToken(f));
-  return { forms: ok(out), separable: ok(separable).filter((f) => !out.has(f)) };
+  return { forms: ok(out), separable: ok(separable).filter((f) => !out.has(f)), split: ok(separable), particle };
+}
+
+/** What a form-of gloss names as its lemma's part of speech (first match), as kaikki pos values. */
+const GLOSS_POS = [
+  // Before the verb test: "3. Person Singular des Personalpronomens er".
+  [/pronomens\b|Artikels\b/i, ['pron', 'det', 'article']],
+  [/Numerales\b/, ['num', 'pron', 'det']],
+  [/Substantivs\b/, ['noun']],
+  [/Adverbs\b/, ['adv']],
+  [/Adjektivs\b|Komparativ|Superlativ|Positivs?\b/, ['adj', 'adv']],
+  [/Verbs\b|\d\. Person\b|Indikativ|Konjunktiv|Imperativ|Partizip/, ['verb']],
+];
+const CASE_TAGS = ['nominative', 'genitive', 'dative', 'accusative'];
+
+/** Parts of speech one sense of a form-of entry can be a form of; [] when it doesn't say. */
+function posOfSense(sense) {
+  const text = (sense.glosses ?? []).join(' ');
+  for (const [re, pos] of GLOSS_POS) if (re.test(text)) return pos;
+  // "Nominativ Plural von ihr": a declined word, whatever else it is.
+  if ((sense.tags ?? []).some((t) => CASE_TAGS.includes(t))) return ['pron', 'det', 'article', 'num', 'noun', 'adj'];
+  return [];
+}
+
+/**
+ * Narrows the lemma keys of a form-of entry when its own part of speech doesn't pick one.
+ * Wiktionary lists "seinen" with pos "unknown", and resolveTarget then returns every homograph of
+ * the lemma: sein|verb next to sein|pron. The senses of the entry that name the lemma say which
+ * one is meant ("… des Possessivpronomens sein", "1. Person Singular Präsens Indikativ von sein").
+ * Keys stay as they are when the senses don't say, or name none of them.
+ * @param {object} entry form-of entry of the dump
+ * @param {string} lemma the lemma it points to
+ * @param {string} hint the entry's rawPos
+ * @param {string[]} keys resolveTarget's "word|rawPos" keys
+ */
+export function narrowTargets(entry, lemma, hint, keys) {
+  const posOf = (k) => k.slice(k.lastIndexOf('|') + 1);
+  if (keys.length < 2 || keys.some((k) => posOf(k) === hint)) return keys;
+  const allowed = new Set();
+  for (const s of entry.senses ?? []) {
+    const names = (s.form_of ?? []).some((f) => f.word === lemma) || (s.glosses ?? []).some((g) => g.endsWith(lemma));
+    if (names) for (const p of posOfSense(s)) allowed.add(p);
+  }
+  const kept = keys.filter((k) => allowed.has(posOf(k)));
+  return kept.length ? kept : keys;
 }
 
 /**

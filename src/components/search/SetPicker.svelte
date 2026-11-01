@@ -30,7 +30,7 @@
       loadSetChoices(lastQuickAddSet()),
       db.cards.where('term').equalsIgnoreCase(term.trim()).toArray(),
     ]);
-    const has = new Set(cards.filter((c) => isSameWord(c, term, genders)).map((c) => c.setId));
+    const has = new Set(cards.filter((c) => isSameWord(c, term, genders, fields.pos)).map((c) => c.setId));
     return { choices, has };
   });
 </script>

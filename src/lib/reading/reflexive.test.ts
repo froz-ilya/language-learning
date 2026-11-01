@@ -216,6 +216,56 @@ describe('findReflexives (real dictionary)', () => {
     expect((await real(text)).found).toEqual([]);
   });
 
+  it.each([
+    ['Die Gruppe teilte sich in zwei Hälften auf.', 'teilte sich … auf', 'sich aufteilen'],
+    ['Dann teilte sie sich auf.', 'teilte … sich auf', 'sich aufteilen'],
+    ['Nun teilte die Gruppe sich auf.', 'teilte … sich auf', 'sich aufteilen'],
+    ['Teilt sich die Gruppe auf?', 'Teilt sich … auf', 'sich aufteilen'],
+    ['Die Gruppe teilte sich auf und ging.', 'teilte sich auf', 'sich aufteilen'],
+    ['Er stand auf und teilte sich das Brot auf.', 'teilte sich … auf', 'sich aufteilen'],
+    ['Dann sah er sich die Bilder an.', 'sah … sich … an', 'sich ansehen'],
+    ['Er sah sich die Bilder an.', 'sah sich … an', 'sich ansehen'], // dative
+    ['Ich sehe mir das Bild an.', 'sehe mir … an', 'sich ansehen'],
+    ['Wir rufen uns morgen an.', 'rufen uns … an', 'sich anrufen'],
+    ['Sieh dir das an!', 'Sieh dir … an', 'sich ansehen'],
+  ])('a split verb without the flag: %s', async (text, written, lemma) => {
+    const unflagged = await findWith((w) => local.lookupLocal(w), text, true);
+    expect(unflagged.found).toEqual([[written, lemma]]);
+  });
+
+  it('keeps the translations of a split verb without the flag', async () => {
+    const tokens = tokenize('Die Gruppe teilte sich in zwei Hälften auf.');
+    const lookup: Lookup = (w) => local.lookupLocal(w);
+    const splits = await sep.findSplitVerbs(tokens, lookup);
+    const map = await refl.findReflexives(tokens, lookup, splits);
+    const at = (w: string) => tokens.findIndex((t) => t.text === w);
+    const r = map.get(at('teilte'))!;
+    expect(r).toMatchObject({ verb: at('teilte'), pronoun: at('sich'), particle: at('auf'), entry: { term: 'sich aufteilen' } });
+    expect(r.entry.reflexive).toBeUndefined();
+    expect(r.entry.tr).toEqual(splits.get(at('teilte'))!.entry.tr);
+    const group = refl.verbGroups(splits, map).get(at('auf'))!;
+    expect(group.tokens).toEqual([at('teilte'), at('sich'), at('auf')]);
+    expect(refl.groupText(tokens, group)).toBe('teilte sich … auf');
+  });
+
+  it.each([
+    'Ich rufe dich an.', // dich doesn't agree with ich
+    'Ich rufe dich morgen an.',
+    'Sie kennt mich.',
+    'Er ruft mich an.',
+    'Er ruft uns morgen an.',
+    'Das Kind ruft mich an.',
+    'Ich rufe heute mir an.', // not next to the verb
+    'Er teilte gestern sich auf.',
+    'Er teilte das Brot für sich auf.', // after a preposition
+    'Alles was ich wünsche trifft mir ein.', // ich is the subject of wünsche
+    'Es tut mir leid.',
+    'Das kommt mir bekannt vor.',
+    'Das gefällt mir nicht, sagte er und rief dich an.',
+  ])('no reflexive split verb: %s', async (text) => {
+    expect((await findWith((w) => local.lookupLocal(w), text, true)).found).toEqual([]);
+  });
+
   it('without flags (the dictionary as generated before) nothing is paired', async () => {
     const tokens = tokenize('Wir treffen uns morgen.');
     const map = await refl.findReflexives(tokens, (w) => local.lookupLocal(w));

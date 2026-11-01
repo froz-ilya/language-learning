@@ -2,12 +2,13 @@
 // the offline entry is missing or untranslated, merged into card fields. Shared by the reader's
 // word sheet (components/reading/WordSheet.svelte) and the quick search (routes/Search.svelte).
 import { articleVariants, lookupLocal } from '../dict/local';
-import type { LexEntry } from '../dict/types';
+import type { LexEntry, LocalHit } from '../dict/types';
 import { lookupWord } from '../lookup/lookup';
-import { displayPlural, displayVerbForms } from '../german/articles';
+import { ARTICLE, displayPlural, displayTerm, displayVerbForms } from '../german/articles';
+import { splitMeanings } from '../german/meanings';
 import { asReflexive, baseOfReflexive, isReflexiveTerm, withSich } from '../german/reflexive';
 import { fieldsFromEntry, fieldsFromLookup } from '../reading/store';
-import type { ArticleVariant, Auxiliary, Card, Lang, LookupResult, Pos } from '../types';
+import type { ArticleVariant, Auxiliary, Card, Gender, Lang, LookupResult, Pos } from '../types';
 
 export type RemoteState = 'idle' | 'loading' | 'done' | 'failed';
 
@@ -22,12 +23,19 @@ export interface WordLookupState {
   localDone: boolean;
   /** The input as written when it was an inflected form of `local` ("Gehälter" for Gehalt); ''. */
   form: string;
+  /**
+   * The word's dictionary readings for wordReadings: the one in `local` first, then the other
+   * words spelled like it (sein: the verb, the possessive, das Sein). Inflected forms of other
+   * words don't count ("treffen" is also a form of eintreffen). For "sich treffen": the plain verb.
+   * A word only the lookup knows gets one entry made from it.
+   */
+  readings: LexEntry[];
   remote: LookupResult | null;
   remoteState: RemoteState;
 }
 
 export function initialWordLookup(): WordLookupState {
-  return { local: null, localArticles: [], localDone: false, form: '', remote: null, remoteState: 'idle' };
+  return { local: null, localArticles: [], localDone: false, form: '', readings: [], remote: null, remoteState: 'idle' };
 }
 
 /**
@@ -60,6 +68,29 @@ export const prepsText = (preps: string | undefined): string =>
     .filter(Boolean)
     .join(' · ');
 
+const sameEntry = (a: LexEntry, b: LexEntry) => a.term === b.term && a.pos === b.pos && a.genders.join() === b.genders.join();
+
+/** The reading to open on: the caller's entry (a tapped result row), a noun of the wanted article, else the best. */
+function bestHit(hits: LocalHit[], entry: LexEntry | null | undefined, want: Gender | null | undefined): LocalHit | undefined {
+  return (
+    (entry ? hits.find((h) => sameEntry(h.entry, entry)) : undefined) ??
+    (want ? hits.find((h) => h.entry.pos === 'noun' && h.entry.genders.includes(want)) : undefined) ??
+    hits[0]
+  );
+}
+
+/** What to ask the lookup for one reading: a noun with its article ("das Laufen", not the verb laufen). */
+const askFor = (e: LexEntry): string => (e.pos === 'noun' && e.genders.length === 1 ? `${ARTICLE[e.genders[0]]} ${e.term}` : e.term);
+
+/** The lookup found another word spelled the same (asked for "sein", the possessive; got the verb). */
+const otherWord = (r: LookupResult, e: LexEntry): boolean => r.pos !== 'other' && r.pos !== e.pos;
+
+/** A word only the lookup knows, as an entry for `readings`. */
+function entryFromLookup(r: LookupResult, lang: Lang): LexEntry {
+  const { term, pos, genders, plural, praeteritum, partizip2, auxiliary } = r;
+  return { term, pos, genders, plural, praeteritum, partizip2, auxiliary, tr: { ru: '', en: '', [lang]: r.translation }, rank: 0 };
+}
+
 /**
  * Look `word` up: offline dictionary (lemma, article variants), then — only if needed and
  * online — the online lookup. `onchange` gets a fresh state after each step; nothing is
@@ -68,8 +99,12 @@ export const prepsText = (preps: string | undefined): string =>
 export async function loadWordInfo(
   word: string,
   opts: {
-    /** Precomputed lemma (the reader's map); used when the offline lookup finds nothing. */
+    /** Precomputed lemma (the reader's map); opened on when it's one of the hits, used when there are none. */
     entry?: LexEntry | null;
+    /** `entry` is the reading to show, whatever else `word` may be: the dictionary isn't asked for another. */
+    fixed?: boolean;
+    /** Article to prefer among the hits ("das Sein" next to the verb sein). */
+    want?: Gender | null;
     lang: Lang;
     isOnline: () => boolean;
     signal: AbortSignal;
@@ -82,17 +117,26 @@ export async function loadWordInfo(
     if (!signal.aborted) opts.onchange?.({ ...state });
   };
   let best: LexEntry | null = opts.entry ?? null;
+  const fixed = !!opts.fixed && !!best;
   let variants: LexEntry[] = [];
+  let readings: LexEntry[] = best ? [best] : [];
   let form = '';
   try {
-    const hits = await lookupLocal(word);
-    best = hits[0]?.entry ?? opts.entry ?? null;
-    form = hits[0]?.entry && hits[0].form ? hits[0].form : '';
-    // "sich treffen" where the dictionary has no "sich …" terms: the verb, read reflexively.
-    if (isReflexiveTerm(word) && !(best && isReflexiveTerm(best.term))) {
-      const verb = (await lookupLocal(baseOfReflexive(word))).find((h) => h.entry.pos === 'verb')?.entry;
-      if (verb) best = asReflexive(verb);
-      form = '';
+    if (!fixed) {
+      const hits = await lookupLocal(word);
+      const hit = bestHit(hits, opts.entry, opts.want);
+      best = hit?.entry ?? opts.entry ?? null;
+      form = hit?.form ?? '';
+      readings = [...new Set([...(best ? [best] : []), ...hits.filter((h) => !h.form).map((h) => h.entry)])];
+      if (isReflexiveTerm(word)) {
+        const verb = (await lookupLocal(baseOfReflexive(word))).find((h) => h.entry.pos === 'verb')?.entry;
+        // "sich treffen" where the dictionary has no "sich …" terms: the verb, read reflexively.
+        if (!(best && isReflexiveTerm(best.term))) {
+          if (verb) best = asReflexive(verb);
+          form = '';
+        }
+        if (verb) readings = [verb];
+      }
     }
     // A verb used only with "sich" is shown and added as "sich beeilen".
     if (best?.reflexive === 'only') best = asReflexive(best);
@@ -105,12 +149,16 @@ export async function loadWordInfo(
   state.localArticles = variants;
   state.localDone = true;
   state.form = form;
+  state.readings = readings;
   const remote = needsRemote(best, variants, lang) && opts.isOnline();
   if (remote) state.remoteState = 'loading';
   emit();
   if (!remote) return state;
   try {
-    state.remote = await lookupWord(best?.term ?? word, lang, signal);
+    const reading = fixed ? best : null;
+    const found = await lookupWord(reading ? askFor(reading) : (best?.term ?? word), lang, signal);
+    state.remote = found && reading && otherWord(found, reading) ? null : found;
+    if (!best && state.remote) state.readings = [entryFromLookup(state.remote, lang)];
     state.remoteState = 'done';
   } catch {
     state.remoteState = 'failed';
@@ -184,6 +232,82 @@ export function reflexiveReadingOf(local: LexEntry | null, remote: LookupResult 
   if (preps) out.preps = preps;
   return out;
 }
+
+/** One way to read a word, as an option of the switcher (components/ReadingSwitch.svelte). */
+export interface WordReading {
+  /** Stable while the word is shown (see readingId). */
+  id: string;
+  term: string;
+  pos: Pos;
+  /** Short and distinct among the word's readings: "treffen", "sich treffen", "das Treffen", "sein (verb)". */
+  label: string;
+  /** Dictionary entry to show, as read in this reading; null when only the lookup knows it (look up `term`). */
+  entry: LexEntry | null;
+}
+
+/** All articles of a noun are one reading: its article rows choose between them. */
+export const readingId = (w: Pick<LexEntry, 'term' | 'pos'>): string => `${w.term}|${w.pos}`;
+
+/** The id of the reading a lookup opened on (`local`, or its plain verb when there is none). */
+export function openingReadingId(s: WordLookupState): string {
+  const e = s.local ?? s.readings[0];
+  return e ? readingId(e) : '';
+}
+
+/** The dictionary files pronouns, adverbs and more under 'other': named by the first meaning, unless listed here. */
+const OTHER_POS: Record<string, string> = { sein: 'possessive' };
+
+function posWord(pos: Pos, term: string, translation: string): string {
+  if (pos === 'verb') return 'verb';
+  if (pos === 'noun') return 'noun';
+  if (pos === 'adj') return 'adjective';
+  return OTHER_POS[term.toLowerCase()] ?? splitMeanings(translation)[0]?.[0] ?? 'other';
+}
+
+/**
+ * The options of a word's switcher, from its dictionary entries, best first: each entry, a verb's
+ * "sich …" reading right after it (from the dictionary, or from `remotes`: lookups answered so
+ * far). The articles of a noun stay one option. Labels are the word with its article; only
+ * readings that would look the same get a part of speech ("sein (verb)", "sein (possessive)").
+ * Fewer than 2 means there's nothing to switch.
+ */
+export function wordReadings(entries: LexEntry[], lang: Lang, remotes: LookupResult[] = []): WordReading[] {
+  type Draft = Omit<WordReading, 'label'> & { genders: Gender[]; translation: string };
+  const drafts: Draft[] = [];
+  const add = (d: Omit<Draft, 'id'>) => {
+    const id = readingId(d);
+    const same = drafts.find((x) => x.id === id);
+    if (same) same.genders.push(...d.genders.filter((g) => !same.genders.includes(g)));
+    else drafts.push({ ...d, id });
+  };
+  for (const raw of entries) {
+    const e = raw.reflexive === 'only' ? asReflexive(raw) : raw;
+    add({ term: e.term, pos: e.pos, entry: e, genders: [...e.genders], translation: e.tr[lang] || e.tr.en });
+    const remote = remotes.find((r) => r.term === e.term && r.reflexive) ?? null;
+    const refl = reflexiveReadingOf(e, remote, lang);
+    if (!refl) continue;
+    add({
+      term: refl.term,
+      pos: 'verb',
+      // A verb the dictionary doesn't know as reflexive is looked up as "sich …" from scratch.
+      entry: e.reflexive ? asReflexive(e) : null,
+      genders: [],
+      translation: '',
+    });
+  }
+  return drafts.map(({ id, term, pos, genders, entry, translation }) => {
+    const name = displayTerm({ term, pos, genders });
+    const alike = drafts.filter((d) => displayTerm(d).toLowerCase() === name.toLowerCase()).length > 1;
+    return { id, term, pos, label: alike ? `${name} (${posWord(pos, term, translation)})` : name, entry };
+  });
+}
+
+/** More than one reading is spelled `term` (sein, das Sein): their cards are told apart by part of speech. */
+export const hasHomographs = (readings: WordReading[], term: string): boolean =>
+  readings.filter((r) => r.term.toLowerCase() === term.toLowerCase()).length > 1;
+
+/** A card of such a word is this reading's: same part of speech; a card without one ('other') counts as any. */
+export const cardIsReading = (cardPos: Pos | undefined, pos: Pos): boolean => !cardPos || cardPos === 'other' || cardPos === pos;
 
 /** The fields a word's header and forms line need (defaults filled in). */
 export interface WordDisplay {

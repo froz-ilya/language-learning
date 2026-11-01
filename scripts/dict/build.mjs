@@ -13,6 +13,8 @@
 // size budget, so it never changes which lemmas and forms are kept.
 // Ids: the term ("Haus"), term#pos for a rarer homograph ("sein#other"), and id#gender for
 // another article of a noun whose articles differ in meaning ("See" = der See, "See#f" = die See).
+// public/dict/sep/ is an extra layer outside the budget: rare separable verbs and the base verbs
+// they need, in pieces of the same format, listed under `sep` in index.json (see separable.mjs).
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
@@ -36,11 +38,13 @@ import {
 import { DICT_FORMAT } from '../levels/lib/dict.mjs';
 import { baseWords } from '../levels/lib/words.mjs';
 import { reflexiveFields, reflexiveOf } from './reflexive.mjs';
+import { layoutExtra, noteVerb, selectExtra, trText } from './separable.mjs';
 import {
   encodeEntry,
   expandForm,
   formsOfEntry,
   groupPieces,
+  narrowTargets,
   normalizeKey,
   pieceFile,
   plausibleToken,
@@ -76,6 +80,10 @@ const HAND_FORMS = {
 const MAX_PIECE = 30000;
 /** Bytes outside the lemma/form pairs: index.json and each piece's braces. */
 const OVERHEAD = 12 * 1024;
+/** Extra layer (public/dict/sep): a file holds about this much at most. */
+const MAX_EXTRA_PIECE = 16000;
+/** Token count from which a word with a non-verb reading is that word, for the extra layer. */
+const FREQUENT = 100;
 
 const readJson = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
 const need = (f) => {
@@ -294,6 +302,7 @@ async function collectForms(groups, dict) {
   const forms = new Map(); // form → Set(id)
   const verbIds = new Set(groups.filter((g) => g.entry.pos === 'verb').map((g) => g.lid));
   const reflexive = new Map(); // id → reflexiveOf(entry)[]
+  const verbs = new Map(); // every verb of the dump, for the extra layer (noteVerb)
   const imperative = new Map();
   const separable = new Map(); // "rief" → anrufen, … (from "rief an")
   const add = (map, form, id) => {
@@ -320,7 +329,7 @@ async function collectForms(groups, dict) {
     if (rec.kind === 'form') {
       const form = rec.word.toLowerCase();
       for (const l of rec.lemmas) {
-        for (const k of resolveTarget(`${l}|?${rec.rawPos}`, dict.lemmas, byWord)) {
+        for (const k of narrowTargets(entry, l, rec.rawPos, resolveTarget(`${l}|?${rec.rawPos}`, dict.lemmas, byWord))) {
           if (articleIds.has(k)) pendingForms.push([form, k, rec.imperative]);
           const id = idOfKey.get(k);
           if (id && !articleIds.has(k)) add(rec.imperative ? imperative : forms, form, id);
@@ -328,6 +337,7 @@ async function collectForms(groups, dict) {
       }
       continue;
     }
+    if (rec.rawPos === 'verb') noteVerb(verbs, entry);
     const key = `${rec.word}|${rec.rawPos}`;
     const id = articleIds.get(key)?.get(rec.genders[0]) ?? idOfKey.get(key);
     // Pronoun/article paradigms list other words ("ich" lists "wir"): only content words map forms.
@@ -368,7 +378,7 @@ async function collectForms(groups, dict) {
     if (extra.length) forms.set(f, new Set([...own, ...extra]));
   }
   console.log(`  ${n} lines, ${forms.size} forms`);
-  return { forms, reflexive };
+  return { forms, reflexive, verbs };
 }
 
 /** Step 3b: reflexive, trRefl and preps of the verbs (from collectForms). */
@@ -383,6 +393,45 @@ function addReflexive(groups, reflexive) {
     if (f.preps) count.preps++;
   }
   console.log(`  reflexive verbs: ${count.also} also, ${count.only} only; ${count.trRefl} with reflexive translations, ${count.preps} with prepositions`);
+}
+
+/**
+ * What the runtime's lookupLocal finds in the main pieces for a lower-case word: `any` hit, a
+ * `verb` hit (lemma, else stored form, else ending rules; see src/lib/dict/local.ts).
+ */
+function mainProbe(kept, forms) {
+  const byLower = new Map();
+  const pos = new Map(kept.map((g) => [g.lid, g.entry.pos]));
+  for (const g of kept) {
+    const k = g.entry.term.toLowerCase();
+    if (!byLower.has(k)) byLower.set(k, []);
+    byLower.get(k).push(g);
+  }
+  const stored = new Map(forms.map((f) => [f.form, f.ids]));
+  return (lower) => {
+    const cap = lower[0].toUpperCase() + lower.slice(1);
+    const lemmas = (byLower.get(lower) ?? []).filter((g) => g.entry.term === lower || g.entry.term === cap).map((g) => g.lid);
+    const ids = [...lemmas, ...(stored.get(lower) ?? [])];
+    if (!ids.length) for (const c of ruleCandidates(lower)) ids.push(...(byLower.get(c) ?? []).map((g) => g.lid));
+    return { any: ids.length > 0, verb: ids.some((id) => pos.get(id) === 'verb') };
+  };
+}
+
+/** Step 7: the extra layer of rare separable verbs, as pieces for public/dict/sep. */
+function extraLayer({ kept, forms, verbs, dict, overrides, count }) {
+  const main = kept.filter((g) => g.entry.pos === 'verb');
+  const mainRanks = new Map(main.map((g) => [g.entry.term, g.entry.rank]));
+  const wordOf = (term) => {
+    const key = `${term}|verb`;
+    if (!dict.lemmas[key]) return undefined;
+    const w = baseWords([{ key, members: [key] }], dict.lemmas, overrides.tr)[0];
+    return { rec: dict.lemmas[key], praeteritum: w.praeteritum, partizip2: w.partizip2, auxiliary: w.auxiliary, tr: trText(w.tr) };
+  };
+  const exclude = new Set(overrides.exclude);
+  const usable = (rec) => !exclude.has(`${rec.word}|verb`) && !exclusionReason(rec);
+  const picked = selectExtra({ verbs, mainVerbs: new Set(mainRanks.keys()), wordOf, usable, mainRank: (t) => mainRanks.get(t) });
+  const frequent = (f) => (count.get(f) ?? 0) >= FREQUENT;
+  return { ...picked, ...layoutExtra(picked.verbs, picked.compounds, mainProbe(kept, forms), frequent) };
 }
 
 const sizeOf = (v) => Buffer.byteLength(JSON.stringify(v));
@@ -453,6 +502,29 @@ function fit(groups, rawForms, count) {
   return frequent(layout(groups, rawForms, count, lo));
 }
 
+/**
+ * Splits big prefixes ("sc", "ge", "ve") in a Map prefix → {lemmas, forms} by their next letter
+ * ("sch", then "scha", …), at most to 4 letters; the shorter key keeps the shorter words. The
+ * runtime takes the longest key in the index that the word starts with (pieceFile in lib.mjs).
+ */
+function splitPieces(pieces, size, max) {
+  for (let len = 3; len <= 4; len++) {
+    for (const [p, x] of [...pieces]) {
+      if (p.length !== len - 1 || size(x) <= max) continue;
+      const rest = { lemmas: {}, forms: {} };
+      pieces.set(p, rest);
+      const sub = (w) => {
+        const k = normalizeKey(w).slice(0, len);
+        if (k.length < len) return rest;
+        if (!pieces.has(k)) pieces.set(k, { lemmas: {}, forms: {} });
+        return pieces.get(k);
+      };
+      for (const [id, e] of Object.entries(x.lemmas)) sub(id.split('#')[0]).lemmas[id] = e;
+      for (const [f, ids] of Object.entries(x.forms)) sub(f).forms[f] = ids;
+    }
+  }
+}
+
 async function main() {
   const freq = parseFrequency(fs.readFileSync(need(path.join(CACHE, 'de_50k.txt')), 'utf8'));
   const dict = readDict(path.join(CACHE, 'dict.json'));
@@ -463,7 +535,7 @@ async function main() {
   toEntries(groups, levels, presetTranslations());
 
   console.log('Reading forms from the Wiktionary dump…');
-  const { forms: rawForms, reflexive } = await collectForms(groups, dict);
+  const { forms: rawForms, reflexive, verbs } = await collectForms(groups, dict);
   addReflexive(groups, reflexive);
   const { kept, forms } = fit(groups, rawForms, new Map(freq));
 
@@ -482,24 +554,7 @@ async function main() {
   }
   const baseSize = (x) => sizeOf(x) - Object.keys(x.lemmas).reduce((s, id) => s + extraBytes.get(id), 0);
   for (const f of [...forms].sort((a, b) => (a.form < b.form ? -1 : 1))) piece(prefixOf(f.form)).forms[f.form] = f.ids;
-  // Big prefixes ("sc", "ge", "ve") are split by their next letter ("sch", then "scha", …), at
-  // most to 4 letters; the shorter key keeps the shorter words. The runtime takes the longest
-  // key in the index that the word starts with (pieceFile in lib.mjs).
-  for (let len = 3; len <= 4; len++) {
-    for (const [p, x] of [...pieces]) {
-      if (p.length !== len - 1 || baseSize(x) <= MAX_PIECE) continue;
-      const rest = { lemmas: {}, forms: {} };
-      pieces.set(p, rest);
-      const sub = (w) => {
-        const k = normalizeKey(w).slice(0, len);
-        if (k.length < len) return rest;
-        if (!pieces.has(k)) pieces.set(k, { lemmas: {}, forms: {} });
-        return pieces.get(k);
-      };
-      for (const [id, e] of Object.entries(x.lemmas)) sub(id.split('#')[0]).lemmas[id] = e;
-      for (const [f, ids] of Object.entries(x.forms)) sub(f).forms[f] = ids;
-    }
-  }
+  splitPieces(pieces, baseSize, MAX_PIECE);
   const files = groupPieces(new Map([...pieces].map(([p, x]) => [p, baseSize(x)])), { min: MIN_PIECE });
 
   fs.rmSync(OUT, { recursive: true, force: true });
@@ -519,6 +574,33 @@ async function main() {
     bytes += Buffer.byteLength(text);
     fileSizes.push([f.name, Buffer.byteLength(text)]);
   }
+
+  // Step 7: the extra layer, listed in index.json so that it costs no request of its own.
+  const extra = extraLayer({ kept, forms, verbs, dict, overrides, count: new Map(freq) });
+  const extraPieces = new Map();
+  const extraPiece = (p) => {
+    if (!extraPieces.has(p)) extraPieces.set(p, { lemmas: {}, forms: {} });
+    return extraPieces.get(p);
+  };
+  for (const [id, e] of extra.lemmas) extraPiece(prefixOf(id)).lemmas[id] = e;
+  for (const [f, ids] of [...extra.forms].sort((a, b) => (a[0] < b[0] ? -1 : 1))) extraPiece(prefixOf(f)).forms[f] = ids;
+  splitPieces(extraPieces, sizeOf, MAX_EXTRA_PIECE);
+  const extraFiles = groupPieces(new Map([...extraPieces].map(([p, x]) => [p, sizeOf(x)])), { min: MIN_PIECE });
+  fs.mkdirSync(path.join(OUT, 'sep'));
+  index.sep = { pieces: {}, gate: extra.gate.join(' ') };
+  const extraSizes = [];
+  for (const f of extraFiles) {
+    const out = { lemmas: {}, forms: {} };
+    for (const p of f.prefixes) {
+      Object.assign(out.lemmas, extraPieces.get(p).lemmas);
+      Object.assign(out.forms, extraPieces.get(p).forms);
+      index.sep.pieces[p] = `${f.name}.json`;
+    }
+    const text = JSON.stringify(out);
+    fs.writeFileSync(path.join(OUT, 'sep', `${f.name}.json`), text);
+    extraSizes.push([f.name, Buffer.byteLength(text), zlib.gzipSync(text).length]);
+  }
+
   const indexText = JSON.stringify(index);
   fs.writeFileSync(path.join(OUT, 'index.json'), indexText);
   bytes += Buffer.byteLength(indexText);
@@ -533,10 +615,14 @@ async function main() {
   const top = kept.filter((g) => g.rank <= 8000);
   const pctRu = (list) => ((100 * list.filter((g) => g.entry.tr.ru).length) / list.length).toFixed(1);
   console.log(`RU coverage: ${pctRu(kept)}% overall, ${pctRu(top)}% of the top 8000`);
-  const extra = [...extraBytes.values()].reduce((s, b) => s + b, 0);
-  console.log(`Files ${files.length} pieces + index.json (${kb(Buffer.byteLength(indexText))}), total ${kb(bytes)} (budget ${kb(MAX_BYTES)} + reflexive data ${kb(extra)})`);
+  const reflBytes = [...extraBytes.values()].reduce((s, b) => s + b, 0);
+  console.log(`Files ${files.length} pieces + index.json (${kb(Buffer.byteLength(indexText))}), total ${kb(bytes)} (budget ${kb(MAX_BYTES)} + reflexive data ${kb(reflBytes)})`);
   const pct = (q) => fileSizes[Math.min(fileSizes.length - 1, Math.floor(q * fileSizes.length))];
   console.log(`Piece sizes: min ${pct(0)[0]} ${kb(pct(0)[1])}, median ${kb(pct(0.5)[1])}, 90% ${kb(pct(0.9)[1])}, max ${pct(1)[0]} ${kb(pct(1)[1])}`);
+  extraSizes.sort((a, b) => a[1] - b[1]);
+  const sum = (i) => extraSizes.reduce((s, x) => s + x[i], 0);
+  console.log(`\nExtra layer: ${JSON.stringify(extra.stats)}`);
+  console.log(`  ${extra.lemmas.size} verbs, ${extra.forms.size} forms, gate ${extra.gate.length} words (${kb(index.sep.gate.length)}), ${extraSizes.length} files, ${kb(sum(1))} (${kb(sum(2))} gzip), largest ${extraSizes.at(-1)[0]} ${kb(extraSizes.at(-1)[1])}`);
   console.log('\nLookups (lemma, else forms map, else ending rules):');
   const load = (w) => {
     const file = pieceFile(index.pieces, w);

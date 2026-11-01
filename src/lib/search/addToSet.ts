@@ -4,26 +4,15 @@ import { db } from '../db/schema';
 import { saveCard } from '../db/repo';
 import { buildCard } from '../reading/store';
 import { parseGermanInput } from '../german/parseTerm';
+import { isSameWord } from '../german/sameWord';
 import { reviewsFor, statusOf, type WordStatus } from '../progress';
 import type { Card, Folder, Gender, WordSet } from '../types';
 import type { WordFields } from './wordInfo';
 
-/** "Sich  Treffen " → "sich treffen": the term as words are compared. */
-const termKey = (term: string) => term.trim().replace(/\s+/g, ' ').toLowerCase();
-
-/**
- * A card with this term (case-insensitive) and the same article: a card with no article, or
- * looked-up fields with no article, count as the same word; "der See" and "die See" don't.
- * A reflexive verb is its own word: "sich treffen" is not "treffen".
- */
-export function isSameWord(card: Pick<Card, 'term' | 'genders'>, term: string, genders: Gender[] = []): boolean {
-  if (termKey(card.term) !== termKey(term)) return false;
-  if (!genders.length || !card.genders?.length) return true;
-  return card.genders.some((g) => genders.includes(g));
-}
+export { isSameWord };
 
 export function findDuplicate<C extends Pick<Card, 'term' | 'genders'>>(cards: C[], fields: WordFields): C | undefined {
-  return cards.find((c) => isSameWord(c, fields.term, fields.genders ?? []));
+  return cards.find((c) => isSameWord(c, fields.term, fields.genders ?? [], fields.pos));
 }
 
 /**
@@ -43,7 +32,7 @@ export function quickAddDuplicate<C extends Pick<Card, 'term' | 'genders'>>(
   const pos = p.pos ?? word.pos;
   const genders = p.genders.length ? p.genders : word.genders;
   if (articleCount > 1 && !(pos === 'noun' && genders.length === 1)) return undefined;
-  return findDuplicate(cards, { term, genders: pos === 'noun' ? genders : [] });
+  return findDuplicate(cards, { term, pos, genders: pos === 'noun' ? genders : [] });
 }
 
 /**

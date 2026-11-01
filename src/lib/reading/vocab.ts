@@ -41,8 +41,12 @@ export function lemmaOf(token: string, lemmas: Map<string, LexEntry | null>): st
  * card), else by the token as written (case-insensitive).
  */
 export function cardsFor(token: string, lemmas: Map<string, LexEntry | null>, vocab: Map<string, CardRef[]>): CardRef[] {
-  const e = lemmas.get(token);
-  const lemma = lemmaOf(token, lemmas).toLowerCase();
+  return cardsOfReading(token, lemmas.get(token), vocab);
+}
+
+/** Cards matching a token read as `e` (see cardsFor; for the reading of a word at its position). */
+export function cardsOfReading(token: string, e: LexEntry | null | undefined, vocab: Map<string, CardRef[]>): CardRef[] {
+  const lemma = (e?.term ?? token).toLowerCase();
   return (
     vocab.get(lemma) ??
     (e?.reflexive === 'only' ? vocab.get(withSich(lemma)) : undefined) ??

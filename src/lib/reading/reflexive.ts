@@ -13,13 +13,16 @@
  *   after an auxiliary or modal the verb at the end ("Er hat sich beeilt" → beeilt), in a
  *   subordinate clause the verb after the pronoun ("…, weil wir uns treffen").
  * - A verb split from its particle (separable.ts) counts as the joined verb ("Ich ziehe mich
- *   schnell an" → sich anziehen, three tokens); its plain verb is then not tried.
+ *   schnell an" → sich anziehen, three tokens); its plain verb is then not tried. It needs no
+ *   "sich" flag when the agreeing pronoun stands right after it or after the subject of an
+ *   inverted clause ("Die Gruppe teilte sich … auf", "Er sah sich die Bilder an", "Dann sah er
+ *   sich … an"): asReflexive() keeps its translations, and the word sheet asks online.
  * Capitalised words are only verbs at the start of a sentence ("Treffen wir uns?").
  */
 import { lookupLocal } from '../dict/local';
 import type { LexEntry, LocalHit } from '../dict/types';
 import { asReflexive, REFLEXIVE_PRONOUNS } from '../german/reflexive';
-import { PARTICLES, type Lookup, type SplitVerb } from './separable';
+import { onlySubject, PARTICLES, type Lookup, type SplitVerb } from './separable';
 import type { Token } from './text';
 
 /** A reflexive verb in one paragraph's token list. */
@@ -85,6 +88,8 @@ const IMPERATIVE = ['dich', 'dir', 'euch', 'sich'];
 interface VerbReading {
   entry: LexEntry | null;
   particle?: number;
+  /** The joined verb of a split verb, flagged or not. */
+  joined?: LexEntry;
 }
 
 /** Words before an imperative ("Nun legt euch hin", "Bitte setzen Sie sich"). */
@@ -164,7 +169,9 @@ export async function findReflexives(
    */
   const verbAt = async (i: number, initial: boolean): Promise<VerbReading | null> => {
     const split = splits.get(i);
-    if (split && split.verb === i) return { entry: split.entry.reflexive ? split.entry : null, particle: split.particle };
+    if (split && split.verb === i) {
+      return { entry: split.entry.reflexive ? split.entry : null, particle: split.particle, joined: split.entry };
+    }
     const w = text(i);
     if (!isLower(w) && !initial) return null;
     const lw = w.toLowerCase();
@@ -273,9 +280,15 @@ export async function findReflexives(
         // The verb: after an auxiliary / in a subordinate clause the one after the pronoun.
         // An auxiliary is never the reflexive verb itself ("es hatte sich …" is no "sich haben").
         const order = aux ? after : subordinate || !before || zu ? [...after, ...(before ? [before] : [])] : [before];
-        const hit = order.find((c) => c.v.entry);
+        let hit = order.find((c) => c.v.entry);
+        // A split verb without the flag: the pronoun next to it, and the subject too ("alles was
+        // ich wünsche trifft mir ein": ich belongs to wünsche).
+        if (!hit && before?.v.joined && !subordinate && !infinitive && onlySubject(tokens, seg.slice(at + 1, n))) {
+          const near = [seg[at - 1], seg[at + 1]].some((i) => i !== undefined && lower(i) in SUBJECTS);
+          if (pronoun === 'sich' || at === 0 || near) hit = before;
+        }
         if (!hit) continue;
-        const r: ReflexiveVerb = { verb: hit.i, pronoun: pi, entry: asReflexive(hit.v.entry!) };
+        const r: ReflexiveVerb = { verb: hit.i, pronoun: pi, entry: asReflexive(hit.v.entry ?? hit.v.joined!) };
         if (hit.v.particle !== undefined) r.particle = hit.v.particle;
         out.set(hit.i, r).set(pi, r);
         if (r.particle !== undefined) out.set(r.particle, r);

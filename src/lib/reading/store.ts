@@ -3,6 +3,7 @@ import { addFolder, addSet, emptyCard, saveCard } from '../db/repo';
 import type { Card, Lang, LookupResult } from '../types';
 import type { LexEntry } from '../dict/types';
 import { isReflexiveTerm } from '../german/reflexive';
+import { isSameWord } from '../german/sameWord';
 import type { LevelCode } from '../levels/types';
 import type { Article, SavedArticle } from './types';
 import { plainToParagraphs } from './text';
@@ -204,8 +205,8 @@ export async function addWordToArticle(
   context?: string,
 ): Promise<{ cardId: number; setId: number; created: boolean }> {
   const setId = await ensureArticleSet(article);
-  const term = fields.term.trim().toLowerCase();
-  const existing = (await db.cards.where('setId').equals(setId).toArray()).find((c) => c.term.toLowerCase() === term);
+  const cards = await db.cards.where('setId').equals(setId).toArray();
+  const existing = cards.find((c) => isSameWord(c, fields.term, fields.genders ?? [], fields.pos));
   if (existing) return { cardId: existing.id!, setId, created: false };
   const cardId = await saveCard(buildCard(setId, fields, context));
   return { cardId, setId, created: true };

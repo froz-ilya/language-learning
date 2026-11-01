@@ -8,6 +8,7 @@
   import UmlautBar from '../components/UmlautBar.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import ArticleChoices from '../components/ArticleChoices.svelte';
+  import ReadingSwitch from '../components/ReadingSwitch.svelte';
   import { back, go, route } from '../lib/router.svelte';
   import { dur } from '../lib/motion';
   import { online } from '../lib/online.svelte';
@@ -306,7 +307,7 @@
 
   const duplicate = $derived(lookupState === 'loading' ? undefined : duplicateOf(card));
   /** ArticleChoices: an article the set has already gets a check instead of its "+". */
-  const articleInSet = (a: ArticleVariant) => !!findDuplicate(setCards, { term: card.term, genders: a.genders });
+  const articleInSet = (a: ArticleVariant) => !!findDuplicate(setCards, { term: card.term, pos: 'noun', genders: a.genders });
 
   async function runLookup() {
     applyParsed();
@@ -436,6 +437,15 @@
   /** The last lookup's verb and its two readings, when it has a "sich" one (new words). */
   let reflexive = $state.raw<{ base: string; plain: Reading; refl: ReflexiveReading } | null>(null);
   const reflexiveOn = $derived(isReflexiveTerm(card.term));
+  /** The switcher's two options. */
+  const reflexiveOptions = $derived(
+    reflexive
+      ? [
+          { id: 'plain', label: reflexive.base },
+          { id: 'sich', label: withSich(reflexive.base) },
+        ]
+      : [],
+  );
 
   /**
    * The card becomes "sich treffen" (or back "treffen"): that reading's translation, examples
@@ -845,30 +855,12 @@
               <SpeakButton text={speakableTerm(card)} />
             </div>
             {#if reflexive && lookupState === 'done'}
-              {@const verb = reflexive.base}
-              <div class="refl-pick">
-                <div class="segmented refl-seg" role="group" aria-label="Reflexive">
-                  <button
-                    type="button"
-                    class:active={!reflexiveOn}
-                    aria-pressed={!reflexiveOn}
-                    lang="de"
-                    onpointerdown={keepFocus}
-                    onclick={() => chooseReflexive(false)}>{verb}</button
-                  >
-                  <button
-                    type="button"
-                    class:active={reflexiveOn}
-                    aria-pressed={reflexiveOn}
-                    lang="de"
-                    onpointerdown={keepFocus}
-                    onclick={() => chooseReflexive(true)}>{withSich(verb)}</button
-                  >
-                </div>
-                {#if !reflexiveOn && reflexive.refl.translation}
-                  <div class="small muted ellipsis"><span lang="de">{withSich(verb)}</span> — <span lang={settings.lang}>{reflexive.refl.translation}</span></div>
-                {/if}
-              </div>
+              <ReadingSwitch
+                options={reflexiveOptions}
+                selected={reflexiveOn ? 'sich' : 'plain'}
+                onpick={(id) => chooseReflexive(id === 'sich')}
+                onpointerdown={keepFocus}
+              />
             {/if}
             {#if articles.length > 1 && lookupState === 'done'}
               <div class="article-pick">
@@ -1253,24 +1245,6 @@
   .p-preps {
     color: var(--muted);
     font-weight: 600;
-  }
-  .refl-pick {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin: 2px 0 4px;
-  }
-  .refl-seg {
-    align-self: flex-start;
-    max-width: 100%;
-  }
-  .refl-seg button {
-    flex: 0 1 auto;
-    min-height: 34px;
-    padding: 4px 14px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .p-tr {
     font-size: 19px;

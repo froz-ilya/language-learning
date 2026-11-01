@@ -5,42 +5,48 @@
   import SpeakButton from '../SpeakButton.svelte';
   import Skeleton from '../Skeleton.svelte';
   import ArticleChoices from '../ArticleChoices.svelte';
+  import ReadingSwitch from '../ReadingSwitch.svelte';
   import { go } from '../../lib/router.svelte';
   import { online } from '../../lib/online.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { db } from '../../lib/db/schema';
   import { saveCard } from '../../lib/db/repo';
   import type { LexEntry } from '../../lib/dict/types';
-  import { asReflexive } from '../../lib/german/reflexive';
-  import { ARTICLE, speakableTerm } from '../../lib/german/articles';
+  import { ARTICLE, displayTerm, speakableTerm } from '../../lib/german/articles';
   import { setKnown, STATUS_LABELS } from '../../lib/progress';
-  import type { ArticleVariant, Gender } from '../../lib/types';
+  import type { ArticleVariant, Card, Gender, LookupResult } from '../../lib/types';
   import type { Article } from '../../lib/reading/types';
   import type { CardRef } from '../../lib/reading/vocab';
   import { addWordToArticle, articleSetName, buildCard, ensureArticleSet } from '../../lib/reading/store';
   import {
     articleCardFields,
     articleRowsOf,
+    cardIsReading,
     displayOf,
     formsOf,
+    hasHomographs,
     initialWordLookup,
     loadWordInfo,
     mergeInfo,
+    openingReadingId,
     prepsText,
-    reflexiveReadingOf,
+    wordReadings,
     type WordFields,
+    type WordReading,
   } from '../../lib/search/wordInfo';
   import { findDuplicate } from '../../lib/search/addToSet';
   import { showToast } from '../../lib/ui/dialogs.svelte';
 
   /**
    * Contents of the sheet that opens when a word in the reader is tapped: base form, article,
-   * forms, translation, pronunciation, and add / known / not learned actions.
+   * forms, translation, pronunciation, and add / known / not learned actions. A word with several
+   * readings (sein, treffen / sich treffen) gets a switcher; everything follows the reading shown.
    */
   let {
     word,
     written,
     entry = null,
+    readings,
     context = '',
     article,
     setId = 0,
@@ -54,6 +60,12 @@
     written?: string;
     /** Lemma from the reader's precomputed map (may be null). */
     entry?: LexEntry | null;
+    /**
+     * Every dictionary word the tapped text can be, best first (sein: the verb, the possessive,
+     * das Sein). With 2+ the sheet opens on the first and offers the others in its switcher,
+     * and `entry` isn't used; absent or one item: just `word`.
+     */
+    readings?: LexEntry[];
     /** The sentence it appears in (stored as the card's example). */
     context?: string;
     article: Article;
@@ -61,39 +73,56 @@
     setId?: number;
     /** The user's cards for this word's lemma (best status first). */
     cards?: CardRef[];
-    /** The user's cards for any term (for the verb's "sich …" reading). */
+    /** The user's cards for any term (for the word's other readings). */
     cardsOfTerm?: (term: string) => CardRef[];
     onclose?: () => void;
   } = $props();
 
-  /**
-   * Switched to the verb's reflexive reading from its row ("sich treffen"): what is looked up
-   * instead, and the plain reading to switch back to.
-   */
-  let switched = $state<{ term: string; entry: LexEntry | null; back: { term: string; translation: string } } | null>(null);
-  const current = $derived(switched?.term ?? word);
-  /** The cards of the word shown. */
-  const shownCards = $derived(switched ? (cardsOfTerm?.(switched.term) ?? []) : cards);
+  /** The caller's readings, when there is anything to choose from. */
+  const given = $derived(readings && readings.length > 1 ? readings : null);
+  /** Reading picked in the switcher; null = the word as it opened. */
+  let chosen = $state.raw<WordReading | null>(null);
+  const current = $derived(chosen?.term ?? given?.[0].term ?? word);
 
   /** Offline entry, its articles, and the online lookup when needed (see lib/search/wordInfo). */
   let lookup = $state(initialWordLookup());
+  /** The word as it opened: its readings stay on offer while another one is shown. */
+  let opening = $state.raw(initialWordLookup());
+  /** Lookups answered so far: a verb's "sich …" reading may be known only from one. */
+  let remotes = $state.raw<LookupResult[]>([]);
   let busy = $state(false);
 
   const lang = $derived(settings.lang);
   const setName = $derived(articleSetName(article.title));
 
   // Offline dictionary first; the online lookup only when it has nothing (or no translation).
+  // Switching away aborts the reading's lookup; a finished one comes from the lookup's cache.
   $effect(() => {
+    const pick = chosen;
+    const first = given?.[0];
     const ctrl = new AbortController();
     void loadWordInfo(current, {
-      entry: switched ? switched.entry : entry,
+      entry: pick ? pick.entry : (first ?? entry),
+      fixed: pick ? !!pick.entry : !!first,
       lang: settings.lang,
       isOnline: () => online.value,
       signal: ctrl.signal,
-      onchange: (s) => (lookup = s),
+      onchange: (s) => {
+        lookup = s;
+        if (!pick) opening = s;
+        if (s.remote) remotes = [...remotes, s.remote];
+      },
     });
     return () => ctrl.abort();
   });
+
+  /** Without `readings` only the word's own: its "sich …" reading (or plain verb). */
+  const options = $derived(wordReadings(given ?? opening.readings.slice(0, 1), settings.lang, remotes));
+  const openingId = $derived(openingReadingId(opening));
+
+  function pickReading(id: string) {
+    chosen = id === openingId ? null : (options.find((o) => o.id === id) ?? null);
+  }
 
   const remoteState = $derived(lookup.remoteState);
   /** Everything known about the word, local entry first, gaps filled from the online lookup. */
@@ -102,22 +131,6 @@
   const forms = $derived(formsOf(display));
   const preps = $derived(prepsText(info?.preps));
   const translation = $derived(info?.translation?.trim() ?? '');
-
-  /** A plain verb's reflexive reading ("sich treffen — встречаться"): a row to switch to or add. */
-  const reflexive = $derived(switched ? null : reflexiveReadingOf(lookup.local, lookup.remote, lang));
-  /** Its translation, unless it's just the plain verb's again. */
-  const reflexiveTr = $derived(reflexive?.translation && reflexive.translation !== translation ? reflexive.translation : '');
-  const reflexiveInSet = $derived(!!reflexive && !!setId && (cardsOfTerm?.(reflexive.term) ?? []).some((c) => c.setId === setId));
-
-  function switchToReflexive() {
-    if (!reflexive) return;
-    const local = lookup.local;
-    switched = {
-      term: reflexive.term,
-      entry: local ? asReflexive(local) : null,
-      back: { term: display?.term ?? word, translation },
-    };
-  }
   const lookingUp = $derived(!lookup.localDone || remoteState === 'loading');
   const shown = $derived(written ?? word);
   const sameAsWord = $derived(!!display && display.term.toLowerCase() === shown.toLowerCase());
@@ -128,21 +141,27 @@
    */
   const articleRows = $derived(articleRowsOf(lookup.local, lookup.localArticles, lookup.remote, lang));
 
-  /** Genders of the user's cards for this lemma (to tell which article is in the set already). */
-  let cardGenders = $state(new Map<number, Gender[]>());
+  /** The user's cards spelled like the reading shown (the opening one's are the caller's `cards`). */
+  const termCards = $derived(chosen || given ? (cardsOfTerm?.(current) ?? (chosen ? [] : cards)) : cards);
+  /** Those cards' details (which article is in the set already, which reading they are). */
+  let cardRows = $state(new Map<number, Pick<Card, 'genders' | 'pos'>>());
   $effect(() => {
-    const ids = shownCards.map((c) => c.id);
+    const ids = termCards.map((c) => c.id);
     if (!ids.length) {
-      cardGenders = new Map();
+      cardRows = new Map();
       return;
     }
     void db.cards.bulkGet(ids).then((rows) => {
-      cardGenders = new Map(rows.filter((c) => !!c).map((c) => [c!.id!, c!.genders]));
+      cardRows = new Map(rows.filter((c) => !!c).map((c) => [c!.id!, c!]));
     });
   });
+  /** The cards of the word shown: a card "sein" isn't "das Sein". */
+  const shownCards = $derived(
+    display && hasHomographs(options, display.term) ? termCards.filter((c) => cardIsReading(cardRows.get(c.id)?.pos, display!.pos)) : termCards,
+  );
   /** A card in this set with no article, or this article, counts as this article. */
   const hasArticle = (g: Gender, inThisSet: boolean) =>
-    shownCards.some((c) => (!inThisSet || c.setId === setId) && (cardGenders.get(c.id)?.length ? cardGenders.get(c.id)!.includes(g) : true));
+    shownCards.some((c) => (!inThisSet || c.setId === setId) && (cardRows.get(c.id)?.genders.length ? cardRows.get(c.id)!.genders.includes(g) : true));
 
   const inSet = $derived(!!setId && shownCards.some((c) => c.setId === setId));
   const status = $derived(shownCards[0]?.status);
@@ -161,13 +180,14 @@
     return info ?? { term: current };
   }
 
-  /** Add the word shown, or `f` (the reflexive reading, named in the toast). */
-  async function add(f?: WordFields): Promise<number | null> {
+  /** Add the word shown (named in the toast when it's one of several readings). */
+  async function add(): Promise<number | null> {
     if (busy) return null;
     busy = true;
     try {
-      const r = await addWordToArticle(article, f ?? fields(), context);
-      const name = f ? `“${f.term}” ` : '';
+      const f = fields();
+      const r = await addWordToArticle(article, f, context);
+      const name = options.length > 1 ? `“${display ? displayTerm(display) : f.term}” ` : '';
       showToast(r.created ? `Added ${name}to «${setName}»` : `${name ? `${name}is already` : 'Already'} in «${setName}»`, {
         actionLabel: 'Open set',
         onAction: () => go(`/set/${r.setId}`),
@@ -232,13 +252,17 @@
       {#if display}
         <div class="lemma"><Term card={articleRows.length > 1 ? { ...display, genders: [] } : display} /></div>
       {:else if !lookingUp}
-        <div class="lemma">{word}</div>
+        <div class="lemma">{current}</div>
       {/if}
     </div>
     {#if display || !lookingUp}
-      <SpeakButton text={display ? speakableTerm(display) : word} size={26} />
+      <SpeakButton text={display ? speakableTerm(display) : current} size={26} />
     {/if}
   </div>
+
+  {#if options.length > 1}
+    <ReadingSwitch {options} selected={chosen?.id ?? openingId} onpick={pickReading} />
+  {/if}
 
   {#if lookingUp && !info}
     <Skeleton lines={2} />
@@ -272,25 +296,6 @@
         {/if}
       </div>
     {/if}
-  {/if}
-
-  {#if reflexive}
-    <div class="alt">
-      <button type="button" class="alt-main" onclick={switchToReflexive}>
-        <span class="alt-term">{reflexive.term}</span>{#if reflexiveTr}<span class="alt-tr" lang={lang}>— {reflexiveTr}</span>{/if}
-      </button>
-      {#if reflexiveInSet}
-        <span class="alt-done" aria-label="{reflexive.term} is in the set"><Icon name="check" size={18} /></span>
-      {:else}
-        <button type="button" class="alt-add" aria-label="Add {reflexive.term}" disabled={busy || lookingUp} onclick={() => reflexive && void add(reflexive)}
-          ><Icon name="plus" size={18} /></button
-        >
-      {/if}
-    </div>
-  {:else if switched}
-    <button type="button" class="alt alt-main back" onclick={() => (switched = null)}>
-      <span class="alt-term">{switched.back.term}</span>{#if switched.back.translation}<span class="alt-tr" lang={lang}>— {switched.back.translation}</span>{/if}
-    </button>
   {/if}
 
   {#if status}
@@ -355,64 +360,6 @@
   }
   .preps {
     margin-top: -6px;
-  }
-  .alt {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 40px;
-    border-radius: var(--radius-sm);
-    background: var(--inset-bg);
-    box-shadow: inset 0 0 0 1px var(--hairline);
-  }
-  .alt-main {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 12px;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    font-size: 15px;
-    text-align: left;
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .alt.back {
-    display: block;
-    width: 100%;
-  }
-  .alt-term {
-    font-family: var(--font-display);
-    font-weight: 800;
-  }
-  .alt-tr {
-    margin-left: 0.3em;
-    color: var(--text-2);
-  }
-  .alt-add,
-  .alt-done {
-    flex-shrink: 0;
-    display: inline-grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    margin-right: 2px;
-    border-radius: 50%;
-    color: var(--accent);
-  }
-  .alt-add {
-    border: 0;
-    background: color-mix(in srgb, currentColor 12%, var(--surface));
-    cursor: pointer;
-  }
-  .alt-add:disabled {
-    opacity: 0.5;
-  }
-  .alt-done {
-    color: var(--good);
   }
   .translation {
     font-size: 19px;

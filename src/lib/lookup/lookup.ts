@@ -995,7 +995,7 @@ function throwIfAborted(signal?: AbortSignal): void {
  * lines, those words are translated one by one as a single lookup would (Google → MyMemory;
  * MyMemory takes at most 500 bytes per query, so it is never sent a batch).
  */
-async function translatePlans(plans: Plan[], ctx: Ctx): Promise<{ examples: Example[][]; ok: boolean }[]> {
+async function translatePlans(plans: Pick<Plan, 'lists'>[], ctx: Ctx): Promise<{ examples: Example[][]; ok: boolean }[]> {
   const out = plans.map((p) => ({ examples: p.lists.map((): Example[] => []), ok: true }));
   const chunks: number[][] = [];
   let size = 0;
@@ -1031,6 +1031,18 @@ async function translatePlans(plans: Plan[], ctx: Ctx): Promise<{ examples: Exam
     }
   }
   return out;
+}
+
+/**
+ * Translations of sentences, in order ('' for one that got none), in as few requests as fillCards.
+ * For background work: a source in cooldown is left alone, even when every source is.
+ */
+export async function translateSentences(sentences: string[], lang: Lang, signal?: AbortSignal): Promise<string[]> {
+  // Lines are how the translations are matched back to the sentences.
+  const plans = sentences.map((s) => ({ lists: [[s.replace(/\s+/g, ' ').trim()]] }));
+  const avoid = new Set(TEXT_PROVIDERS.map((p) => p.id).filter(isCooling));
+  const done = await translatePlans(plans, { lang, signal, avoid });
+  return done.map((d) => d.examples[0][0]?.tr ?? '');
 }
 
 /**

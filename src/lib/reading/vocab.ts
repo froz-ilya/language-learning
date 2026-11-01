@@ -58,3 +58,6 @@ export function cardsOfReading(token: string, e: LexEntry | null | undefined, vo
 /** Cards for a dictionary entry itself (a split verb's anrufen, "sich treffen"), not via the text's lemmas. */
 export const cardsOfTerm = (term: string, vocab: Map<string, CardRef[]> | undefined): CardRef[] =>
   vocab?.get(term.trim().toLowerCase()) ?? [];
+
+/** Both lists, each card once. */
+export const mergeCards = (a: CardRef[], b: CardRef[]): CardRef[] => [...a, ...b.filter((c) => !a.some((x) => x.id === c.id))];

@@ -6,6 +6,7 @@
   import { reducedMotion } from './lib/motion';
   import { checkBackupReminder } from './lib/backupReminder';
   import { syncLevels } from './lib/levels/sync';
+  import { translateArticleExamples } from './lib/reading/exampleTranslations';
   import { settings } from './lib/settings.svelte';
   import { t } from './lib/i18n.svelte';
   import { isIOS } from './lib/platform';
@@ -85,6 +86,11 @@
   // Installed levels follow the word lists of this release; progress stays with the words.
   onMount(async () => {
     if (await syncLevels(settings.lang)) showToast(t('shell.levelsUpdated'));
+  });
+
+  // Example sentences of words added from a text: those added offline, once the network is back.
+  $effect(() => {
+    if (online.value) void translateArticleExamples(settings.lang);
   });
 
   const Page = $derived(ROUTES[route.parts[0] as keyof typeof ROUTES] ?? Home);

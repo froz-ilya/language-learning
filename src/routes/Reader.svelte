@@ -22,6 +22,7 @@
   import { GUTENBERG_LICENSE, nextPart } from '../lib/reading/sources/gutenberg';
   import { isRemovedError } from '../lib/reading/sources/klexikon';
   import { headingText, isHeading, sentenceAt, tokenize, countWords, type Token } from '../lib/reading/text';
+  import { translateArticleExamples } from '../lib/reading/exampleTranslations';
   import { comfortRank, estimateLevel, isFunctionWord, knownShare, UNKNOWN_RANK } from '../lib/reading/level';
   import { rankLookup } from '../lib/reading/rate';
   import { splitGuess, splitVerbs, type SplitGuess, type SplitVerb } from '../lib/reading/separable';
@@ -453,6 +454,7 @@
         await addCards(cards.slice(i, i + 50));
         adding = { done: Math.min(cards.length, i + 50), total: cards.length };
       }
+      void translateArticleExamples(settings.lang);
       const missing = cards.filter((c) => c.needsFill).length;
       showToast(
         missing ? tn('reading.reader.addedMissing', cards.length, { set: setName, missing }) : tn('reading.reader.added', cards.length, { set: setName }),

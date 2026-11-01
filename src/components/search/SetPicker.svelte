@@ -4,6 +4,7 @@
   import { live } from '../../lib/live.svelte';
   import { db } from '../../lib/db/schema';
   import { lastQuickAddSet } from '../../lib/share';
+  import { i18n, systemName, t } from '../../lib/i18n.svelte';
   import { isSameWord, loadSetChoices, type SetChoice } from '../../lib/search/addToSet';
   import type { WordFields } from '../../lib/search/wordInfo';
 
@@ -38,7 +39,7 @@
 {#if !data.value}
   <Skeleton lines={3} />
 {:else}
-  <div class="picker" lang="en">
+  <div class="picker" lang={i18n.lang}>
     {#if data.value.choices.length}
       <div class="list">
         {#each data.value.choices as s (s.id)}
@@ -48,10 +49,10 @@
               <Icon name={added ? 'check' : 'cards'} size={20} />
             </span>
             <span class="grow">
-              <span class="title ellipsis">{s.name}</span>
+              <span class="title ellipsis">{systemName(s.name)}</span>
               {#if added || s.last || s.folder}
                 <span class="sub ellipsis">
-                  {[added ? 'Already has this word' : '', s.last && !added ? 'Last used' : '', s.folder].filter(Boolean).join(' · ')}
+                  {[added ? t('words.picker.hasWord') : '', s.last && !added ? t('words.picker.lastUsed') : '', s.folder && systemName(s.folder)].filter(Boolean).join(' · ')}
                 </span>
               {/if}
             </span>
@@ -59,10 +60,10 @@
         {/each}
       </div>
     {:else}
-      <p class="small muted center none">You don’t have any sets yet. Make one for the words you look up.</p>
+      <p class="small muted center none">{t('words.picker.noSets')}</p>
     {/if}
     <button type="button" class="btn btn-block" class:btn-primary={!data.value.choices.length} disabled={busy} onclick={onnew}>
-      <Icon name="plus" size={20} /> New set…
+      <Icon name="plus" size={20} /> {t('words.picker.newSet')}
     </button>
   </div>
 {/if}

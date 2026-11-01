@@ -9,6 +9,7 @@
   import { go } from '../../lib/router.svelte';
   import { online } from '../../lib/online.svelte';
   import { settings } from '../../lib/settings.svelte';
+  import { i18n, systemName, t } from '../../lib/i18n.svelte';
   import { db } from '../../lib/db/schema';
   import { saveCard } from '../../lib/db/repo';
   import type { LexEntry } from '../../lib/dict/types';
@@ -17,7 +18,7 @@
   import type { ArticleVariant, Card, Gender, LookupResult } from '../../lib/types';
   import type { Article } from '../../lib/reading/types';
   import type { CardRef } from '../../lib/reading/vocab';
-  import { addWordToArticle, articleSetName, buildCard, ensureArticleSet } from '../../lib/reading/store';
+  import { addWordToArticle, articleSetName, articleTitle, buildCard, ensureArticleSet } from '../../lib/reading/store';
   import {
     articleCardFields,
     articleRowsOf,
@@ -93,7 +94,7 @@
   let busy = $state(false);
 
   const lang = $derived(settings.lang);
-  const setName = $derived(articleSetName(article.title));
+  const setName = $derived(articleSetName(articleTitle(article)));
 
   // Offline dictionary first; the online lookup only when it has nothing (or no translation).
   // Switching away aborts the reading's lookup; a finished one comes from the lookup's cache.
@@ -172,7 +173,7 @@
     const ref = shownCards.find((c) => c.setId !== setId) ?? null;
     otherSet = '';
     if (!ref) return;
-    void db.sets.get(ref.setId).then((s) => (otherSet = s ? s.topic || s.name : ''));
+    void db.sets.get(ref.setId).then((s) => (otherSet = s ? systemName(s.topic || s.name) : ''));
   });
 
   /** Card fields for adding: what we know, or just the word (filled in later). */
@@ -187,14 +188,17 @@
     try {
       const f = fields();
       const r = await addWordToArticle(article, f, context);
-      const name = options.length > 1 ? `“${display ? displayTerm(display) : f.term}” ` : '';
-      showToast(r.created ? `Added ${name}to «${setName}»` : `${name ? `${name}is already` : 'Already'} in «${setName}»`, {
-        actionLabel: 'Open set',
+      const term = options.length > 1 ? (display ? displayTerm(display) : f.term) : '';
+      const message = term
+        ? t(r.created ? 'reading.word.addedTerm' : 'reading.word.alreadyTerm', { term, set: setName })
+        : t(r.created ? 'reading.word.added' : 'reading.word.already', { set: setName });
+      showToast(message, {
+        actionLabel: t('reading.openSet'),
         onAction: () => go(`/set/${r.setId}`),
       });
       return r.cardId;
     } catch (e) {
-      showToast(`Couldn’t add the word: ${(e as Error).message}`);
+      showToast(t('reading.word.addFailed', { error: (e as Error).message }));
       return null;
     } finally {
       busy = false;
@@ -212,13 +216,13 @@
       const fields = articleCardFields(display.term, a);
       const existing = findDuplicate(await db.cards.where('setId').equals(setId).toArray(), fields);
       const cardId = existing?.id ?? (await saveCard(buildCard(setId, fields, context)));
-      showToast(existing ? `${label} is already in «${setName}»` : `Added ${label} to «${setName}»`, {
-        actionLabel: 'Open set',
+      showToast(t(existing ? 'reading.word.articleAlready' : 'reading.word.articleAdded', { label, set: setName }), {
+        actionLabel: t('reading.openSet'),
         onAction: () => go(`/set/${setId}`),
       });
       return cardId;
     } catch (e) {
-      showToast(`Couldn’t add the word: ${(e as Error).message}`);
+      showToast(t('reading.word.addFailed', { error: (e as Error).message }));
       return null;
     } finally {
       busy = false;
@@ -233,7 +237,7 @@
       ids = [id];
     }
     await setKnown(ids, true);
-    showToast(`“${display?.term ?? word}” marked as known`);
+    showToast(t('reading.word.markedKnown', { term: display?.term ?? word }));
     onclose?.();
   }
 
@@ -241,7 +245,7 @@
     const ids = shownCards.map((c) => c.id);
     if (!ids.length) return;
     await setKnown(ids, false);
-    showToast(`“${display?.term ?? word}” is back to learning`);
+    showToast(t('reading.word.backToLearning', { term: display?.term ?? word }));
   }
 </script>
 
@@ -276,7 +280,7 @@
         isAdded={(a) => hasArticle(a.genders[0], true) && !!setId}
         disabled={busy || lookingUp}
       />
-      <div class="small muted" lang="en">Each article has its own meaning — add the one you need.</div>
+      <div class="small muted" lang={i18n.lang}>{t('reading.word.articlesHint')}</div>
     </div>
   {:else}
     {#if forms}<div class="forms muted">{forms}</div>{/if}
@@ -286,44 +290,44 @@
     {:else if remoteState === 'loading'}
       <Skeleton lines={1} />
     {:else}
-      <div class="missing muted small" lang="en">
+      <div class="missing muted small" lang={i18n.lang}>
         {#if !online.value}
-          No offline translation. It will be filled in when you’re online.
+          {t('reading.word.noOffline')}
         {:else if remoteState === 'failed'}
-          The dictionary is unavailable right now. You can still add the word and fill it in later.
+          {t('reading.word.dictDown')}
         {:else}
-          No translation found.
+          {t('reading.word.notFound')}
         {/if}
       </div>
     {/if}
   {/if}
 
   {#if status}
-    <div class="status small" lang="en">
-      <span class="dot s-{status}"></span>{STATUS_LABELS[status]}{#if otherSet}<span class="muted"> · in «{otherSet}»</span>{/if}
+    <div class="status small" lang={i18n.lang}>
+      <span class="dot s-{status}"></span>{STATUS_LABELS[status]}{#if otherSet}<span class="muted"> · {t('reading.word.inNamed', { set: otherSet })}</span>{/if}
     </div>
   {/if}
 
-  <div class="actions" lang="en">
+  <div class="actions" lang={i18n.lang}>
     {#if articleRows.length > 1}
       {#if inSet}
-        <button class="btn btn-ghost btn-block" onclick={() => go(`/set/${setId}`)}>Open «{setName}»</button>
+        <button class="btn btn-ghost btn-block" onclick={() => go(`/set/${setId}`)}>{t('reading.openNamed', { set: setName })}</button>
       {/if}
     {:else if inSet}
       <div class="row">
-        <span class="in-set"><Icon name="check" size={18} /> In set</span>
-        <button class="btn btn-ghost" onclick={() => go(`/set/${setId}`)}>Open set</button>
+        <span class="in-set"><Icon name="check" size={18} /> {t('reading.word.inSet')}</span>
+        <button class="btn btn-ghost" onclick={() => go(`/set/${setId}`)}>{t('reading.openSet')}</button>
       </div>
     {:else}
       <button class="btn btn-primary btn-block add" onclick={() => add()} disabled={busy || lookingUp}>
-        <Icon name="plus" size={18} /><span class="ellipsis">Add to «{setName}»</span>
+        <Icon name="plus" size={18} /><span class="ellipsis">{t('reading.word.addTo', { set: setName })}</span>
       </button>
     {/if}
     <div class="row two">
       {#if isKnown}
-        <button class="btn" onclick={notLearned}>Not learned</button>
+        <button class="btn" onclick={notLearned}>{t('reading.word.notLearned')}</button>
       {:else}
-        <button class="btn" onclick={markKnown} disabled={busy || lookingUp}><Icon name="check" size={18} /> Mark known</button>
+        <button class="btn" onclick={markKnown} disabled={busy || lookingUp}><Icon name="check" size={18} /> {t('reading.word.markKnown')}</button>
       {/if}
     </div>
   </div>

@@ -6,13 +6,14 @@
   import { db } from '../lib/db/schema';
   import { addSet } from '../lib/db/repo';
   import { lastQuickAddSet } from '../lib/share';
+  import { canonicalName, t } from '../lib/i18n.svelte';
 
   /**
    * "Share to Deutsch" landing (#/share?term=…, set up by main.ts): picks the set the shared
    * word goes to and replaces itself with the quick-add editor, which looks the word up.
    * Target set: the last one used for quick add, else "My words" (created when missing).
    */
-  const DEFAULT_SET = 'My words';
+  const DEFAULT_SET = canonicalName('myWords');
   const term = (route.query.get('term') ?? '').trim();
 
   async function targetSet(): Promise<number> {
@@ -34,6 +35,6 @@
 </script>
 
 <div class="page">
-  <Header title="Add word" />
+  <Header title={t('words.editor.titleNew')} />
   <div class="card"><Skeleton lines={3} /></div>
 </div>

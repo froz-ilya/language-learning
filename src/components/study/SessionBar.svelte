@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../../lib/i18n.svelte';
   import Icon from '../Icon.svelte';
 
   /** Session top bar: close (X), title, count and a thin progress bar that eases forward. */
@@ -20,7 +21,7 @@
 
 <div class="session-bar">
   <div class="top">
-    <button class="icon-btn" aria-label="Close" onclick={onclose}><Icon name="x" /></button>
+    <button class="icon-btn" aria-label={t('common.close')} onclick={onclose}><Icon name="x" /></button>
     <div class="titles">
       {#if title}<div class="title">{title}</div>{/if}
       {#if count}<div class="muted small count">{count}</div>{/if}

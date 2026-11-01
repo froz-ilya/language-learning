@@ -2,7 +2,7 @@
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import { loadSettings, saveSettings, settings } from '../lib/settings.svelte';
-  import { IOS_VOICE_NOTE, germanVoices, isSpeechSupported, speak, voiceLabel, voiceTip } from '../lib/speech/tts';
+  import { germanVoices, iosVoiceNote, isSpeechSupported, speak, voiceLabel, voiceTip } from '../lib/speech/tts';
   import { isAndroid, canVibrate } from '../lib/platform';
   import { install, promptInstall, showIOSInstallHint } from '../lib/install.svelte';
   import { importBackup } from '../lib/db/backup';
@@ -12,7 +12,8 @@
   import { dur } from '../lib/motion';
   import { confirmAction, showToast } from '../lib/ui/dialogs.svelte';
   import { levelIndex } from '../components/library/actions';
-  import type { Direction, Lang, Strictness, ThemeSetting } from '../lib/types';
+  import { i18n, locale, t, tn, tParts } from '../lib/i18n.svelte';
+  import type { Direction, Lang, Strictness, ThemeSetting, UiLangSetting } from '../lib/types';
 
   function set<K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) {
     settings[key] = value;
@@ -37,13 +38,14 @@
     const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
     synth?.addEventListener?.('voiceschanged', onVoicesChanged);
     // iOS sometimes fills the list late without firing the event.
-    const t = setTimeout(onVoicesChanged, 1000);
+    const timer = setTimeout(onVoicesChanged, 1000);
     return () => {
       synth?.removeEventListener?.('voiceschanged', onVoicesChanged);
-      clearTimeout(t);
+      clearTimeout(timer);
     };
   });
   const noGermanVoice = $derived(voicesLoaded && !voices.length);
+  const rateLabel = $derived(settings.rate.toLocaleString(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   const android = isAndroid();
 
   // ---------- App ----------
@@ -53,18 +55,19 @@
 
   async function installApp() {
     const outcome = await promptInstall();
-    if (outcome === 'accepted') showToast('Installing Deutsch…');
+    if (outcome === 'accepted') showToast(t('settings.app.installing'));
   }
 
   // ---------- Backup ----------
 
-  let backupMsg = $state('');
+  /** A function, so the message follows the language if it changes while it's on screen. */
+  let backupMsg = $state<(() => string) | null>(null);
   let backupErr = $state(false);
   let pendingRestore = $state<{ name: string; text: string } | null>(null);
   let fileInput = $state<HTMLInputElement>();
   let busy = $state(false);
 
-  function report(msg: string, err = false) {
+  function report(msg: (() => string) | null, err = false) {
     backupMsg = msg;
     backupErr = err;
   }
@@ -79,22 +82,22 @@
 
   async function backupNow() {
     busy = true;
-    report('');
+    report(null);
     try {
       // runBackup toasts "Backup saved" / the error itself; a cancelled share sheet changes nothing.
       const result = await runBackup();
-      if (result === 'failed') report('Backup failed. Please try again.', true);
+      if (result === 'failed') report(() => t('settings.backup.failedRetry'), true);
     } finally {
       busy = false;
     }
   }
 
-  const REMINDER_DAYS: { days: number; label: string }[] = [
-    { days: 0, label: 'Off' },
-    { days: 3, label: '3 days' },
-    { days: 5, label: '5 days' },
-    { days: 7, label: '7 days' },
-  ];
+  const REMINDER_DAYS = $derived<{ days: number; label: string }[]>([
+    { days: 0, label: t('settings.backup.off') },
+    { days: 3, label: tn('common.days', 3) },
+    { days: 5, label: tn('common.days', 5) },
+    { days: 7, label: tn('common.days', 7) },
+  ]);
 
   function setReminder(days: number) {
     settings.backupEvery = days;
@@ -121,21 +124,22 @@
   function retryAll() {
     resetProviders();
     refreshProviders();
-    showToast('All sources will be tried again');
+    showToast(t('settings.sources.retrying'));
   }
 
-  const clock = (ts: number) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const clock = (ts: number) => new Date(ts).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
 
   async function onFile(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
     if (!file) return;
-    report('');
+    report(null);
     try {
       pendingRestore = { name: file.name, text: await file.text() };
     } catch (err) {
-      report(`Couldn't read the file: ${(err as Error).message}`, true);
+      const error = (err as Error).message;
+      report(() => t('settings.restore.unreadable', { error }), true);
     }
   }
 
@@ -144,9 +148,9 @@
     if (
       mode === 'replace' &&
       !(await confirmAction({
-        title: 'Replace everything?',
-        message: 'All current folders, sets, words and progress are replaced with the backup.',
-        confirmLabel: 'Replace all',
+        title: t('settings.restore.confirmTitle'),
+        message: t('settings.restore.confirmMessage'),
+        confirmLabel: t('settings.restore.replace'),
         destructive: true,
       }))
     )
@@ -155,11 +159,12 @@
     try {
       const { cards } = await importBackup(pendingRestore.text, mode);
       if (mode === 'replace') await loadSettings();
-      report(`${mode === 'replace' ? 'Restored' : 'Merged'} ${cards} ${cards === 1 ? 'word' : 'words'}.`);
-      showToast('Backup restored');
+      report(() => tn(mode === 'replace' ? 'settings.restore.restored' : 'settings.restore.merged', cards));
+      showToast(t('settings.restore.done'));
       pendingRestore = null;
     } catch (e) {
-      report(`Restore failed: ${(e as Error).message}`, true);
+      const error = (e as Error).message;
+      report(() => t('settings.restore.failed', { error }), true);
     } finally {
       busy = false;
     }
@@ -168,7 +173,7 @@
   // ---------- Storage ----------
 
   let persisted = $state<boolean | null>(null);
-  let usage = $state('');
+  let usageMb = $state<number | null>(null);
   $effect(() => {
     navigator.storage
       ?.persisted?.()
@@ -177,105 +182,122 @@
     navigator.storage
       ?.estimate?.()
       .then((e) => {
-        if (e.usage !== undefined) usage = `${(e.usage / 1024 / 1024).toFixed(1)} MB used`;
+        if (e.usage !== undefined) usageMb = e.usage / 1024 / 1024;
       })
       .catch(() => {});
   });
+  const usage = $derived(usageMb?.toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 
   // ---------- About ----------
 
-  const FALLBACK_SOURCES =
-    'Levels A1–B1: Goethe-Zertifikat word lists via DWDS · Levels B2–C2: estimated with DAFlex (CC BY-NC-SA) · Word frequency: FrequencyWords (OpenSubtitles, CC BY-SA) · Dictionary: Wiktionary (CC BY-SA) · Translations: Google Translate';
-  let sources = $state(FALLBACK_SOURCES);
+  // The generated text is English; German has its own copy in the catalog.
+  let generatedSources = $state('');
   levelIndex().then((i) => {
-    if (i?.sources) sources = i.sources;
+    if (i?.sources) generatedSources = i.sources;
   });
+  const sources = $derived((i18n.lang === 'en' && generatedSources) || t('settings.about.sources'));
 
-  const CREDITS: { name: string; what: string; license: string }[] = [
-    { name: 'MiniKlexikon & Klexikon', what: 'Reading: children’s encyclopedia', license: 'CC BY-SA 4.0' },
-    { name: 'Wikinews', what: 'Reading: news', license: 'CC BY 2.5' },
-    { name: 'Wikipedia', what: 'Reading: articles', license: 'CC BY-SA 4.0' },
-    { name: 'Project Gutenberg', what: 'Reading: classic stories', license: 'Public domain' },
-    { name: 'Wiktionary via kaikki.org', what: 'Offline dictionary', license: 'CC BY-SA' },
-    { name: 'Goethe-Institut via DWDS', what: 'Word lists A1–B1', license: '© Goethe-Institut' },
-    { name: 'DAFlex (CEFRLex)', what: 'Level estimates B2–C2', license: 'CC BY-NC-SA 4.0' },
-    { name: 'FrequencyWords', what: 'Word frequency', license: 'CC BY-SA' },
-    { name: 'MyMemory', what: 'Translations (fallback)', license: 'Translated.net' },
-  ];
+  const CREDITS = $derived<{ name: string; what: string; license: string }[]>([
+    { name: 'MiniKlexikon & Klexikon', what: t('settings.credits.encyclopedia'), license: 'CC BY-SA 4.0' },
+    { name: 'Wikinews', what: t('settings.credits.news'), license: 'CC BY 2.5' },
+    { name: 'Wikipedia', what: t('settings.credits.articles'), license: 'CC BY-SA 4.0' },
+    { name: 'Project Gutenberg', what: t('settings.credits.stories'), license: t('settings.credits.publicDomain') },
+    { name: 'Wiktionary via kaikki.org', what: t('settings.sources.local'), license: 'CC BY-SA' },
+    { name: 'Goethe-Institut via DWDS', what: t('settings.credits.wordLists'), license: '© Goethe-Institut' },
+    { name: 'DAFlex (CEFRLex)', what: t('settings.credits.estimates'), license: 'CC BY-NC-SA 4.0' },
+    { name: 'FrequencyWords', what: t('settings.credits.frequency'), license: 'CC BY-SA' },
+    { name: 'MyMemory', what: t('settings.credits.fallback'), license: 'Translated.net' },
+  ]);
 
-  const THEMES: { id: ThemeSetting; label: string }[] = [
-    { id: 'auto', label: 'Auto' },
-    { id: 'light', label: 'Light' },
-    { id: 'dark', label: 'Dark' },
-  ];
+  const THEMES = $derived<{ id: ThemeSetting; label: string }[]>([
+    { id: 'auto', label: t('settings.auto') },
+    { id: 'light', label: t('settings.appearance.light') },
+    { id: 'dark', label: t('settings.appearance.dark') },
+  ]);
+  // English and Deutsch are written in their own language whatever the interface language is.
+  const UI_LANGS = $derived<{ id: UiLangSetting; label: string }[]>([
+    { id: 'auto', label: t('settings.auto') },
+    { id: 'en', label: 'English' },
+    { id: 'de', label: 'Deutsch' },
+  ]);
   const NEW_PER_SESSION = [5, 10, 15, 20];
 
-  const LANGS: { id: Lang; label: string }[] = [
-    { id: 'ru', label: 'Russian' },
-    { id: 'en', label: 'English' },
-  ];
-  const STRICT: { id: Strictness; label: string }[] = [
-    { id: 'lenient', label: 'Lenient' },
-    { id: 'strict', label: 'Strict' },
-  ];
-  const DIRECTIONS: { id: Direction; label: string }[] = [
-    { id: 'de-x', label: 'German →' },
-    { id: 'x-de', label: '→ German' },
-    { id: 'mixed', label: 'Mixed' },
-  ];
+  const LANGS = $derived<{ id: Lang; label: string }[]>([
+    { id: 'ru', label: t('common.russian') },
+    { id: 'en', label: t('common.english') },
+  ]);
+  const STRICT = $derived<{ id: Strictness; label: string }[]>([
+    { id: 'lenient', label: t('settings.checking.lenient') },
+    { id: 'strict', label: t('settings.checking.strict') },
+  ]);
+  const DIRECTIONS = $derived<{ id: Direction; label: string }[]>([
+    { id: 'de-x', label: t('settings.direction.fromGerman') },
+    { id: 'x-de', label: t('settings.direction.toGerman') },
+    { id: 'mixed', label: t('settings.direction.mixed') },
+  ]);
 </script>
 
 <div class="page">
-  <Header title="Settings" />
+  <Header title={t('settings.title')} />
 
   <section class="section">
-    <h2 class="section-title">Appearance</h2>
-    <div class="segmented" role="radiogroup" aria-label="Theme">
-      {#each THEMES as t}
-        <button role="radio" aria-checked={settings.theme === t.id} class:active={settings.theme === t.id} onclick={() => set('theme', t.id)}>{t.label}</button>
+    <h2 class="section-title">{t('settings.appearance.title')}</h2>
+    <div class="segmented" role="radiogroup" aria-label={t('settings.appearance.theme')}>
+      {#each THEMES as theme}
+        <button role="radio" aria-checked={settings.theme === theme.id} class:active={settings.theme === theme.id} onclick={() => set('theme', theme.id)}>{theme.label}</button>
       {/each}
     </div>
-    <p class="hint small muted">Auto follows your phone’s light or dark mode.</p>
+    <p class="hint small muted">{t('settings.appearance.hint')}</p>
   </section>
 
   <section class="section">
-    <h2 class="section-title">Learning</h2>
+    <h2 class="section-title">{t('settings.language.title')}</h2>
+    <div class="segmented" role="radiogroup" aria-label={t('settings.language.title')}>
+      {#each UI_LANGS as l}
+        <button role="radio" aria-checked={settings.uiLang === l.id} class:active={settings.uiLang === l.id} onclick={() => set('uiLang', l.id)}>{l.label}</button>
+      {/each}
+    </div>
+    <p class="hint small muted">{t('settings.language.hint')}</p>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">{t('settings.learning.title')}</h2>
     <div class="list">
       <div class="list-item column">
         <div class="row full">
-          <span class="grow">New words per session</span>
+          <span class="grow">{t('settings.learning.newPerSession')}</span>
           <span class="muted">{settings.newPerSession}</span>
         </div>
-        <div class="segmented full" role="radiogroup" aria-label="New words per session">
+        <div class="segmented full" role="radiogroup" aria-label={t('settings.learning.newPerSession')}>
           {#each NEW_PER_SESSION as n}
             <button role="radio" aria-checked={settings.newPerSession === n} class:active={settings.newPerSession === n} onclick={() => set('newPerSession', n)}>{n}</button>
           {/each}
         </div>
       </div>
     </div>
-    <p class="hint small muted">How many never-seen words a session mixes in with your reviews. Fewer = calmer, more = faster.</p>
+    <p class="hint small muted">{t('settings.learning.hint')}</p>
   </section>
 
   <section class="section">
-    <h2 class="section-title">Translations</h2>
+    <h2 class="section-title">{t('settings.translations.title')}</h2>
     <div class="segmented">
       {#each LANGS as l}
         <button class:active={settings.lang === l.id} onclick={() => set('lang', l.id)}>{l.label}</button>
       {/each}
     </div>
-    <p class="hint small muted">Language for new translations and dictionary look-ups.</p>
+    <p class="hint small muted">{t('settings.translations.hint')}</p>
   </section>
 
   <section class="section">
-    <h2 class="section-title">Pronunciation</h2>
+    <h2 class="section-title">{t('settings.voice.title')}</h2>
     {#if !isSpeechSupported()}
-      <div class="card small muted">Speech isn't supported in this browser.</div>
+      <div class="card small muted">{t('settings.voice.unsupported')}</div>
     {:else}
       <div class="list">
         <div class="list-item">
-          <label for="voice" class="grow">Voice</label>
+          <label for="voice" class="grow">{t('settings.voice.voice')}</label>
           <select id="voice" class="select" value={settings.voiceURI} onchange={(e) => set('voiceURI', e.currentTarget.value)}>
-            <option value="" selected={!settings.voiceURI}>Default</option>
+            <option value="" selected={!settings.voiceURI}>{t('settings.voice.default')}</option>
             {#each voices as v (v.uri)}
               <option value={v.uri} selected={v.uri === settings.voiceURI}>{v.label}</option>
             {/each}
@@ -283,8 +305,8 @@
         </div>
         <div class="list-item column">
           <div class="row full">
-            <label for="rate" class="grow">Speech rate</label>
-            <span class="muted">{settings.rate.toFixed(2)}×</span>
+            <label for="rate" class="grow">{t('settings.voice.rate')}</label>
+            <span class="muted">{rateLabel}×</span>
           </div>
           <input
             id="rate"
@@ -299,39 +321,39 @@
           />
         </div>
         <label class="list-item">
-          <span class="grow">Autoplay pronunciation</span>
+          <span class="grow">{t('settings.voice.autoplay')}</span>
           <input type="checkbox" class="switch" checked={settings.autoplay} onchange={(e) => set('autoplay', e.currentTarget.checked)} />
         </label>
         <button class="list-item test" onclick={() => speak('Guten Morgen! Wie geht es dir?')}>
-          <Icon name="speaker" /> Test voice
+          <Icon name="speaker" /> {t('settings.voice.test')}
         </button>
       </div>
       {#if noGermanVoice}
         <div class="card small voice-tip">{voiceTip()}</div>
       {:else if !android}
-        <p class="hint small muted">{IOS_VOICE_NOTE}</p>
+        <p class="hint small muted">{iosVoiceNote()}</p>
       {/if}
     {/if}
   </section>
 
   <section class="section">
-    <h2 class="section-title">Answer checking</h2>
+    <h2 class="section-title">{t('settings.checking.title')}</h2>
     <div class="segmented">
       {#each STRICT as s}
         <button class:active={settings.strictness === s.id} onclick={() => set('strictness', s.id)}>{s.label}</button>
       {/each}
     </div>
     <p class="hint small muted">
-      {settings.strictness === 'lenient' ? 'Small typos count as correct.' : 'Answers must be spelled exactly.'}
+      {settings.strictness === 'lenient' ? t('settings.checking.lenientHint') : t('settings.checking.strictHint')}
     </p>
     <div class="list">
       <label class="list-item">
-        <span class="grow">Require article for nouns</span>
+        <span class="grow">{t('settings.checking.requireArticle')}</span>
         <input type="checkbox" class="switch" checked={settings.requireArticle} onchange={(e) => set('requireArticle', e.currentTarget.checked)} />
       </label>
       {#if vibrationSupported}
         <label class="list-item">
-          <span class="grow">Vibration on answers</span>
+          <span class="grow">{t('settings.checking.vibration')}</span>
           <input type="checkbox" class="switch" checked={settings.vibration} onchange={(e) => set('vibration', e.currentTarget.checked)} />
         </label>
       {/if}
@@ -340,18 +362,18 @@
 
   {#if install.canInstall || iosInstallHint}
     <section class="section">
-      <h2 class="section-title">App</h2>
+      <h2 class="section-title">{t('settings.app.title')}</h2>
       <div class="list">
         {#if install.canInstall}
           <button class="list-item" onclick={installApp}>
             <span class="accent"><Icon name="import" /></span>
-            <span class="grow">Install app</span>
-            <span class="muted small">Works offline</span>
+            <span class="grow">{t('settings.app.install')}</span>
+            <span class="muted small">{t('settings.app.worksOffline')}</span>
           </button>
         {:else}
           <div class="list-item static">
             <span class="accent"><Icon name="import" /></span>
-            <span class="grow">Install: Share → Add to Home Screen</span>
+            <span class="grow">{t('settings.app.iosHint')}</span>
           </div>
         {/if}
       </div>
@@ -359,7 +381,7 @@
   {/if}
 
   <section class="section">
-    <h2 class="section-title">Default study direction</h2>
+    <h2 class="section-title">{t('settings.direction.title')}</h2>
     <div class="segmented">
       {#each DIRECTIONS as d}
         <button class:active={settings.direction === d.id} onclick={() => set('direction', d.id)}>{d.label}</button>
@@ -368,45 +390,45 @@
   </section>
 
   <section class="section">
-    <h2 class="section-title">Backup</h2>
+    <h2 class="section-title">{t('settings.backup.title')}</h2>
     <div class="list">
       <button class="list-item" disabled={busy} onclick={backupNow}>
         <span class="accent"><Icon name="import" /></span>
-        <span class="grow">Back up now</span>
-        <span class="muted small">Last backup: {lastBackup}</span>
+        <span class="grow">{t('settings.backup.now')}</span>
+        <span class="muted small">{t('settings.backup.last', { when: lastBackup })}</span>
       </button>
       <button class="list-item" disabled={busy} onclick={() => fileInput?.click()}>
         <span class="accent"><Icon name="refresh" /></span>
-        <span class="grow">Restore from backup</span>
+        <span class="grow">{t('settings.restore.action')}</span>
       </button>
       <div class="list-item column">
         <div class="row full">
-          <span class="grow">Backup reminder</span>
-          <span class="muted">{settings.backupEvery ? `Every ${settings.backupEvery} days` : 'Off'}</span>
+          <span class="grow">{t('settings.backup.reminder')}</span>
+          <span class="muted">{settings.backupEvery ? t('settings.backup.every', { n: settings.backupEvery }) : t('settings.backup.off')}</span>
         </div>
-        <div class="segmented full" role="radiogroup" aria-label="Backup reminder">
+        <div class="segmented full" role="radiogroup" aria-label={t('settings.backup.reminder')}>
           {#each REMINDER_DAYS as r}
             <button role="radio" aria-checked={settings.backupEvery === r.days} class:active={settings.backupEvery === r.days} onclick={() => setReminder(r.days)}>{r.label}</button>
           {/each}
         </div>
       </div>
     </div>
-    <p class="hint small muted">Save the backup file to iCloud Drive or Files. The app reminds you when the last backup gets old.</p>
+    <p class="hint small muted">{t('settings.backup.hint')}</p>
     <input bind:this={fileInput} type="file" accept=".json,application/json" hidden onchange={onFile} />
 
     {#if pendingRestore}
       <div class="card restore stack" transition:slide={{ duration: dur(220) }}>
-        <div class="small">Restore <strong>{pendingRestore.name}</strong>:</div>
-        <button class="btn btn-block" disabled={busy} onclick={() => restore('merge')}>Merge with current data</button>
-        <button class="btn btn-block replace" disabled={busy} onclick={() => restore('replace')}>Replace all</button>
-        <button class="btn btn-ghost btn-block" disabled={busy} onclick={() => (pendingRestore = null)}>Cancel</button>
+        <div class="small">{#each tParts('settings.restore.file') as p}{#if p.slot}<strong>{pendingRestore.name}</strong>{:else}{p.text}{/if}{/each}</div>
+        <button class="btn btn-block" disabled={busy} onclick={() => restore('merge')}>{t('settings.restore.merge')}</button>
+        <button class="btn btn-block replace" disabled={busy} onclick={() => restore('replace')}>{t('settings.restore.replace')}</button>
+        <button class="btn btn-ghost btn-block" disabled={busy} onclick={() => (pendingRestore = null)}>{t('common.cancel')}</button>
       </div>
     {/if}
-    {#if backupMsg}<p class="hint small" class:bad={backupErr} class:good={!backupErr}>{backupMsg}</p>{/if}
+    {#if backupMsg}<p class="hint small" class:bad={backupErr} class:good={!backupErr}>{backupMsg()}</p>{/if}
   </section>
 
   <section class="section">
-    <h2 class="section-title">Sources</h2>
+    <h2 class="section-title">{t('settings.sources.title')}</h2>
     {#if providers.length}
       <div class="list">
         {#each providers as p (p.id)}
@@ -416,50 +438,47 @@
               {#if p.lastError}<span class="source-error">{p.lastError}</span>{/if}
             </div>
             {#if p.state === 'cooling'}
-              <span class="pill pill-warn">{p.until ? `Paused until ${clock(p.until)}` : 'Paused'}</span>
+              <span class="pill pill-warn">{p.until ? t('settings.sources.pausedUntil', { time: clock(p.until) }) : t('settings.sources.paused')}</span>
             {:else}
-              <span class="pill pill-good">Working</span>
+              <span class="pill pill-good">{t('settings.sources.working')}</span>
             {/if}
           </div>
         {/each}
         <button class="list-item test" onclick={retryAll}>
-          <Icon name="refresh" /> Retry all
+          <Icon name="refresh" /> {t('settings.sources.retryAll')}
         </button>
       </div>
     {:else}
-      <div class="card small muted">No online sources used yet.</div>
+      <div class="card small muted">{t('settings.sources.none')}</div>
     {/if}
-    <p class="hint small muted">
-      Dictionary, translation and reading sources. When one fails or is busy, the app automatically tries the next one and
-      pauses the failing source for a while.
-    </p>
+    <p class="hint small muted">{t('settings.sources.hint')}</p>
   </section>
 
   <section class="section">
-    <h2 class="section-title">Storage</h2>
+    <h2 class="section-title">{t('settings.storage.title')}</h2>
     <div class="card small stack-sm">
-      <div>Stored on this device{usage ? ` · ${usage}` : ''}.</div>
+      <div>{usage ? t('settings.storage.usage', { mb: usage }) : t('settings.storage.device')}</div>
       <div class="muted">
         {#if persisted === true}
-          Protected from automatic clean-up.
+          {t('settings.storage.protected')}
         {:else if persisted === false}
-          Not protected — iOS may clear it if storage runs low. Export a backup now and then.
+          {t('settings.storage.notProtected')}
         {:else}
-          Export a backup now and then to keep your words safe.
+          {t('settings.storage.unknown')}
         {/if}
       </div>
     </div>
   </section>
 
   <section class="section">
-    <h2 class="section-title">About</h2>
+    <h2 class="section-title">{t('settings.about.title')}</h2>
     <div class="card small stack-sm beta-note">
-      <div><span class="beta-tag">Beta</span> Deutsch is still in beta, so some things may not work yet.</div>
-      <div class="muted">Your words live only on this device: export a backup now and then.</div>
+      <div><span class="beta-tag">{t('settings.about.beta')}</span> {t('settings.about.betaNote')}</div>
+      <div class="muted">{t('settings.about.deviceOnly')}</div>
     </div>
     <div class="card small muted stack-sm">
       <div>{sources}</div>
-      <div>A1–B1 are the official Goethe-Zertifikat word lists. There are none above B1, so B2–C2 are estimates from learner materials and word frequency.</div>
+      <div>{t('settings.about.levels')}</div>
     </div>
     <div class="list credits">
       {#each CREDITS as c}

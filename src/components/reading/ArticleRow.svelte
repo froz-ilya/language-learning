@@ -1,7 +1,8 @@
 <script lang="ts">
   import Icon from '../Icon.svelte';
   import { go } from '../../lib/router.svelte';
-  import { articlePath } from '../../lib/reading/store';
+  import { t } from '../../lib/i18n.svelte';
+  import { articlePath, articleTitle } from '../../lib/reading/store';
   import { sourceInfo } from '../../lib/reading/sources';
   import type { ReadingSourceId } from '../../lib/reading/types';
 
@@ -31,11 +32,11 @@
 
 <button class="list-item article-row" onclick={() => go(articlePath(id))}>
   <span class="body">
-    <span class="title" lang="de">{title}</span>
+    <span class="title" lang="de">{articleTitle({ source, title })}</span>
     <span class="meta">
       <span class="badge src-{source}">{sourceInfo(source).name}</span>
       {#if level}<span class="badge level">{level}</span>{/if}
-      {#if read}<span class="read"><Icon name="check" size={14} /> Read</span>{/if}
+      {#if read}<span class="read"><Icon name="check" size={14} /> {t('reading.status.read')}</span>{/if}
       {#if meta}<span class="extra">{meta}</span>{/if}
     </span>
     {#if snippet}<span class="snippet" lang="de">{snippet}</span>{/if}

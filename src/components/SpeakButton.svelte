@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from './Icon.svelte';
   import { speak } from '../lib/speech/tts';
+  import { t } from '../lib/i18n.svelte';
 
   /** Speaker button; long-press (or `slow`) speaks at 0.6×. */
   let { text, slow = false, size = 22 }: { text: string; slow?: boolean; size?: number } = $props();
@@ -27,7 +28,7 @@
 <button
   class="icon-btn"
   type="button"
-  aria-label={slow ? 'Pronounce slowly' : 'Pronounce'}
+  aria-label={slow ? t('shell.pronounceSlowly') : t('shell.pronounce')}
   onpointerdown={down}
   onpointerup={up}
   onpointerleave={up}

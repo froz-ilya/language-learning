@@ -1,6 +1,7 @@
 import type { Pos } from '../../types';
 import { checkResponse, SourceError, type Provider } from '../chain';
 import { formatMeanings } from '../../lookup/meanings';
+import { t } from '../../i18n.svelte';
 
 /**
  * English Wiktionary: German entries' English definitions (REST, CORS-open) and opensearch.
@@ -131,7 +132,7 @@ async function fetchDefinitions(word: string, signal: AbortSignal): Promise<unkn
     return await res.json();
   } catch (e) {
     if (signal.aborted) throw e;
-    throw new SourceError('Unexpected response from Wiktionary (EN)', { refusal: true });
+    throw new SourceError(t('words.error.unexpected', { source: 'Wiktionary (EN)' }), { refusal: true });
   }
 }
 
@@ -176,7 +177,7 @@ export const enWiktionaryPrefix: Provider<{ prefix: string; limit: number }, str
       data = await res.json();
     } catch (e) {
       if (signal.aborted) throw e;
-      throw new SourceError('Unexpected response from Wiktionary (EN)', { refusal: true });
+      throw new SourceError(t('words.error.unexpected', { source: 'Wiktionary (EN)' }), { refusal: true });
     }
     const words = parseOpensearch(data);
     return words.length ? words : null;

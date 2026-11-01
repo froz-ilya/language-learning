@@ -8,15 +8,6 @@ export type LevelCode = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
 export const LEVELS: LevelCode[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
-export const LEVEL_TITLES: Record<LevelCode, string> = {
-  A1: 'Beginner',
-  A2: 'Elementary',
-  B1: 'Intermediate',
-  B2: 'Upper intermediate',
-  C1: 'Advanced',
-  C2: 'Proficient',
-};
-
 /** One word in public/levels/<code>.json */
 export interface LevelWord {
   /**

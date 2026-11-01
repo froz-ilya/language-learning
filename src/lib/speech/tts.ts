@@ -1,3 +1,4 @@
+import { t } from '../i18n.svelte';
 import { settings } from '../settings.svelte';
 import { isAndroid } from '../platform';
 import { showToast } from '../ui/dialogs.svelte';
@@ -37,7 +38,7 @@ export function voiceQuality(v: SpeechSynthesisVoice): VoiceQuality {
 /** Name shown in the voice picker, with the quality tier so same-named voices can be told apart. */
 export function voiceLabel(v: SpeechSynthesisVoice): string {
   const q = voiceQuality(v);
-  const tier = q === 'premium' ? 'Premium' : q === 'enhanced' ? 'Enhanced' : '';
+  const tier = q === 'premium' ? t('settings.voice.premium') : q === 'enhanced' ? t('settings.voice.enhanced') : '';
   const name = tier && !new RegExp(tier, 'i').test(v.name) ? `${v.name} · ${tier}` : v.name;
   return `${name} (${v.lang})`;
 }
@@ -62,19 +63,17 @@ export function germanVoices(): SpeechSynthesisVoice[] {
     .sort((a, b) => score(b) - score(a));
 }
 
-export const ANDROID_VOICE_TIP =
-  'Install a German voice: Android Settings → Text-to-speech → Google → Install voice data → Deutsch';
-export const IOS_VOICE_TIP = 'Better voices: iOS Settings → Accessibility → Spoken Content → Voices → German.';
 /**
  * iOS gives web apps only some of the installed voices: many downloaded Enhanced/Premium voices
  * and all Siri voices never reach getVoices() (WebKit bug 290497).
  */
-export const IOS_VOICE_NOTE =
-  'iOS shares only some voices with web apps. After downloading a German voice (Settings → Accessibility → Spoken Content → Voices), close this app fully and reopen it. If the voice still isn\'t listed here, iOS doesn\'t let web apps use it; Siri voices never work.';
+export function iosVoiceNote(): string {
+  return t('settings.voice.iosNote');
+}
 
 /** Where to get a (better) German voice on this device. */
 export function voiceTip(): string {
-  return isAndroid() ? ANDROID_VOICE_TIP : IOS_VOICE_TIP;
+  return t(isAndroid() ? 'settings.voice.androidTip' : 'settings.voice.iosTip');
 }
 
 const VOICE_TIP_KEY = 'voiceTipShown';

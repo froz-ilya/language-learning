@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
   import Icon from './Icon.svelte';
   import { back } from '../lib/router.svelte';
+  import { t } from '../lib/i18n.svelte';
 
   /**
    * Page header. `backTo` shows a back chevron (navigates back, falling back to that path).
@@ -17,7 +18,7 @@
 
 <header class="header">
   {#if backTo !== undefined}
-    <button class="icon-btn back" aria-label="Back" onclick={() => back(backTo)}><Icon name="back" /></button>
+    <button class="icon-btn back" aria-label={t('common.back')} onclick={() => back(backTo)}><Icon name="back" /></button>
   {/if}
   <div class="titles">
     <h1>{title}</h1>

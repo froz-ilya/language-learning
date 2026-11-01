@@ -1,3 +1,4 @@
+import { t } from '../../i18n.svelte';
 import type { LevelCode } from '../../levels/types';
 import type { Article, ArticleSummary, ReadingSourceInfo } from '../types';
 import type { ListOptions, ListResult, Source } from './types';
@@ -101,9 +102,9 @@ export function gutenbergSource(info: ReadingSourceInfo): Source {
 
   async function get(key: string): Promise<Article> {
     const { texts } = await loadGutenberg();
-    const t = texts.find((x) => x.id === key);
-    if (!t) throw new SourceError(`No bundled text “${key}”`, 404);
-    return toArticle(t);
+    const text = texts.find((x) => x.id === key);
+    if (!text) throw new SourceError(t('reading.error.noBundled', { key }), 404);
+    return toArticle(text);
   }
 
   return { info, list, get };

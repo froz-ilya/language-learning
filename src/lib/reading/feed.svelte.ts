@@ -1,3 +1,4 @@
+import { t } from '../i18n.svelte';
 import type { LevelCode } from '../levels/types';
 import type { ArticleSummary, ReadingSourceId } from './types';
 import { listArticles, sourceInfo, sourcesForLevel } from './sources';
@@ -6,14 +7,16 @@ import { listArticles, sourceInfo, sourcesForLevel } from './sources';
  * Article lists of the Read tab, per level, kept for the session so going back from the reader
  * doesn't refetch (one request per source per user action).
  */
+export type FeedError = '' | 'offline' | 'unavailable';
+
 export interface SourceFeed {
   items: ArticleSummary[];
   cursor?: string;
   /** A page was loaded and there's nothing more. */
   done: boolean;
   loading: boolean;
-  /** Last error message (the other sources still show). */
-  error: string;
+  /** Last error (the other sources still show). */
+  error: FeedError;
 }
 
 export interface LevelFeed {
@@ -60,15 +63,19 @@ export async function loadFeed(level: LevelCode, more = false): Promise<void> {
         s.cursor = r.cursor;
         s.done = !r.cursor;
       } catch (e) {
-        s.error = isOffline()
-          ? `${sourceInfo(id).name} needs a connection`
-          : `${sourceInfo(id).name} is unavailable right now`;
+        s.error = isOffline() ? 'offline' : 'unavailable';
         console.warn(`[reading] ${id}:`, e);
       } finally {
         s.loading = false;
       }
     }),
   );
+}
+
+/** A source's error for the screen, in the current language (feeds outlive a language change). */
+export function feedErrorText(id: ReadingSourceId, error: FeedError | undefined): string {
+  const { name } = sourceInfo(id);
+  return error === 'offline' ? t('reading.feed.offline', { name }) : t('reading.feed.unavailable', { name });
 }
 
 /** Forget a level's lists (pull to refresh / "Refresh"). */

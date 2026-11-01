@@ -4,6 +4,7 @@
   import Icon from './Icon.svelte';
   import { ui, type ActionItem, type Dialog } from '../lib/ui/dialogs.svelte';
   import { dur } from '../lib/motion';
+  import { t } from '../lib/i18n.svelte';
   import { openOverlay } from '../lib/ui/overlay';
 
   /**
@@ -84,7 +85,7 @@
         class="sheet"
         role="dialog"
         aria-modal="true"
-        aria-label={d.title || 'Actions'}
+        aria-label={d.title || t('shell.actions')}
         tabindex="-1"
         {@attach focusPanel}
         transition:fly={{ y: 320, duration: dur(320), easing: cubicOut, opacity: 1 }}
@@ -98,7 +99,7 @@
             </button>
           {/each}
         </div>
-        <button class="sheet-item cancel" onclick={() => cancel(d)}>Cancel</button>
+        <button class="sheet-item cancel" onclick={() => cancel(d)}>{t('common.cancel')}</button>
       </div>
     {:else}
       {@const opts = d.options}
@@ -135,14 +136,14 @@
             {/if}
           </div>
           <div class="alert-buttons">
-            <button type="button" class="alert-btn" onclick={() => cancel(d)}>{opts.cancelLabel ?? 'Cancel'}</button>
+            <button type="button" class="alert-btn" onclick={() => cancel(d)}>{opts.cancelLabel ?? t('common.cancel')}</button>
             {#if d.kind === 'prompt'}
               <button type="submit" class="alert-btn strong" disabled={!text.trim()}>
-                {opts.confirmLabel ?? 'OK'}
+                {opts.confirmLabel ?? t('common.ok')}
               </button>
             {:else}
               <button type="submit" class="alert-btn strong" class:destructive={d.options.destructive}>
-                {opts.confirmLabel ?? (d.options.destructive ? 'Delete' : 'OK')}
+                {opts.confirmLabel ?? (d.options.destructive ? t('common.delete') : t('common.ok'))}
               </button>
             {/if}
           </div>

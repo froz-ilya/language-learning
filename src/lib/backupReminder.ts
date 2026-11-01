@@ -1,5 +1,6 @@
 import { db } from './db/schema';
 import { exportBackup, shareOrDownload, type ShareResult } from './db/backup';
+import { t, tn } from './i18n.svelte';
 import { route } from './router.svelte';
 import { saveSettings, settings } from './settings.svelte';
 import { confirmAction, showToast, ui, type ConfirmOptions } from './ui/dialogs.svelte';
@@ -47,11 +48,19 @@ export function isBackupDue(s: ReminderSettings, now: number, data: DataInfo): b
 
 /** "Last backup: …" wording for Settings. */
 export function lastBackupLabel(lastBackupAt: number, now = Date.now()): string {
-  if (!lastBackupAt) return 'Never';
+  if (!lastBackupAt) return t('settings.backup.never');
   const d = daysSince(lastBackupAt, now);
-  if (d === 0) return 'Today';
-  if (d === 1) return 'Yesterday';
-  return `${d} days ago`;
+  if (d === 0) return t('settings.backup.today');
+  if (d === 1) return t('settings.backup.yesterday');
+  return tn('settings.backup.daysAgo', d);
+}
+
+/** The same as a sentence for the reminder pop-up. */
+function lastBackupSentence(lastBackupAt: number, now: number): string {
+  const d = daysSince(lastBackupAt, now);
+  if (d === 0) return t('settings.backup.reminderToday');
+  if (d === 1) return t('settings.backup.reminderYesterday');
+  return tn('settings.backup.reminderDaysAgo', d);
 }
 
 export function backupFilename(d = new Date()): string {
@@ -91,12 +100,12 @@ export async function runBackup(prepared?: Promise<Blob>): Promise<BackupResult>
       settings.lastBackupAt = Date.now();
       settings.backupSnoozeUntil = 0;
       await saveSettings();
-      showToast('Backup saved');
+      showToast(t('settings.backup.saved'));
     }
     return result;
   } catch (e) {
     console.error('backup failed', e);
-    showToast(`Backup failed: ${(e as Error).message}`);
+    showToast(t('settings.backup.failed', { error: (e as Error).message }));
     return 'failed';
   } finally {
     running = false;
@@ -160,18 +169,18 @@ export function checkBackupReminder(): void {
 
 async function showReminder(now: number) {
   const message = settings.lastBackupAt
-    ? `Your last backup was ${lastBackupLabel(settings.lastBackupAt, now).toLowerCase()}.`
-    : 'You haven’t backed up yet — keep your words safe in iCloud Drive or Files.';
+    ? lastBackupSentence(settings.lastBackupAt, now)
+    : t('settings.backup.reminderFirst');
   // Build the backup while the pop-up is open, so "Back up now" can open the share sheet
   // right away (iOS drops the user gesture if share() waits on IndexedDB first).
   const prepared = exportBackup();
   prepared.catch(() => {}); // surfaced by runBackup if used
   // cancelLabel: rendered by DialogHost once ConfirmOptions supports it (falls back to "Cancel").
   const options: ConfirmOptions & { cancelLabel?: string } = {
-    title: 'Time for a backup',
+    title: t('settings.backup.reminderTitle'),
     message,
-    confirmLabel: 'Back up now',
-    cancelLabel: 'Later',
+    confirmLabel: t('settings.backup.now'),
+    cancelLabel: t('common.later'),
   };
   const ok = await confirmAction(options);
   if (!ok) {

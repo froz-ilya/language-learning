@@ -3,6 +3,7 @@ import { extractToParagraphs, firstSentence, stripTags, truncateParagraphs } fro
 import type { ListOptions, ListResult, Source } from './types';
 import { mwGet, SourceError, wikiUrl, type PagesResponse, type SearchResponse } from './mediawiki';
 import { keepLevel } from '../rate';
+import { t } from '../../i18n.svelte';
 
 const API = 'https://de.wikipedia.org/w/api.php';
 const WIKI = 'https://de.wikipedia.org/wiki/';
@@ -117,7 +118,7 @@ export function wikipediaSource(info: ReadingSourceInfo): Source {
       signal,
     );
     const page = data.query?.pages?.[0];
-    if (!page || page.missing || !page.extract) throw new SourceError(`Wikipedia has no article “${key}”`, 404);
+    if (!page || page.missing || !page.extract) throw new SourceError(t('reading.error.noWikipedia', { key }), 404);
     return {
       id: `wikipedia:${key}`,
       source: 'wikipedia',

@@ -1,10 +1,11 @@
 import { db } from '../db/schema';
+import { canonicalName } from '../i18n.svelte';
 import { saveSettings, settings } from '../settings.svelte';
 import type { Card, Lang, Review, WordSet } from '../types';
 import { fetchLevelFile, fetchLevelIndex, movedFolder, removeEmptySets, topicsInOrder, wordToCard } from './install';
 import { LEVELS, type LevelCode, type LevelFile, type LevelWord } from './types';
 
-export const MOVED_FOLDER = 'Moved from levels';
+export const MOVED_FOLDER = canonicalName('movedFolder');
 
 /**
  * Bring installed levels up to today's lists when those changed (index.json `version`), once and
@@ -119,7 +120,7 @@ async function applyLists(files: LevelFile[], version: number, lang: Lang) {
 async function movedSet(folderId: number, level: LevelCode, sets: WordSet[]): Promise<number> {
   const found = sets.find((s) => s.topic === level);
   if (found) return found.id!;
-  const set: WordSet = { name: `${level} words`, folderId, level: '', topic: level, createdAt: Date.now() };
+  const set: WordSet = { name: canonicalName(`moved:${level}`), folderId, level: '', topic: level, createdAt: Date.now() };
   set.id = (await db.sets.add(set)) as number;
   sets.push(set);
   return set.id;

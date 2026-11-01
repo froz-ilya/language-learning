@@ -1,12 +1,13 @@
 <script lang="ts">
   import { fly } from 'svelte/transition';
+  import { t, tn } from '../lib/i18n.svelte';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import ProgressRing from '../components/ProgressRing.svelte';
   import { levelIndex, levelProgress, stagger } from '../components/library/actions';
   import { live } from '../lib/live.svelte';
   import { dur } from '../lib/motion';
-  import { LEVEL_TITLES, LEVELS, type LevelIndex } from '../lib/levels/types';
+  import { LEVELS, type LevelIndex } from '../lib/levels/types';
 
   let index = $state<LevelIndex | null>(null);
   levelIndex().then((i) => (index = i));
@@ -22,9 +23,9 @@
 </script>
 
 <div class="page">
-  <Header title="Levels" />
+  <Header title={t('levels.title')} />
 
-  <p class="intro muted">Ready-made word lists, from your first words to near-native vocabulary.</p>
+  <p class="intro muted">{t('levels.intro')}</p>
 
   <div class="grid">
     {#each LEVELS as code, i (code)}
@@ -40,17 +41,17 @@
           <span class="code">{code}</span>
         </ProgressRing>
         <span class="text">
-          <span class="title">{LEVEL_TITLES[code]}</span>
+          <span class="title">{t(`level.${code}.title`)}</span>
           <span class="sub">
-            {#if words !== undefined}{words.toLocaleString('en')} words{:else}&nbsp;{/if}
+            {#if words !== undefined}{tn('common.words', words)}{:else}&nbsp;{/if}
           </span>
           <span class="status" class:active={!!p}>
             {#if !p}
-              Not started
+              {t('levels.notStarted')}
             {:else if p.ratio >= 1}
-              <Icon name="check" size={14} /> Complete
+              <Icon name="check" size={14} /> {t('levels.complete')}
             {:else}
-              {Math.round(p.ratio * 100)}% learned
+              {t('levels.percentLearned', { pct: Math.round(p.ratio * 100) })}
             {/if}
           </span>
         </span>
@@ -59,7 +60,7 @@
     {/each}
   </div>
 
-  <p class="note small muted">A1–B1 are the official Goethe-Zertifikat word lists. There are none above B1, so B2–C2 are estimates from learner materials and word frequency.</p>
+  <p class="note small muted">{t('levels.note')}</p>
 </div>
 
 <style>

@@ -1,5 +1,6 @@
 import type { IconName } from '../../components/Icon.svelte';
 import { restoreSnapshot, type Snapshot } from '../db/repo';
+import { t } from '../i18n.svelte';
 
 /**
  * In-app replacements for prompt()/confirm() plus toasts. Rendered by <DialogHost/> and
@@ -88,5 +89,5 @@ export function dismissToast(id: number) {
 
 /** "Deleted · Undo" toast that restores what a delete removed. */
 export function undoToast(message: string, snapshot: Snapshot) {
-  showToast(message, { actionLabel: 'Undo', onAction: () => void restoreSnapshot(snapshot) });
+  showToast(message, { actionLabel: t('common.undo'), onAction: () => void restoreSnapshot(snapshot) });
 }

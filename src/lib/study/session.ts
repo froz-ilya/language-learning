@@ -1,3 +1,4 @@
+import { t } from '../i18n.svelte';
 import type { Card, Direction, Review } from '../types';
 import { isPronounCard } from './pronouns';
 
@@ -96,12 +97,12 @@ export interface ModeAvailability {
  */
 export function modeAvailability(mode: StudyMode, cards: Card[], poolSize = cards.length): ModeAvailability {
   const count = cards.filter((c) => modeApplies(mode, c)).length;
-  if (mode === 'articles' && count === 0) return { count, reason: 'No nouns with der/die/das' };
-  if (mode === 'verbs' && count === 0) return { count, reason: 'No verbs with Präteritum or Partizip II' };
-  if (mode === 'pronouns' && count === 0) return { count, reason: 'No reflexive verbs with an example' };
-  if (mode === 'match' && count < 2) return { count, reason: 'Needs at least 2 words' };
-  if (mode === 'choice' && poolSize < 2) return { count, reason: 'Needs at least 2 words' };
-  if (count === 0) return { count, reason: cards.length ? 'No words with a translation' : 'Nothing to study' };
+  if (mode === 'articles' && count === 0) return { count, reason: t('study.reason.noNouns') };
+  if (mode === 'verbs' && count === 0) return { count, reason: t('study.reason.noVerbs') };
+  if (mode === 'pronouns' && count === 0) return { count, reason: t('study.reason.noReflexive') };
+  if (mode === 'match' && count < 2) return { count, reason: t('study.reason.needsTwo') };
+  if (mode === 'choice' && poolSize < 2) return { count, reason: t('study.reason.needsTwo') };
+  if (count === 0) return { count, reason: cards.length ? t('study.reason.noTranslation') : t('study.reason.nothing') };
   return { count };
 }
 

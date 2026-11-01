@@ -11,6 +11,7 @@
   import SessionResults from '../components/study/SessionResults.svelte';
   import Verbs from '../components/study/Verbs.svelte';
   import Write from '../components/study/Write.svelte';
+  import { fmtNumber, t } from '../lib/i18n.svelte';
   import { back, replace, route } from '../lib/router.svelte';
   import { settings } from '../lib/settings.svelte';
   import { stopSpeaking } from '../lib/speech/tts';
@@ -159,27 +160,27 @@
 
 <div class="page study">
   <SessionBar
-    title={`${info.name}${repeat ? ' · mistakes' : ''}`}
-    count={phase === 'running' ? `${done} / ${total}` : ''}
+    title={repeat ? t('study.session.repeatTitle', { mode: info.name }) : info.name}
+    count={phase === 'running' ? `${fmtNumber(done)} / ${fmtNumber(total)}` : ''}
     ratio={phase === 'running' ? (total ? done / total : 0) : null}
     onclose={close}
   />
 
   {#if phase === 'loading'}
-    <div class="empty">Loading…</div>
+    <div class="empty">{t('common.loading')}</div>
   {:else if phase === 'empty'}
     <div class="empty stack">
       {#if emptyReason === 'nothing-due'}
-        <div class="big-msg">Nothing due</div>
-        <div>You're done for today. Study all words instead?</div>
-        <button class="btn btn-primary btn-lg btn-block" onclick={studyAll}>Study all</button>
+        <div class="big-msg">{t('study.empty.nothingDue')}</div>
+        <div>{t('study.empty.doneToday')}</div>
+        <button class="btn btn-primary btn-lg btn-block" onclick={studyAll}>{t('study.empty.studyAll')}</button>
       {:else if emptyReason === 'mode'}
-        <div class="big-msg">No suitable words</div>
-        <div>None of these words work for {info.name.toLowerCase()}{mode === 'match' ? ' (needs at least 2)' : ''}.</div>
+        <div class="big-msg">{t('study.empty.noSuitable')}</div>
+        <div>{t(`study.empty.unfit.${mode}`)}</div>
       {:else}
-        <div class="big-msg">No words yet</div>
+        <div class="big-msg">{t('study.empty.noWords')}</div>
       {/if}
-      <button class="btn btn-block" onclick={close}>Back</button>
+      <button class="btn btn-block" onclick={close}>{t('common.back')}</button>
     </div>
   {:else if phase === 'running'}
     <div class="stage">
@@ -214,11 +215,11 @@
       {#snippet actions()}
         {#if results?.missed.length}
           <button class="btn btn-primary btn-lg btn-block" onclick={repeatMistakes}>
-            <Icon name="refresh" /> Repeat mistakes
+            <Icon name="refresh" /> {t('study.session.repeatMistakes')}
           </button>
-          <button class="btn btn-lg btn-block" onclick={close}>Done</button>
+          <button class="btn btn-lg btn-block" onclick={close}>{t('common.done')}</button>
         {:else}
-          <button class="btn btn-primary btn-lg btn-block" onclick={close}>Done</button>
+          <button class="btn btn-primary btn-lg btn-block" onclick={close}>{t('common.done')}</button>
         {/if}
       {/snippet}
     </SessionResults>

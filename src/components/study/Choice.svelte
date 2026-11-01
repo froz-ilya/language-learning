@@ -1,5 +1,6 @@
 <script lang="ts">
   import { displayTerm, speakableTerm } from '../../lib/german/articles';
+  import { t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import { gradeForResult } from '../../lib/srs/fsrs';
@@ -51,7 +52,7 @@
 
 <div class="stack">
   <div class="card prompt">
-    <div class="muted small">{answerGerman ? 'Choose the German word' : 'Choose the translation'}</div>
+    <div class="muted small">{answerGerman ? t('study.choice.german') : t('study.choice.translation')}</div>
     {#if answerGerman}
       <div class="big tr">{card.translation}</div>
     {:else}
@@ -88,7 +89,7 @@
         <Examples {card} />
       </div>
     {/if}
-    <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>Continue</button>
+    <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>{t('common.continue')}</button>
   {/if}
 </div>
 

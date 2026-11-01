@@ -1,5 +1,6 @@
 <script lang="ts">
   import { speakableTerm } from '../../lib/german/articles';
+  import { t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import type { Card } from '../../lib/types';
@@ -46,9 +47,9 @@
     bind:this={swipe}
     {onswipe}
     ontap={() => (revealed = !revealed)}
-    rightLabel="I know it"
-    leftLabel="Don't know"
-    label={revealed ? 'Hide translation' : 'Show translation'}
+    rightLabel={t('placement.know')}
+    leftLabel={t('placement.dontKnow')}
+    label={revealed ? t('placement.hideTranslation') : t('placement.showTranslation')}
   >
     <div class="card word">
       <div class="row center-row">
@@ -58,14 +59,14 @@
       {#if revealed}
         <div class="translation">{card.translation}</div>
       {:else}
-        <div class="muted small">Tap to see the translation</div>
+        <div class="muted small">{t('placement.tapToSee')}</div>
       {/if}
     </div>
   </SwipeCard>
 
   <div class="answers">
-    <button type="button" class="btn btn-lg dont" onclick={() => choose(false)}><Icon name="x" size={20} /> Don't know</button>
-    <button type="button" class="btn btn-lg know" onclick={() => choose(true)}><Icon name="check" size={20} /> I know it</button>
+    <button type="button" class="btn btn-lg dont" onclick={() => choose(false)}><Icon name="x" size={20} /> {t('placement.dontKnow')}</button>
+    <button type="button" class="btn btn-lg know" onclick={() => choose(true)}><Icon name="check" size={20} /> {t('placement.know')}</button>
   </div>
 </div>
 

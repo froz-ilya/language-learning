@@ -1,5 +1,6 @@
 <script lang="ts">
   import { speakableTerm } from '../../lib/german/articles';
+  import { t } from '../../lib/i18n.svelte';
   import { speak } from '../../lib/speech/tts';
   import { slideIn } from '../../lib/study/fx';
   import type { ModeProps } from '../../lib/study/modes';
@@ -20,12 +21,12 @@
 <div class="stack">
   {#key item.seq}
     <div class="card prompt" in:slideIn>
-      <div class="muted small">Type what you hear</div>
+      <div class="muted small">{t('study.listen.prompt')}</div>
       <div class="row buttons">
-        <button type="button" class="play" aria-label="Play again" onclick={() => speak(text)}>
+        <button type="button" class="play" aria-label={t('study.listen.again')} onclick={() => speak(text)}>
           <Icon name="speaker" size={40} />
         </button>
-        <button type="button" class="play slow" aria-label="Play slowly" onclick={() => speak(text, { slow: true })}>
+        <button type="button" class="play slow" aria-label={t('study.listen.slow')} onclick={() => speak(text, { slow: true })}>
           <Icon name="turtle" size={30} />
         </button>
       </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import Header from '../components/Header.svelte';
   import { replace } from '../lib/router.svelte';
+  import { t, tn } from '../lib/i18n.svelte';
   import { createPasted, articlePath } from '../lib/reading/store';
   import { countWords } from '../lib/reading/text';
   import { showToast } from '../lib/ui/dialogs.svelte';
@@ -24,7 +25,7 @@
       // Replace this page so "back" from the reader returns to the Read tab.
       replace(articlePath(id));
     } catch (err) {
-      showToast(`Couldn’t save the text: ${(err as Error).message}`);
+      showToast(t('reading.paste.saveFailed', { error: (err as Error).message }));
       busy = false;
     }
   }
@@ -34,41 +35,41 @@
       const clip = await navigator.clipboard.readText();
       if (clip.trim()) text = text.trim() ? `${text.trim()}\n\n${clip}` : clip;
     } catch {
-      showToast('Long-press the text box and choose Paste');
+      showToast(t('reading.paste.pasteHint'));
     }
   }
 </script>
 
 <div class="page">
-  <Header title="Your text" backTo="/read" />
+  <Header title={t('reading.paste.title')} backTo="/read" />
 
   <form class="stack" onsubmit={submit}>
     <div class="field">
-      <label for="paste-title">Title</label>
-      <input id="paste-title" class="input" bind:value={title} placeholder="Optional, e.g. “Brief von Oma”" maxlength="120" autocomplete="off" />
+      <label for="paste-title">{t('reading.paste.titleLabel')}</label>
+      <input id="paste-title" class="input" bind:value={title} placeholder={t('reading.paste.titlePlaceholder')} maxlength="120" autocomplete="off" />
     </div>
     <div class="field">
       <div class="label-row">
-        <label for="paste-text">German text</label>
+        <label for="paste-text">{t('reading.paste.textLabel')}</label>
         {#if canReadClipboard}
-          <button type="button" class="btn-link" onclick={pasteFromClipboard}>Paste</button>
+          <button type="button" class="btn-link" onclick={pasteFromClipboard}>{t('reading.paste.paste')}</button>
         {/if}
       </div>
       <textarea
         id="paste-text"
         class="input text"
         bind:value={text}
-        placeholder="Paste or type German text here. Blank lines start a new paragraph."
+        placeholder={t('reading.paste.textPlaceholder')}
         lang="de"
         autocomplete="off"
         spellcheck="false"
       ></textarea>
       <div class="count small" class:bad={tooLong}>
-        {words.toLocaleString()} {words === 1 ? 'word' : 'words'}{tooLong ? ` · at most ${MAX_WORDS.toLocaleString()}` : ''}
+        {tn('common.words', words)}{tooLong ? ` · ${t('reading.paste.max', { n: MAX_WORDS })}` : ''}
       </div>
     </div>
-    <button class="btn btn-primary btn-lg btn-block" type="submit" disabled={!words || tooLong || busy}>Read</button>
-    <p class="muted small hint">The text stays on this device. Tap any word in the reader to see its translation and add it to a word set.</p>
+    <button class="btn btn-primary btn-lg btn-block" type="submit" disabled={!words || tooLong || busy}>{t('reading.paste.read')}</button>
+    <p class="muted small hint">{t('reading.paste.hint')}</p>
   </form>
 </div>
 

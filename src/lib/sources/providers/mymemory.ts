@@ -1,5 +1,6 @@
 import { checkResponse, SourceError, type Provider } from '../chain';
 import type { TextQuery } from './google';
+import { t } from '../../i18n.svelte';
 
 /**
  * MyMemory (https://mymemory.translated.net): free, CORS-open, about 5,000 characters/day per
@@ -29,7 +30,7 @@ export function parseMyMemory(data: unknown): string {
   const status = Number(d.responseStatus);
   const details = typeof d.responseDetails === 'string' && d.responseDetails ? d.responseDetails : '';
   if (d.quotaFinished === true || (typeof text === 'string' && QUOTA_TEXT.test(text))) {
-    throw new SourceError('MyMemory daily quota used up', { status: 429, refusal: true });
+    throw new SourceError(t('words.error.quota'), { status: 429, refusal: true });
   }
   if (status !== 200) {
     throw new SourceError(`MyMemory error ${status || '?'}${details ? `: ${details}` : ''}`.slice(0, 200), {
@@ -37,7 +38,7 @@ export function parseMyMemory(data: unknown): string {
       refusal: true,
     });
   }
-  if (typeof text !== 'string') throw new SourceError('Unexpected response from MyMemory', { refusal: true });
+  if (typeof text !== 'string') throw new SourceError(t('words.error.unexpected', { source: 'MyMemory' }), { refusal: true });
   return text.trim();
 }
 
@@ -55,7 +56,7 @@ export const myMemoryText: Provider<TextQuery, string> = {
       data = await res.json();
     } catch (e) {
       if (signal.aborted) throw e;
-      throw new SourceError('Unexpected response from MyMemory', { refusal: true });
+      throw new SourceError(t('words.error.unexpected', { source: 'MyMemory' }), { refusal: true });
     }
     const out = parseMyMemory(data);
     if (!out || out.toLowerCase() === q.toLowerCase()) return null;

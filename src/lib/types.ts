@@ -1,6 +1,8 @@
 import type { Card as FsrsCard } from 'ts-fsrs';
 
 export type Lang = 'ru' | 'en';
+export type UiLang = 'en' | 'de';
+export type UiLangSetting = 'auto' | UiLang;
 export type Pos = 'noun' | 'verb' | 'adj' | 'other';
 export type Gender = 'm' | 'f' | 'n';
 export type Auxiliary = '' | 'haben' | 'sein';
@@ -102,6 +104,8 @@ export interface Settings {
   theme: ThemeSetting;
   /** Short vibration on correct / wrong answers (where the device supports it). */
   vibration: boolean;
+  /** Language of the interface; 'auto' follows the phone. Translations use `lang` instead. */
+  uiLang: UiLangSetting;
 }
 
 export type ThemeSetting = 'auto' | 'light' | 'dark';

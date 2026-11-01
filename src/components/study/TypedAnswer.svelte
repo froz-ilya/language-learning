@@ -1,6 +1,7 @@
 <script lang="ts">
   import { checkGerman, checkTranslation, type GermanCheck } from '../../lib/german/answer';
   import { speakableTerm } from '../../lib/german/articles';
+  import { t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import { gradeForVerdict, Rating } from '../../lib/srs/fsrs';
@@ -83,7 +84,7 @@
     class="input answer-input"
     class:locked={!!result}
     readonly={!!result}
-    placeholder={answerGerman ? 'Auf Deutsch…' : `In ${settings.lang === 'ru' ? 'Russian' : 'English'}…`}
+    placeholder={answerGerman ? t('study.typed.german') : settings.lang === 'ru' ? t('study.typed.russian') : t('study.typed.english')}
     lang={answerGerman ? 'de' : settings.lang}
     autocapitalize="off"
     autocomplete="off"
@@ -105,10 +106,10 @@
       {given}
       {showTranslation}
     />
-    <button type="submit" class="btn btn-primary btn-lg btn-block">Continue</button>
+    <button type="submit" class="btn btn-primary btn-lg btn-block">{t('common.continue')}</button>
   {:else}
-    <button type="submit" class="btn btn-primary btn-lg btn-block" disabled={!value.trim()}>Check</button>
-    <button type="button" class="btn btn-ghost btn-block" onclick={dontKnow}>I don't know</button>
+    <button type="submit" class="btn btn-primary btn-lg btn-block" disabled={!value.trim()}>{t('study.check')}</button>
+    <button type="button" class="btn btn-ghost btn-block" onclick={dontKnow}>{t('study.typed.dontKnow')}</button>
   {/if}
 </form>
 

@@ -14,6 +14,7 @@
   import Term from './Term.svelte';
   import { ARTICLE } from '../lib/german/articles';
   import { previewOf } from '../lib/lookup/meanings';
+  import { i18n, t } from '../lib/i18n.svelte';
 
   /**
    * The articles of a noun as separate rows — "der See — озеро · Seen", "die See — море" —
@@ -49,12 +50,12 @@
   <span class="art" lang="de"><Term card={{ term, pos: 'noun', genders: [g] }} /></span>
   <span class="tr" lang={trLang}>
     <span class="dash muted">—</span>
-    {#if a.translation}{previewOf(a.translation) || a.translation}{:else}<span class="muted" lang="en">no translation</span>{/if}
+    {#if a.translation}{previewOf(a.translation) || a.translation}{:else}<span class="muted" lang={i18n.lang}>{t('words.noTranslation')}</span>{/if}
     {#if a.plural}<span class="pl muted" lang="de">· {a.plural}</span>{/if}
   </span>
 {/snippet}
 
-<div class="choices" role={onpick ? 'radiogroup' : 'list'} aria-label="Articles">
+<div class="choices" role={onpick ? 'radiogroup' : 'list'} aria-label={t('words.articles.label')}>
   {#each articles as a (a.genders[0])}
     {@const g = a.genders[0]}
     {@const on = !!onpick && selected === g}
@@ -69,12 +70,12 @@
       {/if}
       {#if onadd}
         {#if added}
-          <span class="done g-{g}" aria-label="{ARTICLE[g]} {term} is added"><Icon name="check" size={20} /></span>
+          <span class="done g-{g}" aria-label={t('words.articles.added', { word: `${ARTICLE[g]} ${term}` })}><Icon name="check" size={20} /></span>
         {:else}
           <button
             type="button"
             class="add g-{g}"
-            aria-label="Add {ARTICLE[g]} {term}"
+            aria-label={t('words.addWord', { word: `${ARTICLE[g]} ${term}` })}
             {disabled}
             {onpointerdown}
             onclick={() => onadd(a)}><Icon name="plus" size={20} /></button

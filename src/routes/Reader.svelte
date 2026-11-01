@@ -12,12 +12,13 @@
   import { dur } from '../lib/motion';
   import { online } from '../lib/online.svelte';
   import { settings } from '../lib/settings.svelte';
+  import { fmtNumber, t, tn } from '../lib/i18n.svelte';
   import { db } from '../lib/db/schema';
   import { addCards } from '../lib/db/repo';
   import { speak, stopSpeaking } from '../lib/speech/tts';
   import type { LexEntry } from '../lib/dict/types';
   import { getArticle, knownLevel, LICENSE_URLS, sourceInfo } from '../lib/reading/sources';
-  import { nextPart } from '../lib/reading/sources/gutenberg';
+  import { GUTENBERG_LICENSE, nextPart } from '../lib/reading/sources/gutenberg';
   import { isRemovedError } from '../lib/reading/sources/klexikon';
   import { headingText, isHeading, sentenceAt, tokenize, countWords, type Token } from '../lib/reading/text';
   import { comfortRank, estimateLevel, isFunctionWord, knownShare, UNKNOWN_RANK } from '../lib/reading/level';
@@ -33,6 +34,7 @@
     articleIdFromParts,
     articlePath,
     articleSetName,
+    articleTitle,
     buildCard,
     deleteArticle,
     ensureArticleSet,
@@ -71,7 +73,7 @@
     getArticle(id, ctrl.signal)
       .then(async (a) => {
         if (ctrl.signal.aborted) return;
-        if (!a.paragraphs.length) throw new Error('This article has no text we can show.');
+        if (!a.paragraphs.length) throw new Error(t('reading.reader.noText'));
         article = a;
         try {
           const r = await trackOpen(a);
@@ -83,7 +85,7 @@
       .catch((e: Error) => {
         if (ctrl.signal.aborted || e.name === 'AbortError') return;
         removed = isRemovedError(e);
-        error = online.value ? e.message || 'Couldn’t load the article.' : 'You’re offline and this article isn’t saved.';
+        error = online.value ? e.message || t('reading.reader.loadFailed') : t('reading.reader.offlineNotSaved');
       });
     return () => ctrl.abort();
   });
@@ -417,6 +419,8 @@
   const setId = $derived(row.value?.setId ?? 0);
   const info = $derived(article ? sourceInfo(article.source) : null);
   const licenseUrl = $derived(article ? LICENSE_URLS[article.license] : undefined);
+  const licenseName = $derived(article?.license === GUTENBERG_LICENSE ? t('reading.reader.gutenbergLicense') : article?.license);
+  const setName = $derived(article ? articleSetName(articleTitle(article)) : '');
 
   let next = $state<{ id: string; title: string } | null>(null);
   $effect(() => {
@@ -432,29 +436,28 @@
     if (!article || adding) return;
     const list = [...unknown.values()];
     if (!list.length) return;
-    const name = articleSetName(article.title);
     const ok = await confirmAction({
-      title: `Add ${list.length} ${list.length === 1 ? 'word' : 'words'}?`,
-      message: `New words from this text (not yet in any of your sets) go to «${name}» in the Reading folder.`,
-      confirmLabel: 'Add',
+      title: tn('reading.reader.addWords', list.length),
+      message: t('reading.reader.addWordsText', { set: setName }),
+      confirmLabel: t('common.add'),
     });
     if (!ok) return;
     adding = { done: 0, total: list.length };
     try {
       const sid = await ensureArticleSet($state.snapshot(article) as Article);
       const cards: Card[] = list.map(({ entry, context }) => buildCard(sid, entryFields(entry, settings.lang), context));
-      showToast(`Adding ${cards.length} words…`, { timeout: 2000 });
+      showToast(tn('reading.reader.addingWords', cards.length), { timeout: 2000 });
       for (let i = 0; i < cards.length; i += 50) {
         await addCards(cards.slice(i, i + 50));
         adding = { done: Math.min(cards.length, i + 50), total: cards.length };
       }
       const missing = cards.filter((c) => c.needsFill).length;
       showToast(
-        `Added ${cards.length} ${cards.length === 1 ? 'word' : 'words'} to «${name}»${missing ? ` · ${missing} to fill in` : ''}`,
-        { actionLabel: 'Open set', onAction: () => go(`/set/${sid}`) },
+        missing ? tn('reading.reader.addedMissing', cards.length, { set: setName, missing }) : tn('reading.reader.added', cards.length, { set: setName }),
+        { actionLabel: t('reading.openSet'), onAction: () => go(`/set/${sid}`) },
       );
     } catch (e) {
-      showToast(`Couldn’t add the words: ${(e as Error).message}`);
+      showToast(t('reading.reader.addFailed', { error: (e as Error).message }));
     } finally {
       adding = null;
     }
@@ -464,7 +467,7 @@
     if (!article) return;
     if (!row.value) await trackOpen($state.snapshot(article) as Article);
     await markRead(id, !isRead);
-    if (!isRead) showToast('Marked as read');
+    if (!isRead) showToast(t('reading.reader.markedRead'));
   }
 
   const hasProgress = $derived(!!row.value?.progress && !row.value.readAt);
@@ -474,14 +477,14 @@
     stopped = true;
     clearTimeout(scrollTimer);
     await stopReading(id);
-    showToast('Stopped reading', { actionLabel: 'Undo', onAction: () => void setProgress(id, progress) });
+    showToast(t('reading.reader.stopped'), { actionLabel: t('common.undo'), onAction: () => void setProgress(id, progress) });
     back('/read');
   }
 
   async function toggleSaved() {
     if (!article) return;
     if (article.source === 'paste') {
-      const ok = await confirmAction({ title: 'Delete this text?', message: 'Its word set stays in your library.', confirmLabel: 'Delete', destructive: true });
+      const ok = await confirmAction({ title: t('reading.reader.deleteTitle'), message: t('reading.reader.deleteText'), confirmLabel: t('common.delete'), destructive: true });
       if (!ok) return;
       await deleteArticle(id);
       back('/read');
@@ -489,10 +492,10 @@
     }
     if (isSaved) {
       await removeFromSaved(id);
-      showToast('Removed from saved');
+      showToast(t('reading.reader.removedSaved'));
     } else {
       await saveForOffline($state.snapshot(article) as Article);
-      showToast('Saved for offline reading');
+      showToast(t('reading.reader.savedOffline'));
     }
   }
 
@@ -505,18 +508,18 @@
 
 <div class="page reader">
   <div class="reader-head">
-    <Header title={article?.title ?? (error ? 'Article' : '')} subtitle={info?.name ?? ''} backTo="/read" />
+    <Header title={article ? articleTitle(article) : error ? t('reading.reader.article') : ''} subtitle={info?.name ?? ''} backTo="/read" />
   </div>
 
   {#if error}
     {#if removed}
-      <EmptyState icon="search" title="Article removed" text={error}>
-        <button class="btn btn-primary" onclick={() => back('/read')}>Back to Read</button>
+      <EmptyState icon="search" title={t('reading.reader.removed')} text={error}>
+        <button class="btn btn-primary" onclick={() => back('/read')}>{t('reading.reader.backToRead')}</button>
       </EmptyState>
     {:else}
-      <EmptyState icon="refresh" title="Couldn’t open the article" text={error}>
-        <button class="btn btn-primary" onclick={() => attempt++}>Try again</button>
-        <button class="btn" onclick={() => back('/read')}>Back to Read</button>
+      <EmptyState icon="refresh" title={t('reading.reader.openFailed')} text={error}>
+        <button class="btn btn-primary" onclick={() => attempt++}>{t('common.retry')}</button>
+        <button class="btn" onclick={() => back('/read')}>{t('reading.reader.backToRead')}</button>
       </EmptyState>
     {/if}
   {:else if !article}
@@ -527,12 +530,12 @@
     </div>
   {:else}
     <div class="meta" in:fade={{ duration: dur(200) }}>
-      {#if level}<span class="pill level" title="Estimated level">{level}</span>{/if}
+      {#if level}<span class="pill level" title={t('reading.reader.estimatedLevel')}>{level}</span>{/if}
       {#if share !== null}
-        <span class="pill known" title="Words you have learned or marked as known">{Math.round(share * 100)}% words you know</span>
+        <span class="pill known" title={t('reading.reader.knownHint')}>{t('reading.reader.known', { n: Math.round(share * 100) })}</span>
       {/if}
-      <span class="muted small">{minutes} min · {wordCount.toLocaleString()} words</span>
-      {#if isRead}<span class="pill done"><Icon name="check" size={14} /> Read</span>{/if}
+      <span class="muted small">{tn('common.minutes', minutes)} · {tn('common.words', wordCount)}</span>
+      {#if isRead}<span class="pill done"><Icon name="check" size={14} /> {t('reading.status.read')}</span>{/if}
     </div>
 
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
@@ -544,7 +547,7 @@
           <p class="para" data-p={pi}>{#each list as t, ti}{#if t.word}<span class="w {classOf(pi, ti, t.text)}" class:sel={isSel(pi, ti)} data-t={ti}>{t.text}</span>{:else}{t.text}{/if}{/each}<button
               class="say"
               type="button"
-              aria-label="Read paragraph aloud"
+              aria-label={t('reading.reader.readAloud')}
               onclick={(e) => {
                 e.stopPropagation();
                 speakParagraph(pi);
@@ -555,13 +558,13 @@
     </article>
 
     {#if !lemmas}
-      <p class="muted small center analysing">Looking up words…</p>
+      <p class="muted small center analysing">{t('reading.reader.lookingUp')}</p>
     {/if}
 
     <footer class="text-col footer">
       {#if next}
         <button class="card pressable next" onclick={() => go(articlePath(next!.id))}>
-          <span class="muted small">Next part</span>
+          <span class="muted small">{t('reading.reader.nextPart')}</span>
           <span class="next-title" lang="de">{next.title}</span>
           <Icon name="chevron" size={18} />
         </button>
@@ -569,53 +572,53 @@
 
       <button class="btn btn-primary btn-block" onclick={addAllUnknown} disabled={!lemmas || !unknown.size || !!adding}>
         {#if adding}
-          Adding… {adding.done}/{adding.total}
+          {t('reading.reader.adding', { done: adding.done, total: adding.total })}
         {:else if !lemmas}
-          Add all new words
+          {t('reading.reader.addAll')}
         {:else}
-          <Icon name="plus" size={18} /> Add all new words ({unknown.size})
+          <Icon name="plus" size={18} /> {t('reading.reader.addAllCount', { n: unknown.size })}
         {/if}
       </button>
       {#if setId}
         <button class="btn btn-block btn-ghost" onclick={() => go(`/set/${setId}`)}>
-          <Icon name="cards" size={18} /> Open «{articleSetName(article.title)}»
+          <Icon name="cards" size={18} /> {t('reading.openNamed', { set: setName })}
         </button>
       {/if}
       <div class="two">
         <button class="btn" class:on={isRead} onclick={toggleRead}>
-          <Icon name="check" size={18} />{isRead ? 'Read' : 'Mark as read'}
+          <Icon name="check" size={18} />{isRead ? t('reading.status.read') : t('reading.reader.markRead')}
         </button>
         <button class="btn" class:danger={article.source === 'paste'} onclick={toggleSaved}>
           {#if article.source === 'paste'}
-            <Icon name="trash" size={18} />Delete text
+            <Icon name="trash" size={18} />{t('reading.reader.deleteButton')}
           {:else if isSaved}
-            <Icon name="x" size={18} />Remove from saved
+            <Icon name="x" size={18} />{t('reading.reader.removeSaved')}
           {:else}
-            <Icon name="import" size={18} />Save for offline
+            <Icon name="import" size={18} />{t('reading.reader.saveOffline')}
           {/if}
         </button>
       </div>
       {#if hasProgress}
         <button class="btn btn-block btn-ghost" onclick={stopReadingArticle}>
-          <Icon name="x" size={18} /> Stop reading
+          <Icon name="x" size={18} /> {t('reading.stop')}
         </button>
       {/if}
 
       {#if article.source !== 'paste'}
         <p class="attribution small muted">
-          “{article.title}” · {article.attribution.replace(` · ${article.license}`, '')} ·
-          {#if licenseUrl}<a href={licenseUrl} target="_blank" rel="noopener noreferrer">{article.license}</a>{:else}{article.license}{/if}
+          {t('reading.quoted', { text: article.title })} · {article.attribution.replace(` · ${article.license}`, '')} ·
+          {#if licenseUrl}<a href={licenseUrl} target="_blank" rel="noopener noreferrer">{licenseName}</a>{:else}{licenseName}{/if}
           {#if article.url}
-            · <a href={article.url} target="_blank" rel="noopener noreferrer">Open original</a>
+            · <a href={article.url} target="_blank" rel="noopener noreferrer">{t('reading.reader.openOriginal')}</a>
           {/if}
-          {#if article.license.startsWith('CC')}<br /><span class="tiny">Authors: see the version history of the original. Text shortened and reformatted for reading.</span>{/if}
+          {#if article.license.startsWith('CC')}<br /><span class="tiny">{t('reading.reader.authors')}</span>{/if}
         </p>
       {/if}
     </footer>
   {/if}
 </div>
 
-<Sheet bind:open={sheetOpen} title="Word">
+<Sheet bind:open={sheetOpen} title={t('reading.reader.wordSheet')}>
   {#if sel && article}
     {#key sel.key}
       <WordSheet

@@ -1,4 +1,5 @@
 import type { Grade } from 'ts-fsrs';
+import { t } from '../i18n.svelte';
 import type { StudyItem, StudyMode } from './session';
 
 export interface ModeInfo {
@@ -11,15 +12,27 @@ export interface ModeInfo {
   usesDirection: boolean;
 }
 
+function mode(id: StudyMode, info: Omit<ModeInfo, 'name' | 'description'>): ModeInfo {
+  return {
+    get name() {
+      return t(`study.mode.${id}.name`);
+    },
+    get description() {
+      return t(`study.mode.${id}.desc`);
+    },
+    ...info,
+  };
+}
+
 export const MODE_INFO: Record<StudyMode, ModeInfo> = {
-  flashcards: { name: 'Flashcards', description: 'Flip cards and rate how well you knew them', icon: 'cards', usesDirection: true },
-  write: { name: 'Write', description: 'Type the answer', icon: 'edit', usesDirection: true },
-  choice: { name: 'Multiple choice', description: 'Pick the right answer out of four', icon: 'check', usesDirection: true },
-  match: { name: 'Match', description: 'Pair words with their translations', icon: 'sparkle', usesDirection: false },
-  listen: { name: 'Listen', description: 'Hear the German word and type it', icon: 'speaker', usesDirection: false },
-  articles: { name: 'Articles', description: 'der, die or das?', badge: 'der', usesDirection: false },
-  verbs: { name: 'Verb forms', description: 'Präteritum, Partizip II, haben/sein', icon: 'refresh', usesDirection: false },
-  pronouns: { name: 'Reflexive pronouns', description: 'mich or mir? Fill in the pronoun', badge: 'sich', usesDirection: false },
+  flashcards: mode('flashcards', { icon: 'cards', usesDirection: true }),
+  write: mode('write', { icon: 'edit', usesDirection: true }),
+  choice: mode('choice', { icon: 'check', usesDirection: true }),
+  match: mode('match', { icon: 'sparkle', usesDirection: false }),
+  listen: mode('listen', { icon: 'speaker', usesDirection: false }),
+  articles: mode('articles', { badge: 'der', usesDirection: false }),
+  verbs: mode('verbs', { icon: 'refresh', usesDirection: false }),
+  pronouns: mode('pronouns', { badge: 'sich', usesDirection: false }),
 };
 
 /** Props shared by the queue-based mode components. */

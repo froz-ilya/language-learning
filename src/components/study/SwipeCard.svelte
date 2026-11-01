@@ -4,6 +4,7 @@
 
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { t } from '../../lib/i18n.svelte';
   import { dur, reducedMotion } from '../../lib/motion';
 
   /**
@@ -16,9 +17,9 @@
     children,
     onswipe,
     ontap,
-    rightLabel = 'Knew it',
-    leftLabel = 'Again',
-    label = 'Card',
+    rightLabel = t('study.swipe.knewIt'),
+    leftLabel = t('study.flash.again'),
+    label = t('study.swipe.card'),
     disabled = false,
   }: {
     children: Snippet;

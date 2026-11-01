@@ -125,6 +125,16 @@ describe('upgrading the database', () => {
     }
   });
 
+  it('settings saved before the interface language existed follow the phone', async () => {
+    await seedV1();
+    const { settings, loadSettings } = await import('../settings.svelte');
+    const { resolveUiLang } = await import('../i18n.svelte');
+    await loadSettings();
+    expect(settings.uiLang).toBe('auto');
+    expect(settings.lang).toBe(v1Settings.lang);
+    expect(resolveUiLang(settings.uiLang, 'en-GB')).toBe('en');
+  });
+
   it('opens a v3 database (first deployed version) with articles and level words', async () => {
     const d = oldDb(3, V3);
     await d.table('folders').add({ name: 'A1 · Beginner', level: 'A1', createdAt: 1 });

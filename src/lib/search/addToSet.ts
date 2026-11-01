@@ -6,6 +6,7 @@ import { buildCard } from '../reading/store';
 import { parseGermanInput } from '../german/parseTerm';
 import { isSameWord } from '../german/sameWord';
 import { reviewsFor, statusOf, type WordStatus } from '../progress';
+import { systemName } from '../i18n.svelte';
 import type { Card, Folder, Gender, WordSet } from '../types';
 import type { WordFields } from './wordInfo';
 
@@ -92,7 +93,7 @@ export async function ownedCards(term: string): Promise<OwnedCard[]> {
   const cards = await db.cards.where('term').equalsIgnoreCase(t).toArray();
   if (!cards.length) return [];
   const [reviews, sets] = await Promise.all([reviewsFor(cards), db.sets.bulkGet([...new Set(cards.map((c) => c.setId))])]);
-  const names = new Map(sets.filter((s): s is WordSet => !!s).map((s) => [s.id!, s.topic || s.name]));
+  const names = new Map(sets.filter((s): s is WordSet => !!s).map((s) => [s.id!, s.topic || systemName(s.name)]));
   return cards
     .filter((c) => names.has(c.setId))
     .map((c) => ({ id: c.id!, setId: c.setId, setName: names.get(c.setId)!, genders: c.genders ?? [], status: statusOf(c, reviews.get(c.id!)) }))

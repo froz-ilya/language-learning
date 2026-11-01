@@ -8,6 +8,7 @@ import { ARTICLE, displayPlural, displayTerm, displayVerbForms } from '../german
 import { splitMeanings } from '../german/meanings';
 import { asReflexive, baseOfReflexive, isReflexiveTerm, withSich } from '../german/reflexive';
 import { fieldsFromEntry, fieldsFromLookup } from '../reading/store';
+import { t } from '../i18n.svelte';
 import type { ArticleVariant, Auxiliary, Card, Gender, Lang, LookupResult, Pos } from '../types';
 
 export type RemoteState = 'idle' | 'loading' | 'done' | 'failed';
@@ -255,13 +256,14 @@ export function openingReadingId(s: WordLookupState): string {
 }
 
 /** The dictionary files pronouns, adverbs and more under 'other': named by the first meaning, unless listed here. */
-const OTHER_POS: Record<string, string> = { sein: 'possessive' };
+const OTHER_POS: Record<string, 'words.pos.possessive'> = { sein: 'words.pos.possessive' };
 
 function posWord(pos: Pos, term: string, translation: string): string {
-  if (pos === 'verb') return 'verb';
-  if (pos === 'noun') return 'noun';
-  if (pos === 'adj') return 'adjective';
-  return OTHER_POS[term.toLowerCase()] ?? splitMeanings(translation)[0]?.[0] ?? 'other';
+  if (pos === 'verb') return t('common.verb');
+  if (pos === 'noun') return t('common.noun');
+  if (pos === 'adj') return t('common.adjective');
+  const named = OTHER_POS[term.toLowerCase()];
+  return named ? t(named) : (splitMeanings(translation)[0]?.[0] ?? t('words.pos.misc'));
 }
 
 /**

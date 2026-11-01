@@ -1,6 +1,7 @@
 import { go } from '../../lib/router.svelte';
 import { dur } from '../../lib/motion';
 import { db } from '../../lib/db/schema';
+import { canonicalName, systemName, t } from '../../lib/i18n.svelte';
 import { addFolder, addSet, cardsInFolder, cardsInSet, deleteSet, levelFolder, type Snapshot } from '../../lib/db/repo';
 import { chooseAction, promptText, ui, undoToast } from '../../lib/ui/dialogs.svelte';
 import { primeKeyboard, releaseKeyboard } from '../../lib/ui/keyboard';
@@ -8,12 +9,10 @@ import { emptyProgress, progressFor, setKnown, type Progress } from '../../lib/p
 import { fetchLevelIndex } from '../../lib/levels/install';
 import { lookupLocal } from '../../lib/dict/local';
 import { isReflexiveTerm } from '../../lib/german/reflexive';
-import { LEVEL_TITLES, LEVELS, type LevelCode, type LevelIndex } from '../../lib/levels/types';
+import { LEVELS, type LevelCode, type LevelIndex } from '../../lib/levels/types';
 import type { Card, Review, WordSet } from '../../lib/types';
 
 /** Shared helpers for the library screens (Today, Library, Levels, Folder, Set). */
-
-export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** Intro delay for list item i: a short stagger, capped to the first ~10 items. */
 export const stagger = (i: number, step = 35) => dur(Math.min(i, 10) * step);
@@ -21,8 +20,8 @@ export const stagger = (i: number, step = 35) => dur(Math.min(i, 10) * step);
 /** "12 / 40 learned" or "No words yet". */
 export function learnedLine(p: Progress | undefined): string {
   if (!p) return '';
-  if (!p.total) return 'No words yet';
-  return `${p.done} / ${p.total} learned`;
+  if (!p.total) return t('library.noWordsYet');
+  return t('library.learnedCount', { done: p.done, total: p.total });
 }
 
 export function sumProgress(list: Progress[]): Progress {
@@ -55,7 +54,7 @@ export function afterSheet<T>(fn: () => T | Promise<T>): Promise<T> {
 
 /** Ask for a name and create a set. Opens it unless `open` is false. Returns the id. */
 export async function createSet(folderId = 0, open = true): Promise<number | null> {
-  const name = await promptText({ title: 'New set', placeholder: 'e.g. Food, Travel, Chapter 3', confirmLabel: 'Create' });
+  const name = await promptText({ title: t('library.newSet'), placeholder: t('library.setNameHint'), confirmLabel: t('common.create') });
   if (!name) return null;
   const id = await addSet(name, folderId);
   if (open) go(`/set/${id}`);
@@ -63,7 +62,7 @@ export async function createSet(folderId = 0, open = true): Promise<number | nul
 }
 
 export async function createFolder(): Promise<number | null> {
-  const name = await promptText({ title: 'New folder', placeholder: 'Folder name', confirmLabel: 'Create' });
+  const name = await promptText({ title: t('library.newFolder'), placeholder: t('library.folderNameHint'), confirmLabel: t('common.create') });
   if (!name) return null;
   const id = await addFolder(name);
   go(`/folder/${id}`);
@@ -72,7 +71,7 @@ export async function createFolder(): Promise<number | null> {
 
 /** Delete a set with an "Undo" toast. */
 export async function removeSet(set: Pick<WordSet, 'id' | 'name'>): Promise<void> {
-  undoToast(`Deleted “${set.name}”`, await deleteSet(set.id!));
+  undoToast(t('library.deleted', { name: systemName(set.name) }), await deleteSet(set.id!));
 }
 
 /**
@@ -84,7 +83,7 @@ export async function quickAddWord(): Promise<void> {
   primeKeyboard();
   const sets = (await db.sets.toArray()).filter((s) => !s.level).sort((a, b) => b.createdAt - a.createdAt);
   if (!sets.length) {
-    go('/card/new', { set: await addSet('My words') });
+    go('/card/new', { set: await addSet(canonicalName('myWords')) });
     return;
   }
   if (sets.length === 1) {
@@ -93,9 +92,9 @@ export async function quickAddWord(): Promise<void> {
   }
   // A picker comes first: no keyboard under the sheet; picking a set (a tap again) primes it anew.
   releaseKeyboard();
-  await chooseAction('Add a word to…', [
+  await chooseAction(t('library.addWordTo'), [
     ...sets.map((s) => ({
-      label: s.name,
+      label: systemName(s.name),
       icon: 'cards' as const,
       run: () => {
         primeKeyboard();
@@ -103,7 +102,7 @@ export async function quickAddWord(): Promise<void> {
       },
     })),
     {
-      label: 'New set…',
+      label: t('library.newSetMore'),
       icon: 'plus' as const,
       run: () =>
         void afterSheet(async () => {
@@ -171,7 +170,7 @@ export function isLevel(code: string): code is LevelCode {
 }
 
 export function levelName(code: LevelCode): string {
-  return `${code} · ${LEVEL_TITLES[code]}`;
+  return `${code} · ${t(`level.${code}.title`)}`;
 }
 
 /** Progress of an installed level, or null when it isn't installed. */
@@ -204,12 +203,12 @@ export async function focusInfo(focus: string): Promise<FocusInfo | null> {
   } else if (kind === 'set') {
     const set = await db.sets.get(Number(id));
     if (!set) return null;
-    title = set.name;
+    title = systemName(set.name);
     cards = await cardsInSet(set.id!);
   } else if (kind === 'folder') {
     const folder = await db.folders.get(Number(id));
     if (!folder) return null;
-    title = folder.name;
+    title = systemName(folder.name);
     cards = await cardsInFolder(folder.id!);
   } else return null;
   const progress = await progressFor(cards);

@@ -1,5 +1,6 @@
 import type { Lang, Pos } from '../types';
 import { SourceError } from '../sources/chain';
+import { t } from '../i18n.svelte';
 
 /**
  * Google Translate's free "gtx" endpoint: no key, CORS-open, unofficial.
@@ -64,13 +65,13 @@ export async function googleTranslate(
           });
   } catch (e) {
     if (isAbortError(e)) throw e;
-    throw new GoogleError('Could not reach Google Translate. Check your internet connection.');
+    throw new GoogleError(t('words.error.googleUnreachable'));
   }
   if (res.status === 429) {
-    throw new GoogleError('Google Translate is rate-limiting requests. Try again in a minute.', { status: 429 });
+    throw new GoogleError(t('words.error.rateLimitedWait', { source: 'Google Translate' }), { status: 429 });
   }
   if (res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
-    throw new GoogleError('Google Translate redirected the request (blocked).', { status: 302 });
+    throw new GoogleError(t('words.error.googleRedirect'), { status: 302 });
   }
   if (!res.ok) throw new GoogleError(`Google Translate error ${res.status}`, { status: res.status });
 
@@ -79,14 +80,14 @@ export async function googleTranslate(
     data = await res.json();
   } catch (e) {
     if (isAbortError(e)) throw e;
-    throw new GoogleError('Unexpected response from Google Translate.', { refusal: true });
+    throw new GoogleError(t('words.error.googleUnexpected'), { refusal: true });
   }
   return parseGoogleResponse(data);
 }
 
 export function parseGoogleResponse(data: unknown): GoogleResult {
   if (!Array.isArray(data) || !(Array.isArray(data[0]) || data[0] === null)) {
-    throw new GoogleError('Unexpected response from Google Translate.');
+    throw new GoogleError(t('words.error.googleUnexpected'));
   }
   const segments = (data[0] ?? []) as unknown[];
   const text = segments

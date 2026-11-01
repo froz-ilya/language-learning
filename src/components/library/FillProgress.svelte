@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { t } from '../../lib/i18n.svelte';
+
   /** Progress card for dictionary auto-fill: "Filling details… 12 / 40" + bar + Cancel. */
   let {
     done,
     total,
-    label = 'Filling in details…',
+    label = t('set.filling'),
     oncancel,
   }: { done: number; total: number; label?: string; oncancel?: () => void } = $props();
 
@@ -20,7 +22,7 @@
     <div class="value" style:width="{pct}%"></div>
   </div>
   {#if oncancel}
-    <button class="btn btn-ghost btn-block" onclick={oncancel}>Cancel</button>
+    <button class="btn btn-ghost btn-block" onclick={oncancel}>{t('common.cancel')}</button>
   {/if}
 </div>
 

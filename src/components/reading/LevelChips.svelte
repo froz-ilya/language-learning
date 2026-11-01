@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { LEVELS, LEVEL_TITLES, type LevelCode } from '../../lib/levels/types';
+  import { t } from '../../lib/i18n.svelte';
+  import { LEVELS, type LevelCode } from '../../lib/levels/types';
 
   /** A1…C2 chips (radio group). */
   let { value = $bindable(), onchange }: { value: LevelCode; onchange?: (l: LevelCode) => void } = $props();
@@ -11,13 +12,13 @@
   }
 </script>
 
-<div class="levels" role="radiogroup" aria-label="Level">
+<div class="levels" role="radiogroup" aria-label={t('reading.levelChips')}>
   {#each LEVELS as l}
     <button
       type="button"
       role="radio"
       aria-checked={l === value}
-      title={LEVEL_TITLES[l]}
+      title={t(`level.${l}.title`)}
       class:active={l === value}
       onclick={() => pick(l)}>{l}</button
     >

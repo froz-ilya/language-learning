@@ -1,6 +1,7 @@
 <script lang="ts">
   import { lemmatize } from '../../lib/dict/local';
   import { markExample, type MarkedPart } from '../../lib/german/highlight';
+  import { t } from '../../lib/i18n.svelte';
   import type { Card } from '../../lib/types';
   import SpeakButton from '../SpeakButton.svelte';
 
@@ -59,14 +60,14 @@
           {#if shownTr.has(i)}
             <button type="button" class="tr" onclick={() => toggleTr(i)}>{ex.tr}</button>
           {:else}
-            <button type="button" class="link" onclick={() => toggleTr(i)}>Show translation</button>
+            <button type="button" class="link" onclick={() => toggleTr(i)}>{t('study.examples.showTranslation')}</button>
           {/if}
         {/if}
       </div>
     {/each}
     {#if examples.length > 1 && !showAll}
       <button type="button" class="link more" onclick={() => (showAll = true)}>
-        More examples ({examples.length - 1})
+        {t('study.examples.more', { n: examples.length - 1 })}
       </button>
     {/if}
   </div>

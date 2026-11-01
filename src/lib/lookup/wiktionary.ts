@@ -1,6 +1,7 @@
 import type { Auxiliary, Gender, Lang, Pos } from '../types';
 import { checkResponse, SourceError } from '../sources/chain';
 import { formatPreps, mergeMeanings, pickMeanings, sameMeaning, type SenseTranslations } from './meanings';
+import { t } from '../i18n.svelte';
 
 const API = 'https://de.wiktionary.org/w/api.php';
 
@@ -101,7 +102,7 @@ async function api(params: Record<string, string>, signal?: AbortSignal): Promis
   const url = `${API}?${new URLSearchParams({ ...params, format: 'json', formatversion: '2', origin: '*' })}`;
   const res = await fetch(url, { signal });
   if (res.status === 429 || res.status === 503) {
-    throw new RateLimitError('Wiktionary is rate-limiting requests. Try again in a minute.', res.status);
+    throw new RateLimitError(t('words.error.rateLimitedWait', { source: 'Wiktionary' }), res.status);
   }
   checkResponse(res, 'Wiktionary');
   return res.json();
@@ -115,7 +116,7 @@ export async function fetchWikitext(title: string, signal?: AbortSignal): Promis
   };
   if (data.error) {
     if (data.error.code === 'missingtitle' || data.error.code === 'invalidtitle') return null;
-    if (data.error.code === 'ratelimited') throw new RateLimitError('Wiktionary is rate-limiting requests.');
+    if (data.error.code === 'ratelimited') throw new RateLimitError(t('words.error.rateLimited', { source: 'Wiktionary' }));
     throw new SourceError(`Wiktionary error ${data.error.code}`);
   }
   return data.parse?.wikitext ?? null;
@@ -183,7 +184,7 @@ export async function fetchWikitexts(titles: string[], signal?: AbortSignal): Pr
         signal,
       )) as QueryResponse;
       if (data.error) {
-        if (data.error.code === 'ratelimited') throw new RateLimitError('Wiktionary is rate-limiting requests.');
+        if (data.error.code === 'ratelimited') throw new RateLimitError(t('words.error.rateLimited', { source: 'Wiktionary' }));
         throw new SourceError(`Wiktionary error ${data.error.code}`);
       }
       const normalized = new Map((data.query?.normalized ?? []).map((n) => [n.from, n.to]));

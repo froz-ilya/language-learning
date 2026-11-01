@@ -1,36 +1,37 @@
 <script lang="ts">
   import { route, switchTab } from '../lib/router.svelte';
   import { reducedMotion } from '../lib/motion';
+  import { t } from '../lib/i18n.svelte';
 
   /** iOS-style bottom tab bar, shown on the five tab roots (App.svelte decides). */
   const TABS = [
     {
       path: '/',
-      label: 'Today',
+      label: 'shell.tab.today',
       // sun
       icon: 'M12 16a4 4 0 100-8 4 4 0 000 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
     },
     {
       path: '/library',
-      label: 'Library',
+      label: 'shell.tab.library',
       // books
       icon: 'M4 19V5a1 1 0 011-1h3a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1zM9 7h4a1 1 0 011 1v11a1 1 0 01-1 1H9M15.5 6.6l2.9-.8a1 1 0 011.2.7l3 11.2a1 1 0 01-.7 1.2l-2.9.8a1 1 0 01-1.2-.7l-3-11.2a1 1 0 01.7-1.2z',
     },
     {
       path: '/levels',
-      label: 'Levels',
+      label: 'shell.tab.levels',
       // ascending bars
       icon: 'M4 20v-5M10 20v-9M16 20V8M22 20V4',
     },
     {
       path: '/read',
-      label: 'Read',
+      label: 'shell.tab.read',
       // open book
       icon: 'M2 5.5A1.5 1.5 0 013.5 4H9a3 3 0 013 3v13a2.5 2.5 0 00-2.5-2.5H3.5A1.5 1.5 0 012 16zM22 5.5A1.5 1.5 0 0020.5 4H15a3 3 0 00-3 3v13a2.5 2.5 0 012.5-2.5h6a1.5 1.5 0 001.5-1.5z',
     },
     {
       path: '/settings',
-      label: 'Settings',
+      label: 'shell.tab.settings',
       icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z',
     },
   ] as const;
@@ -45,7 +46,7 @@
   }
 </script>
 
-<nav class="app-tabbar" aria-label="Main">
+<nav class="app-tabbar" aria-label={t('shell.tab.nav')}>
   {#each TABS as tab (tab.path)}
     {@const active = route.path === tab.path}
     <a
@@ -71,7 +72,7 @@
       >
         <path d={tab.icon} />
       </svg></span>
-      <span>{tab.label}</span>
+      <span>{t(tab.label)}</span>
     </a>
   {/each}
 </nav>

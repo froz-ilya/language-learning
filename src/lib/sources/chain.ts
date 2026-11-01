@@ -1,3 +1,5 @@
+import { t } from '../i18n.svelte';
+
 /**
  * Multi-source fallback: try providers in order; a provider that errors, times out or is
  * rate-limited (429/302/403/5xx) is skipped for a cooldown period, and the next one is asked.
@@ -27,7 +29,9 @@ export type ProviderId =
   | 'gutenberg';
 
 export const PROVIDER_LABELS: Record<ProviderId, string> = {
-  local: 'Offline dictionary',
+  get local() {
+    return t('settings.sources.local');
+  },
   'de.wiktionary': 'Wiktionary (DE)',
   'en.wiktionary': 'Wiktionary (EN)',
   google: 'Google Translate',
@@ -93,9 +97,9 @@ export class SourceError extends Error {
 /** Throw a SourceError for a non-OK (or redirected) fetch response. */
 export function checkResponse(res: Response, label: string): void {
   if (res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
-    throw new SourceError(`${label} redirected the request`, { status: 302 });
+    throw new SourceError(t('settings.sources.redirected', { source: label }), { status: 302 });
   }
-  if (!res.ok) throw new SourceError(`${label} error ${res.status}`, { status: res.status });
+  if (!res.ok) throw new SourceError(t('settings.sources.error', { source: label, status: String(res.status) }), { status: res.status });
 }
 
 function abortError(): DOMException {
@@ -104,7 +108,7 @@ function abortError(): DOMException {
 
 class TimeoutError extends Error {
   constructor(label: string, ms: number) {
-    super(`${label} timed out after ${ms} ms`);
+    super(t('settings.sources.timeout', { source: label, ms: String(ms) }));
     this.name = 'TimeoutError';
   }
 }

@@ -2,10 +2,10 @@
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import Term from '../components/Term.svelte';
-  import { plural } from '../components/library/actions';
   import { fade, slide } from 'svelte/transition';
   import { dur } from '../lib/motion';
   import { showToast } from '../lib/ui/dialogs.svelte';
+  import { systemName, t, tn, tParts } from '../lib/i18n.svelte';
   import { replace, route } from '../lib/router.svelte';
   import { live } from '../lib/live.svelte';
   import { online } from '../lib/online.svelte';
@@ -142,12 +142,12 @@
   async function runImport() {
     error = '';
     if (!kept.length) {
-      error = rows.length ? 'These words are all in the set already.' : 'Nothing to import yet — paste your words above.';
+      error = rows.length ? t('words.import.allInSet') : t('words.import.nothingYet');
       return;
     }
     const name = setName.trim();
     if (!targetSetId && !name) {
-      error = 'Give the new set a name.';
+      error = t('words.import.nameSet');
       document.getElementById('setname')?.focus();
       return;
     }
@@ -162,38 +162,46 @@
       const toFill = ids.filter((_, i) => cards[i].needsFill);
       if (toFill.length) fillInBackground(setId, toFill);
       replace(`/set/${setId}`);
-      const notes = [`Imported ${plural(cards.length, 'word')}`];
-      if (skipped) notes.push(`${plural(skipped, 'duplicate')} skipped`);
+      const notes = [tn('words.import.imported', cards.length)];
+      if (skipped) notes.push(tn('words.import.skipped', skipped));
       showToast(notes.join(' · '));
     } catch (e) {
-      error = `Import failed: ${(e as Error).message}`;
+      error = t('words.import.failed', { message: (e as Error).message });
       busy = false;
     }
   }
 </script>
 
 <div class="page">
-  <Header title="Import" subtitle={data.value?.set ? `into “${data.value.set.topic || data.value.set.name}”` : 'Quizlet or word list'} {backTo} />
+  <Header
+    title={t('words.import.title')}
+    subtitle={data.value?.set ? t('words.import.into', { set: data.value.set.topic || systemName(data.value.set.name) }) : t('words.import.subtitle')}
+    {backTo}
+  />
 
   <div class="stack">
     <div class="card howto small">
-      <div class="step"><span class="num">1</span><span><strong>From Quizlet:</strong> open the set on quizlet.com → ⋯ → <em>Export</em> → <em>Copy text</em>.</span></div>
-      <div class="step"><span class="num">2</span><span>Paste it below. A list like “Haus - house”, one word per line, works too.</span></div>
-      <div class="muted">“der Tisch” and “gehen, ging, ist gegangen” are understood.</div>
+      <div class="step"><span class="num">1</span><span
+          >{#each tParts('words.import.step1') as p}{#if p.slot === 'from'}<strong>{t('words.import.fromQuizlet')}</strong>{:else if p.slot === 'export'}<em
+                >{t('words.import.menuExport')}</em
+              >{:else if p.slot === 'copy'}<em>{t('words.import.menuCopy')}</em>{:else}{p.text}{/if}{/each}</span
+        ></div>
+      <div class="step"><span class="num">2</span><span>{t('words.import.step2')}</span></div>
+      <div class="muted">{t('words.import.understood')}</div>
     </div>
 
     {#if !targetSetId}
       <div class="field">
-        <label for="setname">New set</label>
-        <input id="setname" class="input" bind:value={setName} placeholder="Set name" />
+        <label for="setname">{t('words.newSet')}</label>
+        <input id="setname" class="input" bind:value={setName} placeholder={t('words.import.setName')} />
       </div>
       {#if data.value?.folders.length}
         <div class="field">
-          <label for="folder">Folder</label>
+          <label for="folder">{t('common.folder')}</label>
           <select id="folder" class="input" bind:value={folderId}>
-            <option value={0}>No folder</option>
+            <option value={0}>{t('words.import.noFolder')}</option>
             {#each data.value.folders as f}
-              <option value={f.id}>{f.name}</option>
+              <option value={f.id}>{systemName(f.name)}</option>
             {/each}
           </select>
         </div>
@@ -201,7 +209,7 @@
     {/if}
 
     <div class="field">
-      <label for="paste">Words</label>
+      <label for="paste">{t('words.import.words')}</label>
       <textarea
         id="paste"
         class="input paste"
@@ -216,42 +224,40 @@
     </div>
 
     <div class="field">
-      <span class="label">Between word and translation</span>
+      <span class="label">{t('words.import.betweenTerms')}</span>
       <div class="segmented">
-        <button type="button" class:active={termSep === '\t'} onclick={() => pickTermSep('\t')}>Tab</button>
-        <button type="button" class:active={termSep === ','} onclick={() => pickTermSep(',')}>Comma</button>
-        <button type="button" class:active={termSep === ' - '} onclick={() => pickTermSep(' - ')}>“ - ”</button>
-        <button type="button" class:active={termSep === 'custom'} onclick={() => pickTermSep('custom')}>Custom</button>
+        <button type="button" class:active={termSep === '\t'} onclick={() => pickTermSep('\t')}>{t('words.import.sepTab')}</button>
+        <button type="button" class:active={termSep === ','} onclick={() => pickTermSep(',')}>{t('words.import.sepComma')}</button>
+        <button type="button" class:active={termSep === ' - '} onclick={() => pickTermSep(' - ')}>{t('words.import.sepDash')}</button>
+        <button type="button" class:active={termSep === 'custom'} onclick={() => pickTermSep('custom')}>{t('words.import.sepCustom')}</button>
       </div>
       {#if termSep === 'custom'}
-        <input class="input" transition:slide={{ duration: dur(180) }} bind:value={customTermSep} placeholder="e.g. =  or  :" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        <input class="input" transition:slide={{ duration: dur(180) }} bind:value={customTermSep} placeholder={t('words.import.customTerm')} autocapitalize="off" autocorrect="off" spellcheck="false" />
       {/if}
     </div>
 
     <div class="field">
-      <span class="label">Between rows</span>
+      <span class="label">{t('words.import.betweenRows')}</span>
       <div class="segmented">
-        <button type="button" class:active={rowSep === '\n'} onclick={() => pickRowSep('\n')}>New line</button>
-        <button type="button" class:active={rowSep === ';'} onclick={() => pickRowSep(';')}>Semicolon</button>
-        <button type="button" class:active={rowSep === 'custom'} onclick={() => pickRowSep('custom')}>Custom</button>
+        <button type="button" class:active={rowSep === '\n'} onclick={() => pickRowSep('\n')}>{t('words.import.sepNewLine')}</button>
+        <button type="button" class:active={rowSep === ';'} onclick={() => pickRowSep(';')}>{t('words.import.sepSemicolon')}</button>
+        <button type="button" class:active={rowSep === 'custom'} onclick={() => pickRowSep('custom')}>{t('words.import.sepCustom')}</button>
       </div>
       {#if rowSep === 'custom'}
-        <input class="input" transition:slide={{ duration: dur(180) }} bind:value={customRowSep} placeholder="e.g. |" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        <input class="input" transition:slide={{ duration: dur(180) }} bind:value={customRowSep} placeholder={t('words.import.customRow')} autocapitalize="off" autocorrect="off" spellcheck="false" />
       {/if}
     </div>
 
     <div class="list">
       <label class="list-item toggle">
-        <span class="grow">Swap columns <span class="sub">(translation comes first)</span></span>
+        <span class="grow">{t('words.import.swap')} <span class="sub">{t('words.import.swapHint')}</span></span>
         <input type="checkbox" class="switch" bind:checked={swap} />
       </label>
       <label class="list-item toggle">
         <span class="grow">
-          Fetch examples & missing details
+          {t('words.import.fetch')}
           <span class="sub">
-            {online.value
-              ? '(in the background — the set opens right away)'
-              : '(in the background once you’re back online)'}
+            {online.value ? t('words.import.fetchOnline') : t('words.import.fetchOffline')}
           </span>
         </span>
         <input type="checkbox" class="switch" bind:checked={autoFill} />
@@ -261,16 +267,16 @@
     {#if text.trim()}
       <section transition:slide={{ duration: dur(220) }}>
         <h2 class="section-title">
-          Preview
+          {t('words.import.preview')}
           <span>
-            {plural(kept.length, 'word')}{#if skipped}{` · ${plural(skipped, 'duplicate')} skipped`}{/if}
+            {tn('common.words', kept.length)}{#if skipped}{` · ${tn('words.import.skipped', skipped)}`}{/if}
           </span>
         </h2>
         {#if rows.length}
           <div class="list preview">
             {#each previewLines as line}
               {#if 'more' in line}
-                <div class="list-item more small muted">…and {line.more} more</div>
+                <div class="list-item more small muted">{tn('words.import.more', line.more)}</div>
               {:else}
                 {@const r = line.row}
                 {@const i = line.i}
@@ -279,20 +285,20 @@
                 <div class="list-item prow" class:dup={dupes[i]}>
                   <div class="de">
                     <span class="term"><Term card={f} /></span>
-                    {#if lemma}<span class="hint" title="Looks like a form of “{lemma}”">→ {lemma}?</span>{/if}
+                    {#if lemma}<span class="hint" title={t('words.import.formOf', { lemma })}>→ {lemma}?</span>{/if}
                     {#if dupes[i]}
-                      <div class="sub tag">{dupes[i] === 'set' ? 'already in this set' : 'duplicate'}</div>
+                      <div class="sub tag">{dupes[i] === 'set' ? t('words.import.inSet') : t('words.import.duplicate')}</div>
                     {:else if forms(f)}
                       <div class="sub">{forms(f)}</div>
                     {/if}
                   </div>
-                  <div class="tr" class:muted={!r.translation}>{r.translation || f.translation || (autoFill ? 'auto' : '—')}</div>
+                  <div class="tr" class:muted={!r.translation}>{r.translation || f.translation || (autoFill ? t('words.import.auto') : '—')}</div>
                 </div>
               {/if}
             {/each}
           </div>
         {:else}
-          <div class="empty">No words found — check the separators.</div>
+          <div class="empty">{t('words.import.noWords')}</div>
         {/if}
       </section>
     {/if}
@@ -301,7 +307,7 @@
 
     <button class="btn btn-primary btn-block btn-lg" disabled={busy || !kept.length} onclick={runImport}>
       {#if busy}<span class="spinner"></span>{:else}<Icon name="import" />{/if}
-      {kept.length ? `Import ${plural(kept.length, 'word')}` : rows.length ? 'Nothing new to import' : 'Paste words to import'}
+      {kept.length ? tn('words.import.button', kept.length) : rows.length ? t('words.import.nothingNew') : t('words.import.pasteFirst')}
     </button>
   </div>
 </div>

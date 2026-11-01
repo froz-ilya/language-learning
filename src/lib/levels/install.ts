@@ -1,7 +1,8 @@
 import { db } from '../db/schema';
 import { emptyCard, levelFolder } from '../db/repo';
+import { canonicalName, t } from '../i18n.svelte';
 import type { Card, Folder, Lang, WordSet } from '../types';
-import { LEVEL_TITLES, type LevelCode, type LevelFile, type LevelIndex, type LevelWord } from './types';
+import type { LevelCode, LevelFile, LevelIndex, LevelWord } from './types';
 
 const CHUNK = 200;
 
@@ -11,7 +12,7 @@ function levelUrl(file: string): string {
 
 async function getJson<T>(file: string): Promise<T> {
   const res = await fetch(levelUrl(file));
-  if (!res.ok) throw new Error(`Could not load ${file} (${res.status})`);
+  if (!res.ok) throw new Error(t('levels.loadFailed', { file, status: String(res.status) }));
   return (await res.json()) as T;
 }
 
@@ -30,9 +31,9 @@ export async function movedFolder(): Promise<Folder | undefined> {
   return (await db.folders.toArray()).find((f) => f.role === 'moved');
 }
 
-/** Folder name shown in the library, e.g. "A1 · Beginner". */
+/** Folder name as stored, e.g. "A1 · Beginner"; show it through systemName(). */
 export function levelFolderName(code: LevelCode): string {
-  return `${code} · ${LEVEL_TITLES[code]}`;
+  return canonicalName(`folder:${code}`);
 }
 
 /** Turn a preset word into a card for the given set, translated into `lang`. */

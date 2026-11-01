@@ -1,5 +1,6 @@
 import type { LevelCode } from '../../levels/types';
 import { db } from '../../db/schema';
+import { t } from '../../i18n.svelte';
 import type { Article, ArticleSummary, ReadingSourceId, ReadingSourceInfo } from '../types';
 import { firstSentence, isHeading } from '../text';
 import type { ListOptions, ListResult, Source } from './types';
@@ -56,7 +57,9 @@ export const READING_SOURCES: ReadingSourceInfo[] = [
   },
   {
     id: 'paste',
-    name: 'Your text',
+    get name() {
+      return t('reading.source.paste');
+    },
     levels: [],
     license: '',
     homepage: '',
@@ -100,7 +103,7 @@ const pasteSource: Source = {
   },
   async get(key: string): Promise<Article> {
     const row = await db.articles.get(`paste:${key}`);
-    if (!row) throw new SourceError('This text was deleted', 404);
+    if (!row) throw new SourceError(t('reading.error.deleted'), 404);
     return row;
   },
 };
@@ -118,7 +121,7 @@ const SOURCES: Record<ReadingSourceId, Source> = {
 export function splitArticleId(id: string): { source: ReadingSourceId; key: string } {
   const i = id.indexOf(':');
   const source = id.slice(0, i) as ReadingSourceId;
-  if (i < 0 || !(source in SOURCES)) throw new SourceError(`Unknown article “${id}”`, 404);
+  if (i < 0 || !(source in SOURCES)) throw new SourceError(t('reading.error.unknown', { id }), 404);
   return { source, key: id.slice(i + 1) };
 }
 

@@ -2,6 +2,7 @@
 // with "Fill now" keeps going while the user moves around. Lives for the page session only:
 // on app start nothing resumes by itself (the set page offers "Fill now" for leftovers).
 import { db } from '../db/schema';
+import { t, tn } from '../i18n.svelte';
 import { fillCards } from '../lookup/lookup';
 import { online } from '../online.svelte';
 import { settings } from '../settings.svelte';
@@ -11,13 +12,11 @@ import { createFillQueue, type FillCounts, type FillJobView } from './queue';
 
 const state = $state<{ jobs: FillJobView[] }>({ jobs: [] });
 
-const words = (n: number) => `${n} ${n === 1 ? 'word' : 'words'}`;
-
 /** "Filled 27 words · 2 not found · 1 failed" */
 export function finishMessage(c: FillCounts): string {
-  const parts = [`Filled ${words(c.filled)}`];
-  if (c.notFound) parts.push(`${c.notFound} not found`);
-  if (c.failed) parts.push(`${c.failed} failed`);
+  const parts = [tn('fill.filled', c.filled)];
+  if (c.notFound) parts.push(t('fill.notFound', { n: c.notFound }));
+  if (c.failed) parts.push(t('fill.failed', { n: c.failed }));
   return parts.join(' · ');
 }
 

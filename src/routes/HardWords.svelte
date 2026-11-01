@@ -8,6 +8,7 @@
   import Skeleton from '../components/Skeleton.svelte';
   import { stagger } from '../components/library/actions';
   import { go } from '../lib/router.svelte';
+  import { t, tn, tParts } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
   import { dur } from '../lib/motion';
   import { HARD_MISSES } from '../lib/progress';
@@ -23,27 +24,25 @@
 </script>
 
 <div class="page">
-  <Header title="Hard words" backTo="/" />
+  <Header title={t('hard.title')} backTo="/" />
 
   {#if !hard.value}
     <div class="card"><Skeleton lines={4} /></div>
   {:else if !hard.value.length}
     <EmptyState
       icon="flame"
-      title="No hard words"
-      text="Words you miss {HARD_MISSES} or more times show up here, so you can give them extra attention."
+      title={t('hard.emptyTitle')}
+      text={t('hard.emptyText', { n: HARD_MISSES })}
     />
   {:else}
     <div class="stack">
       <div class="card intro">
         <span class="flame" aria-hidden="true"><Icon name="flame" size={28} filled /></span>
         <p>
-          You keep missing these words. A <strong>memory hook</strong> helps: a note with a mnemonic or a similar
-          Russian word, or your own example sentence. Your note is shown when you study the word.
+          {#each tParts('hard.intro') as p}{#if p.slot}<strong>{t('hard.hook')}</strong>{:else}{p.text}{/if}{/each}
         </p>
         <button class="btn btn-primary btn-lg btn-block" onclick={() => go('/learn/smart/hard')}>
-          <Icon name="play" filled size={18} /> Practice {hard.value.length}
-          {hard.value.length === 1 ? 'word' : 'words'}
+          <Icon name="play" filled size={18} /> {tn('hard.practice', hard.value.length)}
         </button>
       </div>
 
@@ -54,11 +53,11 @@
               <div class="title"><Term {card} /></div>
               <div class="sub">{card.translation}</div>
               <div class="meta">
-                <span class="misses"><Icon name="flame" size={14} /> missed {review.mistakes}×</span>
+                <span class="misses"><Icon name="flame" size={14} /> {t('hard.missed', { n: review.mistakes })}</span>
                 {#if hasHook(card)}
-                  <span class="hook good"><Icon name="check" size={14} /> has a hook</span>
+                  <span class="hook good"><Icon name="check" size={14} /> {t('hard.hasHook')}</span>
                 {:else}
-                  <span class="hook muted">add a hook →</span>
+                  <span class="hook muted">{t('hard.addHook')}</span>
                 {/if}
               </div>
             </div>

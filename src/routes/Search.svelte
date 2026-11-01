@@ -19,6 +19,7 @@
   import { parseGermanInput } from '../lib/german/parseTerm';
   import { rememberQuickAddSet } from '../lib/share';
   import { promptText, showToast } from '../lib/ui/dialogs.svelte';
+  import { i18n, systemName, t, tParts } from '../lib/i18n.svelte';
   import type { Gender } from '../lib/types';
   import { addRecent, clearRecent, loadRecent } from '../lib/search/recent';
   import { addWordToSet, type SetChoice } from '../lib/search/addToSet';
@@ -177,12 +178,17 @@
       rememberQuickAddSet(setId);
       pickerOpen = false;
       const split = fields.pos === 'noun' && (fields.genders?.length ?? 0) === 1 && label.includes(' ');
+      const set = systemName(setName);
       showToast(
-        r.created ? (split ? `Added ${label} to «${setName}»` : `Added to «${setName}»`) : `${label} is already in «${setName}»`,
-        { actionLabel: 'Open set', onAction: () => go(`/set/${setId}`) },
+        r.created
+          ? split
+            ? t('words.search.addedWord', { word: label, set })
+            : t('words.search.added', { set })
+          : t('words.search.already', { word: label, set }),
+        { actionLabel: t('words.search.openSet'), onAction: () => go(`/set/${setId}`) },
       );
     } catch (e) {
-      showToast(`Couldn’t add the word: ${(e as Error).message}`);
+      showToast(t('words.search.addFailed', { message: (e as Error).message }));
     } finally {
       adding = false;
     }
@@ -195,12 +201,12 @@
   async function newSet() {
     if (!pending) return;
     pickerOpen = false;
-    const name = await promptText({ title: 'New set', placeholder: 'e.g. Food, Travel, Chapter 3', confirmLabel: 'Create' });
+    const name = await promptText({ title: t('words.newSet'), placeholder: t('words.search.setPlaceholder'), confirmLabel: t('common.create') });
     if (!name) return;
     try {
       await addTo(await addSet(name), name);
     } catch (e) {
-      showToast(`Couldn’t create the set: ${(e as Error).message}`);
+      showToast(t('words.search.createFailed', { message: (e as Error).message }));
     }
   }
 
@@ -219,7 +225,7 @@
 
 {#snippet resultGroup(title: string, rows: SearchRow[], hintLang: string)}
   <section class="group" transition:slide={{ duration: dur(150) }}>
-    <h2 class="section-title" lang="en">{title}</h2>
+    <h2 class="section-title" lang={i18n.lang}>{title}</h2>
     <div class="list">
       {#each rows as r (r.key)}
         <button type="button" class="list-item result" onclick={() => openRow(r)}>
@@ -240,7 +246,7 @@
 {/snippet}
 
 <div class="page">
-  <Header title="Search" backTo="/" />
+  <Header title={t('words.search.title')} backTo="/" />
 
   <div class="field-box">
     <div class="input-wrap">
@@ -254,8 +260,8 @@
         onfocus={() => (focused = true)}
         onblur={() => (focused = false)}
         onkeydown={onKeydown}
-        placeholder="Haus, ging, house, дом…"
-        aria-label="Search for a word"
+        placeholder={t('words.search.placeholder')}
+        aria-label={t('words.search.label')}
         autocapitalize="off"
         autocomplete="off"
         autocorrect="off"
@@ -263,7 +269,7 @@
         enterkeyhint="search"
       />
       {#if query}
-        <button type="button" class="clear" aria-label="Clear" onpointerdown={keepFocus} onclick={clearQuery}>
+        <button type="button" class="clear" aria-label={t('words.clear')} onpointerdown={keepFocus} onclick={clearQuery}>
           <Icon name="x" size={16} />
         </button>
       {/if}
@@ -278,9 +284,9 @@
   {:else if q.length < MIN_QUERY}
     {#if recent.length}
       <section class="group" in:fade={{ duration: dur(150) }}>
-        <h2 class="section-title" lang="en">
-          Recent
-          <button type="button" class="link" onclick={forgetRecent}>Clear</button>
+        <h2 class="section-title" lang={i18n.lang}>
+          {t('words.search.recent')}
+          <button type="button" class="link" onclick={forgetRecent}>{t('words.clear')}</button>
         </h2>
         <div class="list">
           {#each recent as w (w)}
@@ -293,34 +299,35 @@
         </div>
       </section>
     {:else}
-      <p class="hint small muted center" lang="en" in:fade={{ duration: dur(150) }}>
-        Type a German word in any form — <span lang="de">ging, Häuser, die See</span> — or an English or Russian word to find
-        it in German.
+      <p class="hint small muted center" lang={i18n.lang} in:fade={{ duration: dur(150) }}>
+        {#each tParts('words.search.hint') as p}{#if p.slot}<span lang="de">ging, Häuser, die See</span>{:else}{p.text}{/if}{/each}
       </p>
     {/if}
   {:else}
-    {#if groups.german.length}{@render resultGroup('German', groups.german, settings.lang)}{/if}
-    {#if groups.english.length}{@render resultGroup('From English', groups.english, 'en')}{/if}
-    {#if groups.russian.length}{@render resultGroup('From Russian', groups.russian, 'ru')}{/if}
+    {#if groups.german.length}{@render resultGroup(t('common.german'), groups.german, settings.lang)}{/if}
+    {#if groups.english.length}{@render resultGroup(t('words.search.fromEnglish'), groups.english, 'en')}{/if}
+    {#if groups.russian.length}{@render resultGroup(t('words.search.fromRussian'), groups.russian, 'ru')}{/if}
     {#if !hasResults}
       {#if searching || !current}
         <div class="card group"><Skeleton lines={3} /></div>
       {:else}
-        <div class="card note group" lang="en" in:fade={{ duration: dur(150) }}>
+        <div class="card note group" lang={i18n.lang} in:fade={{ duration: dur(150) }}>
           <Icon name="search" size={20} />
           <div class="small">
             {#if script === 'ru'}
-              No German words found for “{q}”.
-              {#if !online.value}The Russian index loads once you’re online.{/if}
+              {t('words.search.noGerman', { q })}
+              {#if !online.value}{t('words.search.russianOffline')}{/if}
             {:else}
-              Nothing in the dictionary starts with “{q}”.
-              {#if !online.value}You’re offline — only the offline dictionary is searched.{/if}
+              {t('words.search.noMatch', { q })}
+              {#if !online.value}{t('words.search.offline')}{/if}
             {/if}
           </div>
         </div>
         {#if script === 'latin'}
           <button type="button" class="btn btn-block group" onclick={() => openWord(q)}>
-            <Icon name="search" size={20} /> <span class="ellipsis">Look up “<span lang="de">{q}</span>”</span>
+            <Icon name="search" size={20} /> <span class="ellipsis"
+              >{#each tParts('words.search.lookUpWord') as p}{#if p.slot}<span lang="de">{q}</span>{:else}{p.text}{/if}{/each}</span
+            >
           </button>
         {/if}
       {/if}
@@ -328,7 +335,7 @@
   {/if}
 </div>
 
-<Sheet bind:open={pickerOpen} title={pending ? `Add “${pending.label}” to…` : 'Add to set'}>
+<Sheet bind:open={pickerOpen} title={pending ? t('words.search.addTo', { word: pending.label }) : t('words.search.addToSet')}>
   {#if pending}
     <SetPicker fields={pending.fields} busy={adding} onpick={pickSet} onnew={() => void newSet()} />
   {/if}

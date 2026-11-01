@@ -22,6 +22,7 @@
   import { lookupWordWithSource, mergeIntoCard, suggest, type Suggestion } from '../lib/lookup/lookup';
   import { PROVIDER_LABELS, type ProviderId } from '../lib/sources/chain';
   import { showToast, undoToast } from '../lib/ui/dialogs.svelte';
+  import { fmtNumber, systemName, t, tParts } from '../lib/i18n.svelte';
   import { rememberQuickAddSet } from '../lib/share';
   import { findDuplicate, quickAddDuplicate } from '../lib/search/addToSet';
   import { takeKeyboard } from '../lib/ui/keyboard';
@@ -90,7 +91,7 @@
   async function loadSetName() {
     if (!card.setId) return;
     const set = await db.sets.get(card.setId);
-    setName = set ? set.topic || set.name : '';
+    setName = set ? set.topic || systemName(set.name) : '';
   }
 
   async function loadSetCards() {
@@ -313,7 +314,7 @@
     applyParsed();
     const word = card.term.trim();
     if (!word) {
-      error = 'Type a German word first.';
+      error = t('words.editor.typeFirst');
       germanEl?.focus();
       return;
     }
@@ -560,10 +561,10 @@
   // ---------- Form helpers ----------
 
   const POS: { id: Pos; label: string }[] = [
-    { id: 'noun', label: 'Noun' },
-    { id: 'verb', label: 'Verb' },
-    { id: 'adj', label: 'Adj' },
-    { id: 'other', label: 'Other' },
+    { id: 'noun', label: t('words.editor.posNoun') },
+    { id: 'verb', label: t('words.editor.posVerb') },
+    { id: 'adj', label: t('words.editor.posAdj') },
+    { id: 'other', label: t('words.editor.posOther') },
   ];
   const GENDERS: Gender[] = ['m', 'f', 'n'];
 
@@ -608,12 +609,12 @@
   async function save(): Promise<number> {
     applyParsed();
     if (!card.term.trim()) {
-      error = 'Enter the German word.';
+      error = t('words.editor.enterWord');
       germanEl?.focus();
       return 0;
     }
     if (!card.setId) {
-      error = 'No set selected for this word.';
+      error = t('words.editor.noSet');
       return 0;
     }
     const c = $state.snapshot(card) as Card;
@@ -637,7 +638,7 @@
     // The full form's Add and a second Return go through here too: never a second card for a word.
     const dup = duplicateOf(c);
     if (dup) {
-      error = `“${dup.term}” is already in this set.`;
+      error = t('words.editor.inSetError', { word: dup.term });
       return 0;
     }
     const id = await saveCard(c);
@@ -686,7 +687,7 @@
     await setKnown([card.id], known);
     card.known = known ? 1 : 0;
     status = known ? 'known' : 'new';
-    showToast(known ? 'Marked as known' : 'Back to learning — it will come up as new');
+    showToast(known ? t('words.editor.markedKnown') : t('words.editor.backToLearning'));
   }
 
   async function remove() {
@@ -694,7 +695,7 @@
     const term = card.term;
     const snapshot = await deleteCard(card.id);
     back(backTo);
-    undoToast(`Deleted “${term}”`, snapshot);
+    undoToast(t('words.editor.deleted', { word: term }), snapshot);
   }
 
   /** Keeps focus in the German field when tapping a button (iOS keyboard stays up). */
@@ -714,7 +715,7 @@
 
 {#snippet meaningChips()}
   <div class="meaning-pick" transition:slide={{ duration: dur(180) }}>
-    <div class="meaning-chips" role="group" aria-label="Meanings">
+    <div class="meaning-chips" role="group" aria-label={t('words.editor.meanings')}>
       {#each meaningOptions as m, i}
         <button
           type="button"
@@ -726,18 +727,18 @@
         >
       {/each}
     </div>
-    <div class="small muted">Tap to keep only the meanings you need</div>
+    <div class="small muted">{t('words.editor.meaningsHint')}</div>
   </div>
 {/snippet}
 
 <div class="page">
-  <Header title={isNew ? 'Add word' : 'Edit word'} subtitle={setName} {backTo}>
+  <Header title={isNew ? t('words.editor.titleNew') : t('words.editor.titleEdit')} subtitle={setName} {backTo}>
     {#snippet actions()}
       {#if loaded && !missing}
         <button
           class="icon-btn star"
           class:on={card.starred}
-          aria-label={card.starred ? 'Unstar' : 'Star'}
+          aria-label={card.starred ? t('words.editor.unstar') : t('words.editor.star')}
           aria-pressed={!!card.starred}
           onpointerdown={keepFocus}
           onclick={() => (card.starred = card.starred ? 0 : 1)}
@@ -749,14 +750,14 @@
   </Header>
 
   {#if missing}
-    <div class="empty">This word no longer exists.</div>
+    <div class="empty">{t('words.editor.gone')}</div>
   {:else if !loaded}
     <div class="card"><Skeleton lines={4} /></div>
   {:else}
     <div class="stack">
       <!-- ---------- German ---------- -->
       <div class="field">
-        <label for="german">German</label>
+        <label for="german">{t('common.german')}</label>
         <div class="row">
           <div class="input-wrap">
             <input
@@ -769,7 +770,7 @@
               onfocus={onGermanFocus}
               onblur={onGermanBlur}
               onkeydown={onGermanKeydown}
-              placeholder={isNew ? 'Type a word: Haus, gehen, schön…' : 'der Tisch, gehen, schön…'}
+              placeholder={isNew ? t('words.editor.placeholderNew') : t('words.editor.placeholderEdit')}
               autocapitalize="off"
               autocomplete="off"
               autocorrect="off"
@@ -778,7 +779,7 @@
               enterkeyhint={isNew && lookupState === 'done' ? 'done' : 'search'}
             />
             {#if isNew && card.term}
-              <button type="button" class="clear" aria-label="Clear" onpointerdown={keepFocus} onclick={clearTerm}>
+              <button type="button" class="clear" aria-label={t('words.clear')} onpointerdown={keepFocus} onclick={clearTerm}>
                 <Icon name="x" size={16} />
               </button>
             {/if}
@@ -789,10 +790,10 @@
               class="btn lookup"
               onclick={runLookup}
               disabled={lookupState === 'loading'}
-              aria-label="Look up"
+              aria-label={t('words.lookUp')}
             >
               <Icon name="sparkle" size={20} />
-              <span>Look up</span>
+              <span>{t('words.lookUp')}</span>
             </button>
           {/if}
         </div>
@@ -825,17 +826,17 @@
         {#if error}<div class="status small bad">{error}</div>{/if}
         {#if !isNew}
           {#if lookupState === 'loading'}
-            <div class="status small muted">Looking up…</div>
+            <div class="status small muted">{t('words.editor.lookingUp')}</div>
           {:else if lookupState === 'error'}
-            <div class="status small bad">Couldn’t look up — fill in manually.</div>
+            <div class="status small bad">{t('words.editor.lookupFailed')}</div>
           {:else if lookupState === 'notfound'}
-            <div class="status small muted">Not found in the dictionary.</div>
+            <div class="status small muted">{t('words.editor.notInDictionary')}</div>
           {:else if lookupState === 'done'}
-            <div class="status small good">Filled in what was missing.</div>
+            <div class="status small good">{t('words.editor.filledIn')}</div>
           {/if}
           {#if lookupState === 'done' && articles.length > 1}
             <div class="article-pick" transition:slide={{ duration: dur(180) }}>
-              <div class="small muted">Each article has its own meaning. This word is:</div>
+              <div class="small muted">{t('words.editor.articlesPick')}</div>
               <ArticleChoices term={card.term} {articles} selected={pickedArticle} trLang={settings.lang} onpick={chooseArticle} />
             </div>
           {/if}
@@ -874,7 +875,7 @@
                   isAdded={articleInSet}
                   onpointerdown={keepFocus}
                 />
-                <div class="small muted">Each article has its own meaning — tap one, or add it with +</div>
+                <div class="small muted">{t('words.editor.articlesQuick')}</div>
               </div>
             {:else}
               {#if forms}<div class="p-forms">{forms}</div>{/if}
@@ -882,7 +883,7 @@
               {#if card.translation}
                 <div class="p-tr">{card.translation}</div>
               {:else}
-                <div class="p-tr muted">No translation yet</div>
+                <div class="p-tr muted">{t('words.editor.noTranslationYet')}</div>
               {/if}
             {/if}
             {#if showMeanings && !showDetails}{@render meaningChips()}{/if}
@@ -896,13 +897,13 @@
                 {/key}
                 {#if canCycle}
                   <button type="button" class="another" onpointerdown={keepFocus} onclick={anotherExample}>
-                    <Icon name="refresh" size={14} /> Another example
+                    <Icon name="refresh" size={14} /> {t('words.editor.anotherExample')}
                   </button>
                 {/if}
               </div>
             {/if}
             {#if phrases.length}
-              <ul class="p-phrases" aria-label="Phrases">
+              <ul class="p-phrases" aria-label={t('words.editor.phrases')}>
                 {#each phrases as p}
                   <li>
                     <span class="ph-de" lang="de">{p.de}</span>
@@ -914,7 +915,7 @@
             {#if lemmaNote || via}
               <div class="row">
                 {#if lemmaNote}<span class="chip">{lemmaNote}</span>{/if}
-                {#if via}<span class="via muted">via {PROVIDER_LABELS[via]}</span>{/if}
+                {#if via}<span class="via muted">{t('words.editor.via', { name: PROVIDER_LABELS[via] })}</span>{/if}
               </div>
             {/if}
           </div>
@@ -923,20 +924,20 @@
             <Icon name={lookupState === 'offline' ? 'refresh' : 'search'} size={20} />
             <div class="small">
               {#if lookupState === 'notfound'}
-                Couldn’t find “{card.term.trim()}” in the dictionary. You can add it anyway with your own translation.
+                {t('words.editor.notFound', { word: card.term.trim() })}
               {:else if lookupState === 'error'}
-                The dictionary didn’t answer. Try again, or add the word anyway.
+                {t('words.editor.noAnswer')}
               {:else}
-                You’re offline and “{card.term.trim()}” isn’t in the offline dictionary. Add it now — details are filled in once you’re online.
+                {t('words.editor.offline', { word: card.term.trim() })}
               {/if}
             </div>
           </div>
         {:else if !card.term.trim()}
           <div class="hint-card small muted" in:fade={{ duration: dur(150) }}>
             {#if added.length}
-              Next word?
+              {t('words.editor.nextWord')}
             {:else}
-              Type a German word — the article, plural, translation and an example are filled in for you.
+              {t('words.editor.hint')}
             {/if}
           </div>
         {/if}
@@ -945,13 +946,15 @@
           <div class="stack quick-actions" in:fade={{ duration: dur(150) }}>
             <div class="card note dup">
               <Icon name="check" size={20} />
-              <div class="grow">“<span lang="de"><Term card={duplicate} /></span>” is already in this set</div>
-              <button type="button" class="btn small-btn" onclick={() => go(`/card/${duplicate.id}`)}>Open</button>
+              <div class="grow">
+                {#each tParts('words.editor.inSet') as p}{#if p.slot}<span lang="de"><Term card={duplicate} /></span>{:else}{p.text}{/if}{/each}
+              </div>
+              <button type="button" class="btn small-btn" onclick={() => go(`/card/${duplicate.id}`)}>{t('words.editor.open')}</button>
             </div>
             {#if lookupState === 'idle' && !showDetails}
               <!-- Only the typed text matched: the dictionary may know another article (die See). -->
               <button type="button" class="btn btn-ghost btn-block" onpointerdown={keepFocus} onclick={runLookup}>
-                <Icon name="search" size={18} /> Look up
+                <Icon name="search" size={18} /> {t('words.lookUp')}
               </button>
             {/if}
           </div>
@@ -959,19 +962,19 @@
           <div class="stack quick-actions" in:fade={{ duration: dur(150) }}>
             {#if lookupState === 'idle'}
               <button type="button" class="btn btn-primary btn-lg btn-block" onpointerdown={keepFocus} onclick={runLookup}>
-                <Icon name="search" size={20} /> Look up
+                <Icon name="search" size={20} /> {t('words.lookUp')}
               </button>
-              <button type="button" class="btn btn-ghost btn-block" onclick={() => openDetails()}>Fill in myself</button>
+              <button type="button" class="btn btn-ghost btn-block" onclick={() => openDetails()}>{t('words.editor.fillIn')}</button>
             {:else}
               {#if lookupState === 'error'}
-                <button type="button" class="btn btn-block" onpointerdown={keepFocus} onclick={runLookup}><Icon name="refresh" size={20} /> Try again</button>
+                <button type="button" class="btn btn-block" onpointerdown={keepFocus} onclick={runLookup}><Icon name="refresh" size={20} /> {t('common.retry')}</button>
               {/if}
               <button type="button" class="btn btn-primary btn-lg btn-block add" onpointerdown={keepFocus} onclick={quickAdd}>
                 <Icon name="check" size={22} />
-                {lookupState === 'done' ? (articles.length > 1 && pickedArticle ? `Add ${displayTerm(card)}` : 'Add') : 'Add anyway'}
+                {lookupState === 'done' ? (articles.length > 1 && pickedArticle ? t('words.addWord', { word: displayTerm(card) }) : t('common.add')) : t('words.editor.addAnyway')}
               </button>
               <button type="button" class="btn btn-ghost btn-block" onclick={() => openDetails(lookupState === 'notfound')}>
-                <Icon name="edit" size={18} /> {lookupState === 'notfound' ? 'Add a translation' : 'Edit details'}
+                <Icon name="edit" size={18} /> {lookupState === 'notfound' ? t('words.editor.addTranslation') : t('words.editor.editDetails')}
               </button>
             {/if}
           </div>
@@ -984,22 +987,21 @@
           <span class="pill st-{status}">{STATUS_LABELS[status]}</span>
           <span class="spacer"></span>
           {#if status !== 'known'}
-            <button type="button" class="btn small-btn" onclick={() => changeStatus(true)}><Icon name="check" size={18} /> Mark known</button>
+            <button type="button" class="btn small-btn" onclick={() => changeStatus(true)}><Icon name="check" size={18} /> {t('words.editor.markKnown')}</button>
           {/if}
           {#if status !== 'new'}
-            <button type="button" class="btn small-btn" onclick={() => changeStatus(false)}><Icon name="refresh" size={18} /> Not learned</button>
+            <button type="button" class="btn small-btn" onclick={() => changeStatus(false)}><Icon name="refresh" size={18} /> {t('words.editor.notLearned')}</button>
           {/if}
         </div>
         {#if hard}
           <div class="card hard-banner" in:fade={{ duration: dur(150) }}>
-            <div class="row hard-head"><Icon name="flame" size={20} filled /> Missed {misses} times</div>
+            <div class="row hard-head"><Icon name="flame" size={20} filled /> {t('words.editor.missed', { n: misses })}</div>
             <p class="small">
-              Give this word a memory hook: a mnemonic, a similar-sounding Russian word, or your own sentence. Your note
-              is shown every time you study it.
+              {t('words.editor.hookHint')}
             </p>
             <div class="row hard-actions">
-              <button type="button" class="btn small-btn" onclick={() => writeHook('note')}><Icon name="edit" size={18} /> Write a note</button>
-              <button type="button" class="btn small-btn" onclick={() => writeHook('example')}><Icon name="plus" size={18} /> My own example</button>
+              <button type="button" class="btn small-btn" onclick={() => writeHook('note')}><Icon name="edit" size={18} /> {t('words.editor.writeNote')}</button>
+              <button type="button" class="btn small-btn" onclick={() => writeHook('example')}><Icon name="plus" size={18} /> {t('words.editor.ownExample')}</button>
             </div>
           </div>
         {/if}
@@ -1013,7 +1015,7 @@
           onsubmit={(e) => (e.preventDefault(), isNew ? quickAdd() : saveAndClose())}
         >
           <div class="field">
-            <span class="label">Part of speech</span>
+            <span class="label">{t('words.editor.partOfSpeech')}</span>
             <div class="segmented">
               {#each POS as p}
                 <button type="button" class:active={card.pos === p.id} onclick={() => (card.pos = p.id)}>{p.label}</button>
@@ -1023,7 +1025,7 @@
 
           {#if card.pos === 'noun'}
             <div class="field" transition:slide={{ duration: dur(180) }}>
-              <span class="label">Article</span>
+              <span class="label">{t('words.editor.article')}</span>
               <div class="genders">
                 {#each GENDERS as g}
                   <button
@@ -1037,7 +1039,7 @@
               </div>
             </div>
             <div class="field">
-              <label for="plural">Plural <span class="hint">(without “die”)</span></label>
+              <label for="plural">{t('words.editor.plural')} <span class="hint">{t('words.editor.pluralHint')}</span></label>
               <input
                 id="plural"
                 class="input"
@@ -1060,7 +1062,7 @@
               <input id="p2" class="input" bind:value={card.partizip2} placeholder="gegangen" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" lang="de" />
             </div>
             <div class="field">
-              <span class="label">Perfekt with</span>
+              <span class="label">{t('words.editor.perfektWith')}</span>
               <div class="segmented">
                 <button type="button" class:active={card.auxiliary === 'haben'} onclick={() => (card.auxiliary = card.auxiliary === 'haben' ? '' : 'haben')}>haben</button>
                 <button type="button" class:active={card.auxiliary === 'sein'} onclick={() => (card.auxiliary = card.auxiliary === 'sein' ? '' : 'sein')}>sein</button>
@@ -1070,19 +1072,19 @@
           {#if card.pos === 'verb' || card.preps?.trim()}
             <!-- Verbs, and any word that has prepositions already (stolz auf + Akk). -->
             <div class="field">
-              <label for="preps">Prepositions <span class="hint">(“; ” between them)</span></label>
+              <label for="preps">{t('words.editor.prepositions')} <span class="hint">{t('words.editor.prepositionsHint')}</span></label>
               <input id="preps" class="input" bind:value={card.preps} placeholder="auf + Akk" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" lang="de" />
             </div>
           {/if}
 
           <div class="field">
-            <label for="tr">Translation</label>
-            <input id="tr" class="input" bind:this={translationEl} bind:value={card.translation} placeholder="Translation ({lang})" lang={settings.lang} />
+            <label for="tr">{t('words.editor.translation')}</label>
+            <input id="tr" class="input" bind:this={translationEl} bind:value={card.translation} placeholder={t('words.editor.translationIn', { lang })} lang={settings.lang} />
             {#if showMeanings}{@render meaningChips()}{/if}
           </div>
 
           <div class="field">
-            <span class="label">Examples</span>
+            <span class="label">{t('words.editor.examples')}</span>
             {#if card.examples.length}
               <div class="list examples">
                 {#each card.examples as ex, i}
@@ -1092,18 +1094,18 @@
                         class="input ex-de"
                         rows="2"
                         bind:value={ex.de}
-                        placeholder="German sentence"
+                        placeholder={t('words.editor.germanSentence')}
                         autocapitalize="sentences"
                         autocomplete="off"
                         {...{ autocorrect: 'off' }}
                         spellcheck="false"
                         lang="de"
                       ></textarea>
-                      <input class="input" bind:value={ex.tr} placeholder="Translation ({lang})" lang={settings.lang} />
+                      <input class="input" bind:value={ex.tr} placeholder={t('words.editor.translationIn', { lang })} lang={settings.lang} />
                     </div>
                     <div class="ex-actions">
                       <SpeakButton text={ex.de} />
-                      <button type="button" class="icon-btn del" aria-label="Delete example" onclick={() => card.examples.splice(i, 1)}>
+                      <button type="button" class="icon-btn del" aria-label={t('words.editor.deleteExample')} onclick={() => card.examples.splice(i, 1)}>
                         <Icon name="trash" size={20} />
                       </button>
                     </div>
@@ -1111,28 +1113,28 @@
                 {/each}
               </div>
             {/if}
-            <button type="button" class="btn btn-ghost add-ex" onclick={addExample}><Icon name="plus" size={18} /> Add example</button>
+            <button type="button" class="btn btn-ghost add-ex" onclick={addExample}><Icon name="plus" size={18} /> {t('words.editor.addExample')}</button>
           </div>
 
           <div class="field">
-            <label for="notes">Notes</label>
+            <label for="notes">{t('words.editor.notes')}</label>
             <textarea
               id="notes"
               class="input"
               rows="3"
               bind:this={notesEl}
               bind:value={card.notes}
-              placeholder={hard ? `Memory hook: “${card.term}” sounds like… / think of…` : 'Anything to remember'}
+              placeholder={hard ? t('words.editor.hookPlaceholder', { word: card.term }) : t('words.editor.notesPlaceholder')}
             ></textarea>
           </div>
 
           <div class="stack buttons">
             {#if isNew}
-              <button type="submit" class="btn btn-primary btn-block btn-lg"><Icon name="check" /> Add</button>
-              <button type="button" class="btn btn-block" onclick={saveAndClose}>Add and close</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg"><Icon name="check" /> {t('common.add')}</button>
+              <button type="button" class="btn btn-block" onclick={saveAndClose}>{t('words.editor.addAndClose')}</button>
             {:else}
-              <button type="submit" class="btn btn-primary btn-block btn-lg"><Icon name="check" /> Save</button>
-              <button type="button" class="btn btn-danger btn-block" onclick={remove}><Icon name="trash" /> Delete word</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg"><Icon name="check" /> {t('common.save')}</button>
+              <button type="button" class="btn btn-danger btn-block" onclick={remove}><Icon name="trash" /> {t('words.editor.deleteWord')}</button>
             {/if}
           </div>
         </form>
@@ -1141,7 +1143,7 @@
       <!-- ---------- Added on this screen (new words) ---------- -->
       {#if isNew && added.length}
         <section class="added" transition:slide={{ duration: dur(200) }}>
-          <h2 class="section-title">Added <span>{added.length}</span></h2>
+          <h2 class="section-title">{t('words.editor.added')} <span>{fmtNumber(added.length)}</span></h2>
           <div class="list" role="list">
             {#each added as w (w.id)}
               <div class="list-item" role="listitem" in:slide={{ duration: dur(220) }}>

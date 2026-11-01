@@ -3,6 +3,7 @@
   import { displayTerm } from '../../lib/german/articles';
   import { backOut } from 'svelte/easing';
   import { scale } from 'svelte/transition';
+  import { t } from '../../lib/i18n.svelte';
   import { dur } from '../../lib/motion';
   import { matchRounds } from '../../lib/study/quiz';
   import { answerHaptic } from '../../lib/study/fx';
@@ -111,7 +112,7 @@
 
 <div class="stack">
   {#if rounds.length > 1}
-    <div class="muted small center">Round {roundIdx + 1} of {rounds.length}</div>
+    <div class="muted small center">{t('study.match.round', { n: roundIdx + 1, total: rounds.length })}</div>
   {/if}
   {#key roundIdx}
     <div class="board">

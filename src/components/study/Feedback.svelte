@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Card } from '../../lib/types';
   import type { Verdict } from '../../lib/german/answer';
+  import { t, tParts } from '../../lib/i18n.svelte';
   import { feedbackFx } from '../../lib/study/fx';
   import ResultIcon from './ResultIcon.svelte';
   import { displayTerm, speakableTerm } from '../../lib/german/articles';
@@ -39,17 +40,17 @@
     <ResultIcon ok={verdict !== 'wrong'} />
     <span>
       {#if reflexiveProblem === 'missing' && verdict !== 'wrong'}
-        Don't forget “sich”: <span class="answer">{withSich(card.term)}</span>
+        {#each tParts('study.feedback.forgotSich') as p}{#if p.slot}<span class="answer">{withSich(card.term)}</span>{:else}{p.text}{/if}{/each}
       {:else if verdict === 'correct'}
-        Correct!
+        {t('study.correct')}
       {:else if verdict === 'typo'}
-        Accepted — check spelling: <span class="answer">{expected}</span>
+        {#each tParts('study.feedback.typo') as p}{#if p.slot}<span class="answer">{expected}</span>{:else}{p.text}{/if}{/each}
       {:else if articleProblem === 'missing'}
-        Missing article
+        {t('study.feedback.missingArticle')}
       {:else if articleProblem === 'wrong'}
-        Wrong article
+        {t('study.feedback.wrongArticle')}
       {:else}
-        {given.trim() ? 'Not quite' : 'The answer is'}
+        {given.trim() ? t('study.notQuite') : t('study.feedback.theAnswerIs')}
       {/if}
     </span>
   </div>
@@ -61,7 +62,7 @@
     {#if answerGerman}<SpeakButton text={speakableTerm(card)} />{/if}
   </div>
   {#if reflexiveProblem === 'form' && verdict !== 'wrong'}
-    <div class="small muted">Dictionary form: <span lang="de">{withSich(card.term)}</span></div>
+    <div class="small muted">{#each tParts('study.feedback.dictionaryForm') as p}{#if p.slot}<span lang="de">{withSich(card.term)}</span>{:else}{p.text}{/if}{/each}</div>
   {/if}
   <Preps preps={card.preps} />
   {#if showTranslation || (!answerGerman && verdict !== 'correct')}
@@ -70,7 +71,7 @@
     </div>
   {/if}
   {#if verdict === 'wrong' && given.trim()}
-    <div class="small muted">You wrote: <s>{given}</s></div>
+    <div class="small muted">{#each tParts('study.feedback.youWrote') as p}{#if p.slot}<s>{given}</s>{:else}{p.text}{/if}{/each}</div>
   {/if}
   {#if verdict !== 'correct'}<NoteHint notes={card.notes} />{/if}
   <Examples {card} />

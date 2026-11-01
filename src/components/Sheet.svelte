@@ -4,6 +4,7 @@
   import { cubicOut } from 'svelte/easing';
   import { dur } from '../lib/motion';
   import { ui } from '../lib/ui/dialogs.svelte';
+  import { t } from '../lib/i18n.svelte';
   import { openOverlay } from '../lib/ui/overlay';
 
   /**
@@ -99,7 +100,7 @@
       class:dragging
       role="dialog"
       aria-modal="true"
-      aria-label={title ?? 'Sheet'}
+      aria-label={title ?? t('shell.sheet')}
       tabindex="-1"
       {@attach focusPanel}
       style:transform={dragY ? `translate3d(0, ${dragY}px, 0)` : undefined}

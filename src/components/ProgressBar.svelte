@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Progress } from '../lib/progress';
+  import { t } from '../lib/i18n.svelte';
 
   /**
    * Thin stacked progress bar: known (light green) · learned (green) · learning (accent) · rest.
@@ -22,7 +23,7 @@
   aria-valuemin="0"
   aria-valuemax="100"
   aria-valuenow={Math.round(progress.ratio * 100)}
-  aria-label="{progress.done} of {progress.total} done"
+  aria-label={t('shell.progress', { done: progress.done, total: progress.total })}
 >
   <span class="seg known" style:width="{pct(progress.known)}%"></span>
   <span class="seg learned" style:width="{pct(progress.learned)}%"></span>

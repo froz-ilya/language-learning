@@ -17,6 +17,7 @@ export const defaultSettings: Settings = {
   backupSnoozeUntil: 0,
   theme: 'auto',
   vibration: true,
+  uiLang: 'auto',
 };
 
 export const settings = $state<Settings>({ ...defaultSettings });

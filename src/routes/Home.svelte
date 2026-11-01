@@ -8,6 +8,8 @@
   import { primeKeyboard } from '../lib/ui/keyboard';
   import { db } from '../lib/db/schema';
   import type { SavedArticle } from '../lib/reading/types';
+  import { articleTitle } from '../lib/reading/store';
+  import { i18n, locale, t, tn } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
   import { dur } from '../lib/motion';
   import { settings } from '../lib/settings.svelte';
@@ -51,7 +53,7 @@
     wikinews: 'Wikinews',
     wikipedia: 'Wikipedia',
     gutenberg: 'Project Gutenberg',
-    paste: 'Your text',
+    paste: t('home.pastedText'),
   };
 
   /** "#/article/<source>/<encoded id without the "<source>:" prefix>". */
@@ -72,13 +74,23 @@
   const minutes = $derived(Math.max(1, Math.round((total * SECONDS_PER_WORD) / 60)));
 
   const hour = new Date().getHours();
-  const greeting = hour < 5 ? 'Good evening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const greeting = t(
+    hour < 5
+      ? 'home.greeting.night'
+      : hour < 11
+        ? 'home.greeting.morning'
+        : hour < 12
+          ? 'home.greeting.lateMorning'
+          : hour < 18
+            ? 'home.greeting.afternoon'
+            : 'home.greeting.evening',
+  );
   const gruss = hour < 5 ? 'Gute Nacht' : hour < 11 ? 'Guten Morgen' : hour < 18 ? 'Guten Tag' : 'Guten Abend';
-  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const today = new Date().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
 
   const SHORTCUTS: { id: SmartId; label: string; icon: IconName; tone: string }[] = [
-    { id: 'starred', label: 'Starred', icon: 'star', tone: 'warn' },
-    { id: 'mistakes', label: 'Mistakes', icon: 'x', tone: 'bad' },
+    { id: 'starred', label: t('home.starred'), icon: 'star', tone: 'warn' },
+    { id: 'mistakes', label: t('home.mistakes'), icon: 'x', tone: 'bad' },
   ];
 
   // "Install Deutsch for offline use" (Android/desktop Chrome: Install button; iOS Safari: hint).
@@ -98,8 +110,8 @@
 
   function heroLine(): string {
     const parts: string[] = [];
-    if (due) parts.push(`${due} to review`);
-    if (newToday) parts.push(`${newToday} new`);
+    if (due) parts.push(t('home.dueCount', { n: due }));
+    if (newToday) parts.push(t('home.newCount', { n: newToday }));
     return parts.join(' · ');
   }
 
@@ -113,14 +125,14 @@
 <div class="page">
   <header class="top">
     <div class="titles">
-      <div class="date">{today} <span class="beta-tag" title="Some things may not work yet">Beta</span></div>
+      <div class="date">{today} <span class="beta-tag" title={t('home.betaHint')}>{t('home.beta')}</span></div>
       <h1>{greeting}</h1>
-      <div class="gruss" lang="de">{gruss}!</div>
+      {#if i18n.lang !== 'de'}<div class="gruss" lang="de">{gruss}!</div>{/if}
     </div>
     <div class="top-actions" class:two={counts && !firstLaunch}>
-      <button class="add-btn" aria-label="Search for a word" onclick={openSearch}><Icon name="search" size={22} /></button>
+      <button class="add-btn" aria-label={t('library.searchWord')} onclick={openSearch}><Icon name="search" size={22} /></button>
       {#if counts && !firstLaunch}
-        <button class="add-btn" aria-label="Add a word" onclick={quickAddWord}><Icon name="plus" size={24} /></button>
+        <button class="add-btn" aria-label={t('library.addAWord')} onclick={quickAddWord}><Icon name="plus" size={24} /></button>
       {/if}
     </div>
   </header>
@@ -129,13 +141,13 @@
     <div class="card install-banner" transition:slide={{ duration: dur(220) }}>
       <span class="ib-icon"><Icon name="import" size={20} /></span>
       <div class="ib-text">
-        <div class="ib-title">Install Deutsch for offline use</div>
-        {#if !install.canInstall}<div class="small muted">Share → Add to Home Screen</div>{/if}
+        <div class="ib-title">{t('home.installTitle')}</div>
+        {#if !install.canInstall}<div class="small muted">{t('home.installHint')}</div>{/if}
       </div>
       {#if install.canInstall}
-        <button class="btn btn-primary ib-btn" onclick={installNow}>Install</button>
+        <button class="btn btn-primary ib-btn" onclick={installNow}>{t('home.install')}</button>
       {/if}
-      <button class="icon-btn ib-close" aria-label="Dismiss" onclick={dismissBanner}><Icon name="x" size={18} /></button>
+      <button class="icon-btn ib-close" aria-label={t('home.dismiss')} onclick={dismissBanner}><Icon name="x" size={18} /></button>
     </div>
   {/if}
 
@@ -143,25 +155,25 @@
     <div class="card"><Skeleton lines={4} /></div>
   {:else if firstLaunch}
     <div class="welcome" in:fly|global={{ y: 12, duration: dur(260) }}>
-      <p class="lead">Let’s learn some German words. How would you like to start?</p>
+      <p class="lead">{t('home.welcome')}</p>
       <button class="choice" onclick={() => go('/levels')}>
         <span class="choice-icon tone-accent"><Icon name="sparkle" size={26} /></span>
         <span class="choice-text">
-          <span class="choice-title">Start with a level</span>
-          <span class="choice-sub">Ready-made word lists from A1 (beginner) to C2</span>
+          <span class="choice-title">{t('home.startLevel')}</span>
+          <span class="choice-sub">{t('home.startLevelSub')}</span>
         </span>
         <span class="chev"><Icon name="chevron" size={18} /></span>
       </button>
       <button class="choice" onclick={() => createSet()}>
         <span class="choice-icon tone-good"><Icon name="cards" size={26} /></span>
         <span class="choice-text">
-          <span class="choice-title">Create your own set</span>
-          <span class="choice-sub">Add words you meet in class, books or films</span>
+          <span class="choice-title">{t('home.createSet')}</span>
+          <span class="choice-sub">{t('home.createSetSub')}</span>
         </span>
         <span class="chev"><Icon name="chevron" size={18} /></span>
       </button>
       <button class="btn btn-ghost btn-block" onclick={() => go('/import')}>
-        <Icon name="import" size={20} /> Import from Quizlet or a list
+        <Icon name="import" size={20} /> {t('home.importList')}
       </button>
     </div>
   {:else}
@@ -169,28 +181,28 @@
       {#if total}
         <section class="hero" in:fly|global={{ y: 12, duration: dur(260) }}>
           <div class="hero-top">
-            <span class="hero-label">Today’s session</span>
-            <span class="hero-time">≈ {minutes} min</span>
+            <span class="hero-label">{t('home.session')}</span>
+            <span class="hero-time">≈ {tn('common.minutes', minutes)}</span>
           </div>
           <div class="hero-stats" role="group" aria-label={heroLine()}>
             {#if due}
-              <span class="stat"><span class="num">{due}</span><span class="lbl">to review</span></span>
+              <span class="stat"><span class="num">{due}</span><span class="lbl">{t('home.dueLabel')}</span></span>
             {/if}
             {#if newToday}
-              <span class="stat fresh"><span class="num">{newToday}</span><span class="lbl">new</span></span>
+              <span class="stat fresh"><span class="num">{newToday}</span><span class="lbl">{t('home.newLabel')}</span></span>
             {/if}
           </div>
           <button class="btn btn-lg btn-block start" onclick={() => go('/learn/smart/today')}>
-            <Icon name="play" filled size={18} /> Start
+            <Icon name="play" filled size={18} /> {t('common.start')}
           </button>
         </section>
       {:else}
         <section class="hero done" in:fly|global={{ y: 12, duration: dur(260) }}>
           <span class="done-icon"><Icon name="check" size={30} /></span>
-          <div class="hero-count">All caught up</div>
-          <div class="hero-time">Nothing to review right now. Nice work!</div>
+          <div class="hero-count">{t('home.allDone')}</div>
+          <div class="hero-time">{t('home.nothingDue')}</div>
           <button class="btn btn-lg btn-block start" onclick={() => go('/levels')}>
-            <Icon name="sparkle" size={20} /> Learn new words
+            <Icon name="sparkle" size={20} /> {t('home.learnNew')}
           </button>
         </section>
       {/if}
@@ -205,9 +217,9 @@
             <span class="pct">{Math.round(info.progress.ratio * 100)}%</span>
           </ProgressRing>
           <span class="continue-text">
-            <span class="eyebrow">Continue</span>
+            <span class="eyebrow">{t('home.continue')}</span>
             <span class="continue-title">{info.title}</span>
-            <span class="continue-sub">{info.progress.done} / {info.progress.total} learned</span>
+            <span class="continue-sub">{t('library.learnedCount', { done: info.progress.done, total: info.progress.total })}</span>
           </span>
           <span class="chev"><Icon name="chevron" size={18} /></span>
         </button>
@@ -220,13 +232,13 @@
           in:fly|global={{ y: 12, duration: dur(260), delay: stagger(2) }}
         >
           <span class="continue-text">
-            <span class="eyebrow">Continue reading</span>
-            <span class="continue-title" lang="de">{article.title}</span>
+            <span class="eyebrow">{t('home.continueReading')}</span>
+            <span class="continue-title" lang="de">{articleTitle(article)}</span>
             <span class="continue-sub">{SOURCE_NAMES[article.source] ?? article.source}{article.level ? ` · ${article.level}` : ''}</span>
             <span
               class="read-bar"
               role="progressbar"
-              aria-label="Reading progress"
+              aria-label={t('home.readingProgress')}
               aria-valuemin="0"
               aria-valuemax="100"
               aria-valuenow={Math.round(articleRatio * 100)}
@@ -246,9 +258,9 @@
         >
           <span class="hard-icon"><Icon name="flame" size={26} filled /></span>
           <span class="continue-text">
-            <span class="eyebrow">Hard words</span>
-            <span class="continue-title">{counts.hard} {counts.hard === 1 ? 'word needs' : 'words need'} extra help</span>
-            <span class="continue-sub">Practice them or add a memory hook</span>
+            <span class="eyebrow">{t('hard.title')}</span>
+            <span class="continue-title">{tn('home.hardHelp', counts.hard)}</span>
+            <span class="continue-sub">{t('home.hardSub')}</span>
           </span>
           <span class="chev"><Icon name="chevron" size={18} /></span>
         </button>
@@ -267,7 +279,7 @@
           <span class="sc-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 014.5 4H9a3 3 0 013 3v13a2 2 0 00-2-2H3zM21 5.5A1.5 1.5 0 0019.5 4H15a3 3 0 00-3 3v13a2 2 0 012-2h7z" /></svg>
           </span>
-          <span class="sc-label">Read</span>
+          <span class="sc-label">{t('home.read')}</span>
           <span class="sc-count"><Icon name="chevron" size={16} /></span>
         </button>
       </section>
@@ -277,7 +289,7 @@
         onclick={quickAddWord}
         in:fly|global={{ y: 12, duration: dur(260), delay: stagger(4) }}
       >
-        <Icon name="plus" size={20} /> Add a word
+        <Icon name="plus" size={20} /> {t('library.addAWord')}
       </button>
     </div>
   {/if}

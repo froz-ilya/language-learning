@@ -1,6 +1,7 @@
 <script lang="ts">
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
+  import { t, tn } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
   import { go, route } from '../lib/router.svelte';
   import { settings } from '../lib/settings.svelte';
@@ -82,40 +83,40 @@
 </script>
 
 <div class="page">
-  <Header title="More ways to study" subtitle={data.value?.title ?? ''} {backTo} />
+  <Header title={t('study.learn.moreWays')} subtitle={data.value?.title ?? ''} {backTo} />
 
   {#if data.value && cards.length === 0}
-    <div class="empty">No words here yet.</div>
+    <div class="empty">{t('study.setup.noWords')}</div>
   {:else if data.value}
     <button class="card smart" onclick={() => go(`/learn/${kind}/${sourceId}`)}>
       <div class="smart-icon"><Icon name="sparkle" /></div>
       <div class="smart-text">
-        <div class="smart-title">Smart session</div>
-        <div class="muted small">Due words first, then new ones — modes picked for you</div>
+        <div class="smart-title">{t('study.setup.smart')}</div>
+        <div class="muted small">{t('study.setup.smartHint')}</div>
       </div>
       <span class="muted"><Icon name="chevron" size={18} /></span>
     </button>
 
     <div class="options card">
       <div class="opt">
-        <div class="opt-label">Words</div>
+        <div class="opt-label">{t('study.setup.words')}</div>
         <div class="segmented">
-          <button class:active={scope === 'due'} onclick={() => (chosenScope = 'due')}>Due & new · {dueCards.length}</button>
-          <button class:active={scope === 'all'} onclick={() => (chosenScope = 'all')}>All · {cards.length}</button>
+          <button class:active={scope === 'due'} onclick={() => (chosenScope = 'due')}>{t('study.setup.dueNew', { n: dueCards.length })}</button>
+          <button class:active={scope === 'all'} onclick={() => (chosenScope = 'all')}>{t('study.setup.all', { n: cards.length })}</button>
         </div>
       </div>
       <div class="opt">
-        <div class="opt-label">Direction</div>
+        <div class="opt-label">{t('study.setup.direction')}</div>
         <div class="segmented">
           <button class:active={direction === 'de-x'} onclick={() => (direction = 'de-x')}>DE → {x}</button>
           <button class:active={direction === 'x-de'} onclick={() => (direction = 'x-de')}>{x} → DE</button>
-          <button class:active={direction === 'mixed'} onclick={() => (direction = 'mixed')}>Mixed</button>
+          <button class:active={direction === 'mixed'} onclick={() => (direction = 'mixed')}>{t('study.setup.mixed')}</button>
         </div>
       </div>
     </div>
 
     <div class="section">
-      <div class="section-title">Modes</div>
+      <div class="section-title">{t('study.setup.modes')}</div>
       <div class="list">
         {#each modes as m (m.mode)}
           <button class="list-item mode" disabled={!!m.reason} onclick={() => startMode(m.mode)}>
@@ -125,10 +126,10 @@
             <div class="mode-text">
               <div class="title">
                 {m.info.name}
-                {#if last.mode === m.mode && !m.reason}<span class="last">Last used</span>{/if}
+                {#if last.mode === m.mode && !m.reason}<span class="last">{t('study.setup.lastUsed')}</span>{/if}
               </div>
               <div class="sub">
-                {#if m.reason}{m.reason}{:else}{m.info.description}{#if m.count !== scoped.length && m.mode !== 'choice'}{` · ${m.count} words`}{/if}{/if}
+                {#if m.reason}{m.reason}{:else}{m.info.description}{#if m.count !== scoped.length && m.mode !== 'choice'}{` · ${tn('study.setup.modeWords', m.count)}`}{/if}{/if}
               </div>
             </div>
             {#if !m.reason}<span class="muted"><Icon name="chevron" size={18} /></span>{/if}
@@ -137,7 +138,7 @@
       </div>
     </div>
   {:else}
-    <div class="empty">Loading…</div>
+    <div class="empty">{t('common.loading')}</div>
   {/if}
 </div>
 

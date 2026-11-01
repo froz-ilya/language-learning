@@ -3,6 +3,7 @@
   import Preps from './Preps.svelte';
   import Meanings from '../Meanings.svelte';
   import { displayPlural, displayVerbForms, speakableTerm } from '../../lib/german/articles';
+  import { t, tParts } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import type { StudyItem } from '../../lib/study/session';
@@ -41,7 +42,7 @@
 
 <div class="stack">
   <div class="card intro">
-    <div class="tag">New word</div>
+    <div class="tag">{t('study.intro.tag')}</div>
     <div class="row center-row">
       <div class="big"><Term {card} /></div>
       <SpeakButton text={speakableTerm(card)} />
@@ -49,7 +50,7 @@
     {#if card.translation}<div class="translation"><Meanings translation={card.translation} /></div>{/if}
     {#if plural || verbForms || card.preps?.trim()}
       <div class="forms">
-        {#if plural}<div>Plural: <span lang="de">{plural}</span></div>{/if}
+        {#if plural}<div>{#each tParts('study.plural') as p}{#if p.slot}<span lang="de">{plural}</span>{:else}{p.text}{/if}{/each}</div>{/if}
         {#if verbForms}<div lang="de">{verbForms}</div>{/if}
         <Preps preps={card.preps} />
       </div>
@@ -70,7 +71,7 @@
     <NoteHint notes={card.notes} />
   </div>
 
-  <button type="button" class="btn btn-primary btn-lg btn-block" onclick={gotIt}>Got it</button>
+  <button type="button" class="btn btn-primary btn-lg btn-block" onclick={gotIt}>{t('study.intro.gotIt')}</button>
 </div>
 
 <style>

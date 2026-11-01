@@ -1,4 +1,5 @@
 import { db } from './db/schema';
+import { t } from './i18n.svelte';
 import type { Card, Review } from './types';
 
 /**
@@ -13,10 +14,18 @@ export type WordStatus = 'new' | 'learning' | 'learned' | 'known';
 export const LEARNED_STABILITY_DAYS = 21;
 
 export const STATUS_LABELS: Record<WordStatus, string> = {
-  new: 'New',
-  learning: 'Learning',
-  learned: 'Learned',
-  known: 'Known',
+  get new() {
+    return t('library.status.new');
+  },
+  get learning() {
+    return t('library.status.learning');
+  },
+  get learned() {
+    return t('library.status.learned');
+  },
+  get known() {
+    return t('library.status.known');
+  },
 };
 
 /** Missed this many times (and not yet learned or known) → a "hard word" that needs extra help. */

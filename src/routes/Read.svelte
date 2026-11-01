@@ -13,10 +13,11 @@
   import { online } from '../lib/online.svelte';
   import { settings } from '../lib/settings.svelte';
   import { db } from '../lib/db/schema';
-  import { LEVELS, LEVEL_TITLES, type LevelCode } from '../lib/levels/types';
-  import { feeds, interleave, loadFeed, readUi, resetFeed } from '../lib/reading/feed.svelte';
+  import { fmtNumber, t, tn } from '../lib/i18n.svelte';
+  import { LEVELS, type LevelCode } from '../lib/levels/types';
+  import { feedErrorText, feeds, interleave, loadFeed, readUi, resetFeed } from '../lib/reading/feed.svelte';
   import { sourceInfo, sourcesForLevel } from '../lib/reading/sources';
-  import { articlePath, pruneTracked, setProgress, stopReading } from '../lib/reading/store';
+  import { articlePath, articleTitle, pruneTracked, setProgress, stopReading } from '../lib/reading/store';
   import { showToast } from '../lib/ui/dialogs.svelte';
   import { firstSentence, isHeading } from '../lib/reading/text';
   import type { ReadingSourceId, SavedArticle } from '../lib/reading/types';
@@ -73,14 +74,14 @@
   const allFailed = $derived(!loading && items.length === 0 && errors.length === sourceIds.length);
 
   /** Reading time for list rows whose length is known (same pace as the reader). */
-  const minutesOf = (words: number | undefined) => (words ? `${Math.max(1, Math.round(words / 120))} min` : '');
+  const minutesOf = (words: number | undefined) => (words ? tn('common.minutes', Math.max(1, Math.round(words / 120))) : '');
   const ratio = (a: SavedArticle) => (a.paragraphs?.length ? Math.min(1, a.progress / a.paragraphs.length) : 0);
   const snippetOf = (a: SavedArticle) => firstSentence(a.paragraphs?.find((p) => !isHeading(p)) ?? '');
 
   async function stopContinuing(a: SavedArticle) {
     const progress = a.progress;
     await stopReading(a.id);
-    showToast(`Stopped reading «${a.title}»`, { actionLabel: 'Undo', onAction: () => void setProgress(a.id, progress) });
+    showToast(t('reading.read.stopped', { title: articleTitle(a) }), { actionLabel: t('common.undo'), onAction: () => void setProgress(a.id, progress) });
   }
 
   function retry() {
@@ -100,23 +101,23 @@
 </script>
 
 <div class="page">
-  <Header title="Read">
+  <Header title={t('reading.read.title')}>
     {#snippet actions()}
-      <button class="icon-btn" aria-label="New articles" onclick={refresh} disabled={loading}><Icon name="refresh" /></button>
+      <button class="icon-btn" aria-label={t('reading.read.newArticles')} onclick={refresh} disabled={loading}><Icon name="refresh" /></button>
     {/snippet}
   </Header>
 
   <LevelChips bind:value={level} onchange={choose} />
-  <p class="level-hint muted small">{LEVEL_TITLES[level]} · {sourceNames}</p>
+  <p class="level-hint muted small">{t(`level.${level}.title`)} · {sourceNames}</p>
 
   {#if continuing}
     <div class="continue-wrap" in:fly={{ y: 8, duration: dur(220) }}>
       <button class="card pressable continue" onclick={() => continuing && go(articlePath(continuing.id))}>
-        <span class="eyebrow">Continue reading</span>
-        <span class="c-title" lang="de">{continuing.title}</span>
+        <span class="eyebrow">{t('reading.read.continue')}</span>
+        <span class="c-title" lang="de">{articleTitle(continuing)}</span>
         <span class="c-bar" aria-hidden="true"><span style:width="{ratio(continuing) * 100}%"></span></span>
       </button>
-      <button class="icon-btn c-stop" aria-label="Stop reading" title="Stop reading" onclick={() => continuing && void stopContinuing(continuing)}>
+      <button class="icon-btn c-stop" aria-label={t('reading.stop')} title={t('reading.stop')} onclick={() => continuing && void stopContinuing(continuing)}>
         <Icon name="x" size={18} />
       </button>
     </div>
@@ -125,19 +126,19 @@
   <button class="card pressable paste" onclick={() => go('/paste')}>
     <span class="paste-icon"><Icon name="edit" size={20} /></span>
     <span class="paste-text">
-      <span class="p-title">Paste your own text</span>
-      <span class="muted small">A news article, an email, a school text… tap any word to look it up.</span>
+      <span class="p-title">{t('reading.read.pasteTitle')}</span>
+      <span class="muted small">{t('reading.read.pasteHint')}</span>
     </span>
     <Icon name="chevron" size={18} />
   </button>
 
   <section class="section">
-    <h2 class="section-title">Articles · {level}</h2>
+    <h2 class="section-title">{t('reading.read.articles', { level })}</h2>
 
     {#if errors.length && !allFailed}
       <div class="notes">
         {#each errors as { id, f } (id)}
-          <p class="note"><span>{f?.error}</span><button class="btn-link" onclick={retry}>Retry</button></p>
+          <p class="note"><span>{feedErrorText(id, f?.error)}</span><button class="btn-link" onclick={retry}>{t('reading.read.retry')}</button></p>
         {/each}
       </div>
     {/if}
@@ -148,17 +149,17 @@
     {:else if allFailed}
       <EmptyState
         icon="refresh"
-        title={online.value ? 'Couldn’t load articles' : 'You’re offline'}
-        text={online.value ? 'The sources for this level are unavailable right now.' : 'Saved articles and your own texts still work.'}
+        title={online.value ? t('reading.read.loadFailed') : t('reading.read.offline')}
+        text={online.value ? t('reading.read.sourcesDown') : t('reading.read.offlineHint')}
       >
-        <button class="btn btn-primary" onclick={retry}>Try again</button>
+        <button class="btn btn-primary" onclick={retry}>{t('common.retry')}</button>
       </EmptyState>
     {:else if items.length === 0}
-      <EmptyState icon="search" title="Nothing here yet" text="No articles for this level right now. Try another level or paste your own text.">
+      <EmptyState icon="search" title={t('reading.read.emptyTitle')} text={t('reading.read.emptyText')}>
         {#if canLoadMore}
-          <button class="btn" onclick={loadMore}>Load more</button>
+          <button class="btn" onclick={loadMore}>{t('reading.read.loadMore')}</button>
         {:else}
-          <button class="btn" onclick={refresh}>Refresh</button>
+          <button class="btn" onclick={refresh}>{t('reading.read.refresh')}</button>
         {/if}
       </EmptyState>
     {:else}
@@ -179,7 +180,7 @@
       </div>
       {#if canLoadMore || loading}
         <button class="btn btn-block more" onclick={loadMore} disabled={loading}>
-          {loading ? 'Loading…' : 'Load more'}
+          {loading ? t('common.loading') : t('reading.read.loadMore')}
         </button>
       {/if}
     {/if}
@@ -187,7 +188,7 @@
 
   {#if saved.length}
     <section class="section">
-      <h2 class="section-title">Saved <span>{saved.length}</span></h2>
+      <h2 class="section-title">{t('reading.read.saved')} <span>{fmtNumber(saved.length)}</span></h2>
       <div class="list">
         {#each saved as a (a.id)}
           <ArticleRow
@@ -205,8 +206,7 @@
   {/if}
 
   <p class="credits muted small">
-    Texts: MiniKlexikon &amp; Klexikon (CC BY-SA 4.0), Wikinews (CC BY 2.5), Wikipedia (CC BY-SA 4.0),
-    Project Gutenberg (public domain). Attribution is shown under every article.
+    {t('reading.read.credits')}
   </p>
 </div>
 

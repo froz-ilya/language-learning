@@ -1,5 +1,6 @@
 <script lang="ts">
   import { displayPlural, displayVerbForms, speakableTerm } from '../../lib/german/articles';
+  import { t, tParts } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import { Rating, type Grade } from '../../lib/srs/fsrs';
@@ -58,10 +59,10 @@
   }
 
   const GRADES: { grade: Grade; label: string; cls: string; key: string }[] = [
-    { grade: Rating.Again, label: 'Again', cls: 'again', key: '1' },
-    { grade: Rating.Hard, label: 'Hard', cls: 'hard', key: '2' },
-    { grade: Rating.Good, label: 'Good', cls: 'good-btn', key: '3' },
-    { grade: Rating.Easy, label: 'Easy', cls: 'easy', key: '4' },
+    { grade: Rating.Again, label: t('study.flash.again'), cls: 'again', key: '1' },
+    { grade: Rating.Hard, label: t('study.flash.hard'), cls: 'hard', key: '2' },
+    { grade: Rating.Good, label: t('study.flash.good'), cls: 'good-btn', key: '3' },
+    { grade: Rating.Easy, label: t('study.flash.easy'), cls: 'easy', key: '4' },
   ];
 
   function onkeydown(e: KeyboardEvent) {
@@ -83,7 +84,7 @@
 <svelte:window {onkeydown} />
 
 <div class="stack">
-  <SwipeCard bind:this={swipe} {onswipe} ontap={flip} label={flipped ? 'Show front' : 'Show answer'}>
+  <SwipeCard bind:this={swipe} {onswipe} ontap={flip} label={flipped ? t('study.flash.showFront') : t('study.flash.showAnswer')}>
     <div class="scene">
       <div class="flipper" class:flipped>
         <div class="face front card" aria-hidden={flipped}>
@@ -95,7 +96,7 @@
           {:else}
             <div class="big"><Meanings translation={card.translation} /></div>
           {/if}
-          <div class="hint muted small">Tap to flip · swipe to rate</div>
+          <div class="hint muted small">{t('study.flash.hint')}</div>
         </div>
 
         <div class="face back card" aria-hidden={!flipped}>
@@ -106,7 +107,7 @@
           <div class="translation" class:emph={germanFront}><Meanings translation={card.translation} /></div>
           {#if plural || verbForms || card.preps?.trim()}
             <div class="forms">
-              {#if plural}<div>Plural: <span class="g-f">{plural}</span></div>{/if}
+              {#if plural}<div>{#each tParts('study.plural') as p}{#if p.slot}<span class="g-f">{plural}</span>{:else}{p.text}{/if}{/each}</div>{/if}
               {#if verbForms}<div>{verbForms}</div>{/if}
               <Preps preps={card.preps} />
             </div>
@@ -125,7 +126,7 @@
       {/each}
     </div>
   {:else}
-    <button type="button" class="btn btn-primary btn-lg btn-block" onclick={flip}>Show answer</button>
+    <button type="button" class="btn btn-primary btn-lg btn-block" onclick={flip}>{t('study.flash.showAnswer')}</button>
   {/if}
 </div>
 

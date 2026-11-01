@@ -5,6 +5,7 @@
   import Confetti from '../components/study/Confetti.svelte';
   import { fly } from 'svelte/transition';
   import { cardsInFolder, levelFolder } from '../lib/db/repo';
+  import { t, tn } from '../lib/i18n.svelte';
   import { dur } from '../lib/motion';
   import { setKnown } from '../lib/progress';
   import { back, go, route } from '../lib/router.svelte';
@@ -64,18 +65,18 @@
   async function markAll() {
     if (busy) return;
     const ok = await confirmAction({
-      title: `Mark all of ${code} as known?`,
-      message: `${unstudied.length} words you haven't studied yet will count as known and be skipped in sessions.`,
-      confirmLabel: 'Mark as known',
+      title: t('placement.markTitle', { code }),
+      message: t('placement.markMessage', { n: unstudied.length }),
+      confirmLabel: t('library.markKnown'),
     });
     if (!ok) return;
-    await mark(unstudied, `Marked ${unstudied.length} words as known`);
+    await mark(unstudied, tn('placement.marked', unstudied.length));
   }
 
   async function markKnew() {
     if (busy) return;
     const ids = knew.map((c) => c.id).filter((id): id is number => id != null);
-    await mark(ids, ids.length === 1 ? 'Marked 1 word as known' : `Marked ${ids.length} words as known`);
+    await mark(ids, tn('placement.marked', ids.length));
   }
 
   async function mark(ids: number[], message: string) {
@@ -86,7 +87,7 @@
       finish();
     } catch (e) {
       console.error(e);
-      showToast('Could not save — please try again');
+      showToast(t('placement.saveFailed'));
     } finally {
       busy = false;
     }
@@ -100,31 +101,31 @@
 
 {#if phase === 'missing'}
   <div class="page">
-    <Header title="Placement check" subtitle="Level {code}" backTo={levelPath} />
+    <Header title={t('placement.title')} subtitle={t('common.level', { code })} backTo={levelPath} />
     <div class="empty stack">
-      <div class="big-msg">Install {code} first</div>
-      <div>The placement check uses the level's words. Add the level to your library, then try again.</div>
-      <button class="btn btn-primary btn-lg btn-block" onclick={() => go(levelPath)}>Go to level {code}</button>
+      <div class="big-msg">{t('placement.installFirst', { code })}</div>
+      <div>{t('placement.installFirstText')}</div>
+      <button class="btn btn-primary btn-lg btn-block" onclick={() => go(levelPath)}>{t('placement.goToLevel', { code })}</button>
     </div>
   </div>
 {:else}
   <div class="page placement">
     <SessionBar
-      title="Placement · {code}"
+      title={t('placement.sessionTitle', { code })}
       count={phase === 'running' ? `${Math.min(index + 1, sample.length)} / ${sample.length}` : ''}
       ratio={phase === 'running' ? index / Math.max(1, sample.length) : null}
       onclose={finish}
     />
 
     {#if phase === 'loading'}
-      <div class="empty">Loading…</div>
+      <div class="empty">{t('common.loading')}</div>
     {:else if phase === 'empty'}
       <div class="empty stack">
-        <div class="big-msg">No words to check</div>
-        <button class="btn btn-block" onclick={finish}>Back</button>
+        <div class="big-msg">{t('placement.noWords')}</div>
+        <button class="btn btn-block" onclick={finish}>{t('common.back')}</button>
       </div>
     {:else if phase === 'running' && current}
-      <p class="muted small center intro">Do you know these words? Swipe right if you do, left if not.</p>
+      <p class="muted small center intro">{t('placement.intro')}</p>
       <div class="stage">
         {#key index}
           <div class="slide" in:slideIn out:slideOut>
@@ -137,29 +138,27 @@
       <div class="stack result" in:fly={{ y: 16, duration: dur(280) }}>
         <div class="card score">
           <div class="score-num" class:good={passed}>{knew.length} / {sample.length}</div>
-          <div class="muted">words you knew</div>
+          <div class="muted">{t('placement.scoreLabel')}</div>
         </div>
 
         {#if passed}
           <p class="center">
-            You know {code} well. Mark the whole level as known to skip ahead — words you've already studied keep
-            their progress.
+            {t('placement.passed', { code })}
           </p>
           <button class="btn btn-primary btn-lg btn-block" disabled={busy || !unstudied.length} onclick={markAll}>
-            Mark whole level as known
+            {t('library.markLevelKnown')}
           </button>
-          <button class="btn btn-lg btn-block" disabled={busy} onclick={markKnew}>Only mark the ones I knew</button>
+          <button class="btn btn-lg btn-block" disabled={busy} onclick={markKnew}>{t('placement.onlyKnew')}</button>
         {:else}
           <p class="center">
-            {code} still has plenty for you (you need {Math.round(PLACEMENT_PASS * 100)}% to skip it). Mark the words you
-            knew and start learning the rest.
+            {t('placement.failed', { code, pct: Math.round(PLACEMENT_PASS * 100) })}
           </p>
           <button class="btn btn-primary btn-lg btn-block" disabled={busy || !knew.length} onclick={markKnew}>
-            Mark the ones I knew
+            {t('placement.markKnew')}
           </button>
-          <button class="btn btn-lg btn-block" onclick={() => go(`/learn/level/${code}`)}>Start learning {code}</button>
+          <button class="btn btn-lg btn-block" onclick={() => go(`/learn/level/${code}`)}>{t('placement.startLearning', { code })}</button>
         {/if}
-        <button class="btn btn-ghost btn-block" onclick={finish}>Not now</button>
+        <button class="btn btn-ghost btn-block" onclick={finish}>{t('placement.notNow')}</button>
       </div>
     {/if}
   </div>

@@ -14,12 +14,12 @@
     afterSheet,
     isReflexiveCard,
     learnedLine,
-    plural,
     reflexiveOnlyVerbs,
     setKnownWithUndo,
     stagger,
   } from '../components/library/actions';
   import { go, replace, route } from '../lib/router.svelte';
+  import { systemName, t, tn, tParts } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
   import { dur } from '../lib/motion';
   import { online } from '../lib/online.svelte';
@@ -83,6 +83,12 @@
     return f === 'all' ? cards.length : (data.value?.progress[f] ?? 0);
   };
 
+  /** Nothing under the current filter; with no filter there are always words. */
+  function noneLine(): string {
+    if (filter === 'all') return t('library.noWordsYet');
+    return t(sichFilter ? `set.noneSich.${filter}` : `set.none.${filter}`);
+  }
+
   const visible = $derived.by(() => {
     const q = query.trim().toLowerCase();
     return cards.filter(
@@ -96,9 +102,11 @@
     );
   });
 
-  const title = $derived(set ? set.topic || set.name : '');
+  const title = $derived(set ? set.topic || systemName(set.name) : '');
   const subtitle = $derived(
-    [plural(cards.length, 'word'), set?.level ? `Level ${set.level}` : folder?.name].filter(Boolean).join(' · '),
+    [tn('common.words', cards.length), set?.level ? t('common.level', { code: set.level }) : folder && systemName(folder.name)]
+      .filter(Boolean)
+      .join(' · '),
   );
   const backTo = $derived(set?.level ? `/level/${set.level}` : set?.folderId ? `/folder/${set.folderId}` : '/library');
 
@@ -107,10 +115,10 @@
   // Runs in the app-wide background queue, so leaving the page doesn't stop it.
   const filling = $derived(fillJob(id));
   const FILL_LABEL = {
-    running: 'Filling in details…',
-    queued: 'Waiting for another set to finish…',
-    paused: 'Offline — continues when you’re back online',
-  } as const;
+    running: t('set.filling'),
+    queued: t('set.fillQueued'),
+    paused: t('set.fillPaused'),
+  };
 
   function fillNow() {
     if (filling || !needFill.length) return;
@@ -126,13 +134,13 @@
   }
 
   async function removeWord(c: Card) {
-    undoToast(`Deleted “${c.term}”`, await deleteCard(c.id!));
+    undoToast(t('library.deleted', { name: c.term }), await deleteCard(c.id!));
   }
 
   async function toggleKnown(c: Card) {
     const known = statusOfCard(c) !== 'known';
     await setKnown([c.id!], known);
-    showToast(known ? `“${c.term}” marked as known` : `“${c.term}” is back to learning`);
+    showToast(t(known ? 'set.knownToast' : 'set.learningToast', { term: c.term }));
   }
 
   function secondLine(c: Card): string {
@@ -144,8 +152,9 @@
   // ---------- Set menu ----------
 
   async function rename() {
-    const name = await promptText({ title: 'Rename set', value: set?.name ?? '', confirmLabel: 'Save' });
-    if (name) await updateSet(id, { name });
+    const shown = systemName(set?.name ?? '');
+    const name = await promptText({ title: t('set.rename'), value: shown, confirmLabel: t('common.save') });
+    if (name && name !== shown) await updateSet(id, { name });
   }
 
   async function moveToFolder() {
@@ -153,83 +162,83 @@
     const items: ActionItem[] = folders
       .filter((f) => f.id !== set?.folderId)
       .map((f) => ({
-        label: f.name,
+        label: systemName(f.name),
         icon: 'folder',
         run: async () => {
           await updateSet(id, { folderId: f.id! });
-          showToast(`Moved to “${f.name}”`);
+          showToast(t('set.movedTo', { name: systemName(f.name) }));
         },
       }));
     if (set?.folderId)
       items.push({
-        label: 'Remove from folder',
+        label: t('set.removeFromFolder'),
         icon: 'x',
         run: async () => {
           await updateSet(id, { folderId: 0 });
-          showToast('Moved out of the folder');
+          showToast(t('set.movedOut'));
         },
       });
     if (!items.length) {
-      showToast('No folders yet — create one in the Library.');
+      showToast(t('set.noFolders'));
       return;
     }
-    await chooseAction('Move to folder', items);
+    await chooseAction(t('set.moveToFolder'), items);
   }
 
   async function markAll(known: boolean) {
     const ok = await confirmAction(
       known
         ? {
-            title: 'Mark all words as known?',
-            message: 'They count as learned and are skipped in sessions.',
-            confirmLabel: 'Mark as known',
+            title: t('set.markAllTitle'),
+            message: t('set.markAllMessage'),
+            confirmLabel: t('library.markKnown'),
           }
         : {
-            title: 'Reset progress?',
-            message: 'Every word in this set goes back to “New”.',
-            confirmLabel: 'Reset',
+            title: t('set.resetTitle'),
+            message: t('set.resetMessage'),
+            confirmLabel: t('library.reset'),
             destructive: true,
           },
     );
-    if (ok) await setKnownWithUndo(cards.map((c) => c.id!), known, known ? 'All marked as known' : 'Progress reset');
+    if (ok) await setKnownWithUndo(cards.map((c) => c.id!), known, known ? t('set.allMarked') : t('set.progressReset'));
   }
 
   async function removeSet() {
-    const name = set?.name ?? 'Set';
+    const name = set ? systemName(set.name) : t('common.set');
     const snapshot = await deleteSet(id);
     replace(backTo);
-    undoToast(`Deleted “${name}”`, snapshot);
+    undoToast(t('library.deleted', { name }), snapshot);
   }
 
   function menu() {
     if (!set) return;
     const items: ActionItem[] = [];
     if (!isPreset) {
-      items.push({ label: 'Rename', icon: 'edit', run: () => void afterSheet(rename) });
-      items.push({ label: 'Move to folder', icon: 'folder', run: () => void afterSheet(moveToFolder) });
+      items.push({ label: t('common.rename'), icon: 'edit', run: () => void afterSheet(rename) });
+      items.push({ label: t('set.moveToFolder'), icon: 'folder', run: () => void afterSheet(moveToFolder) });
     }
-    items.push({ label: 'Import words', icon: 'import', run: () => go('/import', { set: id }) });
+    items.push({ label: t('library.importWords'), icon: 'import', run: () => go('/import', { set: id }) });
     if (cards.length) {
-      items.push({ label: 'Mark all as known', icon: 'check', run: () => void afterSheet(() => markAll(true)) });
-      items.push({ label: 'Reset progress', icon: 'refresh', run: () => void afterSheet(() => markAll(false)) });
+      items.push({ label: t('set.markAll'), icon: 'check', run: () => void afterSheet(() => markAll(true)) });
+      items.push({ label: t('library.resetProgress'), icon: 'refresh', run: () => void afterSheet(() => markAll(false)) });
     }
-    if (!isPreset) items.push({ label: 'Delete set', icon: 'trash', destructive: true, run: removeSet });
+    if (!isPreset) items.push({ label: t('set.delete'), icon: 'trash', destructive: true, run: removeSet });
     return chooseAction(title, items);
   }
 </script>
 
 <div class="page">
   {#if data.value && !set}
-    <Header title="Set" backTo="/library" />
-    <EmptyState icon="cards" title="This set is gone" text="It may have been deleted.">
-      <button class="btn btn-primary btn-block" onclick={() => go('/library')}>Back to Library</button>
+    <Header title={t('common.set')} backTo="/library" />
+    <EmptyState icon="cards" title={t('set.goneTitle')} text={t('set.goneText')}>
+      <button class="btn btn-primary btn-block" onclick={() => go('/library')}>{t('library.backToLibrary')}</button>
     </EmptyState>
   {:else}
     <Header {title} {subtitle} {backTo}>
       {#snippet actions()}
         {#if set}
-          <button class="icon-btn" aria-label="Add word" onclick={addWord}><Icon name="plus" /></button>
-          <button class="icon-btn" aria-label="Set actions" onclick={menu}><Icon name="more" /></button>
+          <button class="icon-btn" aria-label={t('library.addWord')} onclick={addWord}><Icon name="plus" /></button>
+          <button class="icon-btn" aria-label={t('set.actions')} onclick={menu}><Icon name="more" /></button>
         {/if}
       {/snippet}
     </Header>
@@ -249,11 +258,11 @@
           </div>
 
           <button class="btn btn-primary btn-block btn-lg" onclick={() => go(`/learn/set/${id}`)}>
-            <Icon name="play" filled size={18} /> Learn
+            <Icon name="play" filled size={18} /> {t('library.learn')}
           </button>
           <div class="row">
-            <button class="btn grow" onclick={() => go(`/modes/set/${id}`)}><Icon name="cards" size={20} /> More ways</button>
-            <button class="btn grow" onclick={addWord}><Icon name="plus" size={20} /> Add word</button>
+            <button class="btn grow" onclick={() => go(`/modes/set/${id}`)}><Icon name="cards" size={20} /> {t('set.moreWays')}</button>
+            <button class="btn grow" onclick={addWord}><Icon name="plus" size={20} /> {t('set.addWordShort')}</button>
           </div>
         {/if}
 
@@ -265,27 +274,27 @@
           <div class="card banner" transition:slide={{ duration: dur(200) }}>
             <Icon name="sparkle" />
             <div class="grow small">
-              <strong>{needFill.length} {needFill.length === 1 ? 'word needs' : 'words need'} details</strong>
+              <strong>{tn('set.needDetails', needFill.length)}</strong>
               <div class="muted">
-                {online.value ? 'Articles, plurals, verb forms, translations & examples.' : 'Connect to the internet to fill them in.'}
+                {online.value ? t('set.detailsOnline') : t('set.detailsOffline')}
               </div>
             </div>
-            <button class="btn btn-primary" disabled={!online.value} onclick={fillNow}>Fill now</button>
+            <button class="btn btn-primary" disabled={!online.value} onclick={fillNow}>{t('set.fillNow')}</button>
           </div>
         {/if}
       </div>
 
       {#if !cards.length}
         <div class="section">
-          <EmptyState icon="plus" title="No words yet" text="Add your first word — we’ll fill in the article, plural and translation for you.">
-            <button class="btn btn-primary btn-lg btn-block" onclick={addWord}><Icon name="plus" /> Add a word</button>
-            <button class="btn btn-block" onclick={() => go('/import', { set: id })}><Icon name="import" /> Import a list</button>
+          <EmptyState icon="plus" title={t('library.noWordsYet')} text={t('set.emptyText')}>
+            <button class="btn btn-primary btn-lg btn-block" onclick={addWord}><Icon name="plus" /> {t('library.addAWord')}</button>
+            <button class="btn btn-block" onclick={() => go('/import', { set: id })}><Icon name="import" /> {t('set.importList')}</button>
           </EmptyState>
         </div>
       {:else}
         <section class="section">
           <div class="chips">
-            <div class="tabs" role="tablist" aria-label="Filter by status">
+            <div class="tabs" role="tablist" aria-label={t('set.filterLabel')}>
               {#each FILTERS as f}
                 {@const n = countOf(f)}
                 <button
@@ -297,14 +306,14 @@
                   onclick={() => (filter = f)}
                 >
                   {#if f !== 'all'}<span class="dot st-{f}"></span>{/if}
-                  {f === 'all' ? 'All' : STATUS_LABELS[f]}
+                  {f === 'all' ? t('set.filterAll') : STATUS_LABELS[f]}
                   <span class="n">{n}</span>
                 </button>
               {/each}
             </div>
             {#if reflexiveCount}
               <button class="fchip sich-chip" class:active={sichFilter} aria-pressed={sichFilter} onclick={() => (onlySich = !onlySich)}>
-                with <span lang="de">sich</span>
+                {#each tParts('set.withSich') as p}{#if p.slot}<span lang="de">sich</span>{:else}{p.text}{/if}{/each}
                 <span class="n">{reflexiveCount}</span>
               </button>
             {/if}
@@ -316,7 +325,7 @@
               <input
                 class="input"
                 type="search"
-                placeholder="Search {cards.length} words"
+                placeholder={t('set.searchWords', { n: cards.length })}
                 bind:value={query}
                 autocapitalize="off"
                 autocomplete="off"
@@ -327,9 +336,7 @@
 
           {#if !visible.length}
             <div class="empty">
-              {query.trim()
-                ? `No words match “${query.trim()}”.`
-                : `No ${STATUS_LABELS[filter as WordStatus]?.toLowerCase() ?? ''} words${sichFilter ? ' with “sich”' : ''}.`}
+              {query.trim() ? t('set.noMatch', { query: query.trim() }) : noneLine()}
             </div>
           {:else}
             <div class="words">
@@ -342,10 +349,10 @@
                   out:slide={{ duration: dur(200) }}
                 >
                   <SwipeRow
-                    left={{ label: 'Delete', icon: 'trash', tone: 'bad', run: () => removeWord(c) }}
+                    left={{ label: t('common.delete'), icon: 'trash', tone: 'bad', run: () => removeWord(c) }}
                     right={st === 'known'
-                      ? { label: 'Not learned', icon: 'refresh', tone: 'warn', run: () => toggleKnown(c) }
-                      : { label: 'Known', icon: 'check', tone: 'good', run: () => toggleKnown(c) }}
+                      ? { label: t('set.swipeNotLearned'), icon: 'refresh', tone: 'warn', run: () => toggleKnown(c) }
+                      : { label: t('set.swipeKnown'), icon: 'check', tone: 'good', run: () => toggleKnown(c) }}
                   >
                     <div class="word">
                       <a class="main" href="#/card/{c.id}">
@@ -353,14 +360,14 @@
                         <span class="texts">
                           <span class="line1">
                             <span class="de"><Term card={c} /></span>
-                            {#if isReflexive(c)}<span class="sich" lang="de" title="Reflexive verb">sich</span>{/if}
-                            {#if data.value?.hard.has(c.id!)}<span class="hard" title="Hard word"><Icon name="flame" size={14} filled /></span>{/if}
+                            {#if isReflexive(c)}<span class="sich" lang="de" title={t('set.reflexive')}>sich</span>{/if}
+                            {#if data.value?.hard.has(c.id!)}<span class="hard" title={t('set.hardWord')}><Icon name="flame" size={14} filled /></span>{/if}
                             {#if c.translation}<span class="tr">{c.translation}</span>{/if}
                           </span>
                           {#if secondLine(c) || c.needsFill}
                             <span class="sub">
                               {secondLine(c)}
-                              {#if c.needsFill}<span class="pending">details pending</span>{/if}
+                              {#if c.needsFill}<span class="pending">{t('set.detailsPending')}</span>{/if}
                             </span>
                           {/if}
                         </span>
@@ -369,7 +376,7 @@
                       <button
                         class="icon-btn star"
                         class:on={c.starred}
-                        aria-label={c.starred ? 'Unstar' : 'Star'}
+                        aria-label={c.starred ? t('set.unstar') : t('set.star')}
                         aria-pressed={!!c.starred}
                         onclick={() => toggleStar(c)}
                       >
@@ -380,7 +387,7 @@
                 </div>
               {/each}
             </div>
-            <p class="hint small muted center">Swipe a word left to delete, right to mark it known.</p>
+            <p class="hint small muted center">{t('set.swipeHint')}</p>
           {/if}
         </section>
       {/if}

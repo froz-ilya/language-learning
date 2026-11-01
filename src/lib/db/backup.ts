@@ -1,4 +1,5 @@
 import { db } from './schema';
+import { t } from '../i18n.svelte';
 import type { Card, Folder, Review, Settings, WordSet } from '../types';
 
 interface BackupFile {
@@ -80,7 +81,7 @@ function normalizeCard(c: Card): Card {
  */
 export async function importBackup(text: string, mode: 'replace' | 'merge'): Promise<{ cards: number }> {
   const data = JSON.parse(text) as BackupFile;
-  if (data.app !== 'deutsch' || !Array.isArray(data.cards)) throw new Error('Not a backup file from this app.');
+  if (data.app !== 'deutsch' || !Array.isArray(data.cards)) throw new Error(t('settings.restore.notBackup'));
   // v1 backups predate level presets and the "known" flag.
   data.folders = data.folders.map((f) => ({ ...f, level: f.level ?? '' }));
   data.sets = data.sets.map((s) => ({ ...s, level: s.level ?? '', topic: s.topic ?? '' }));

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { i18n, t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import { gradeForResult, Rating } from '../../lib/srs/fsrs';
@@ -53,10 +54,10 @@
 {#if q}
   <div class="stack">
     <div class="card prompt">
-      <div class="muted small">Fill in the pronoun</div>
+      <div class="muted small">{t('study.pronoun.prompt')}</div>
       <p class="sentence" lang="de">
         {q.before}{#if picked}<span class="filled" class:ok={correct} class:no={!correct}>{q.text}</span
-          >{:else}<span class="blank" aria-label="blank">___</span>{/if}{q.after}
+          >{:else}<span class="blank" aria-label={t('study.pronoun.blank')} lang={i18n.lang}>___</span>{/if}{q.after}
       </p>
       {#if q.example.tr?.trim()}<div class="muted tr">{q.example.tr}</div>{/if}
       <div class="word small"><span lang="de">{card.term}</span> · <span class="muted">{card.translation}</span></div>
@@ -82,7 +83,7 @@
 
     {#if picked}
       <div class="card feedback" class:ok={correct} class:no={!correct} role="status">
-        <div class="head row"><ResultIcon ok={correct} />{correct ? 'Correct!' : `It's “${q.pronoun}”`}</div>
+        <div class="head row"><ResultIcon ok={correct} />{correct ? t('study.correct') : t('study.pronoun.itIs', { pronoun: q.pronoun })}</div>
         <div class="row result-row">
           <p class="full" lang="de">{q.before}<mark>{q.text}</mark>{q.after}</p>
           <SpeakButton text={q.example.de} size={18} />
@@ -94,13 +95,13 @@
         <Preps preps={card.preps} />
         {#if !correct}<NoteHint notes={card.notes} />{/if}
       </div>
-      <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>Continue</button>
+      <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>{t('common.continue')}</button>
     {/if}
   </div>
 {:else}
   <div class="stack">
-    <div class="empty">This word has no example with a reflexive pronoun.</div>
-    <button type="button" class="btn btn-primary btn-lg btn-block" onclick={skip}>Skip</button>
+    <div class="empty">{t('study.pronoun.noExample')}</div>
+    <button type="button" class="btn btn-primary btn-lg btn-block" onclick={skip}>{t('common.skip')}</button>
   </div>
 {/if}
 

@@ -7,6 +7,7 @@
   import { checkBackupReminder } from './lib/backupReminder';
   import { syncLevels } from './lib/levels/sync';
   import { settings } from './lib/settings.svelte';
+  import { t } from './lib/i18n.svelte';
   import { isIOS } from './lib/platform';
   import { hasOverlay } from './lib/ui/overlay';
   import { onMount } from 'svelte';
@@ -83,7 +84,7 @@
 
   // Installed levels follow the word lists of this release; progress stays with the words.
   onMount(async () => {
-    if (await syncLevels(settings.lang)) showToast('Levels updated to the new word lists. Your progress is kept.');
+    if (await syncLevels(settings.lang)) showToast(t('shell.levelsUpdated'));
   });
 
   const Page = $derived(ROUTES[route.parts[0] as keyof typeof ROUTES] ?? Home);
@@ -123,20 +124,20 @@
     if (!isIOS()) return;
     const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 1 || isTabRoot(route.path) || ui.dialog || hasOverlay()) return;
-      const t = e.touches[0];
-      if (t.clientX > EDGE) return;
+      const touch = e.touches[0];
+      if (touch.clientX > EDGE) return;
       const target = e.target as Element | null;
       if (target?.closest?.('[role="dialog"], [data-no-edge-swipe], input, textarea, select')) return;
-      startX = t.clientX;
-      startY = t.clientY;
+      startX = touch.clientX;
+      startY = touch.clientY;
       tracking = true;
-      swipe = { active: false, path: route.path, dx: 0, y: t.clientY };
+      swipe = { active: false, path: route.path, dx: 0, y: touch.clientY };
     };
     const onMove = (e: TouchEvent) => {
       if (!tracking) return;
-      const t = e.touches[0];
-      const dx = t.clientX - startX;
-      const dy = t.clientY - startY;
+      const touch = e.touches[0];
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
       if (!swipe.active) {
         if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) return reset();
         if (dx < -4) return reset();
@@ -145,7 +146,7 @@
       }
       if (e.cancelable) e.preventDefault();
       swipe.dx = Math.max(0, dx);
-      swipe.y = t.clientY;
+      swipe.y = touch.clientY;
     };
     const onEnd = (e: TouchEvent) => {
       if (!tracking) return;
@@ -172,7 +173,7 @@
 </script>
 
 {#if !online.value}
-  <div class="offline">Offline — studying works, dictionary auto-fill is paused</div>
+  <div class="offline">{t('shell.offline')}</div>
 {/if}
 
 <div

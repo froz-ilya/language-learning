@@ -4,6 +4,7 @@ import './styles/app.css';
 import App from './App.svelte';
 import { loadSettings } from './lib/settings.svelte';
 import { initTheme } from './lib/theme.svelte';
+import { initLanguage } from './lib/language.svelte';
 import { requestPersistence } from './lib/db/schema';
 import { replace } from './lib/router.svelte';
 import { extractSharedTerm, isShareLaunch } from './lib/share';
@@ -23,6 +24,7 @@ function takeSharedText() {
 
 loadSettings().finally(() => {
   initTheme();
+  initLanguage();
   takeSharedText();
   mount(App, { target: document.getElementById('app')! });
 });

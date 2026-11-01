@@ -58,6 +58,34 @@ migration that is tested.
   estimates (scripts/levels/lib/graded.mjs): compounds of listed words are B2 (`notCompound` holds
   the hand-checked exceptions), then DAFlex (CC BY-NC-SA: keep the credit), then frequency.
 
+## Interface language
+
+The interface is in English and German (`settings.uiLang`: auto, en, de; auto follows the phone).
+That's separate from `settings.lang`, the language words are translated into (ru, en).
+
+- Text the user can see never goes in code: it's a key in src/lib/i18n/messages/<area>.ts, with
+  English and German side by side. `npm run check` fails on a missing or unknown key, and
+  src/lib/i18n.test.ts on different placeholders. German words and example sentences being taught
+  (`der/die/das`, `Präteritum`, topic names) aren't interface text.
+- `t('key', { name })` in .svelte and .ts; `tn('common.words', n)` for counts; `tParts` when a
+  sentence has markup in it. Never build a sentence from pieces: word order differs. Numbers and
+  dates go through `fmtNumber()` and `locale()`, and interface text inside a `lang="de"` subtree
+  gets `lang={i18n.lang}`.
+- `t()` is reactive, but a value computed once is not. Module-level constants that are read later
+  become getters or functions; values computed in a component stay fresh because a page is
+  rebuilt on navigation, except on the Settings page and in the tab bar (use `$derived`).
+- Names the app gives to folders, sets and pasted texts are stored in English in every language
+  (`canonicalName()`), and code finds them by those names. Show them through `systemName()`,
+  wherever a folder or set name is displayed. Never store a `t()` value.
+- The data scripts load src/lib/reading/{rate,wikitext,text}.ts and what they import through Vite
+  without the Svelte plugin, so those files and src/lib/levels/types.ts can't import i18n.svelte
+  (src/lib/reading/catalog.test.ts fails if one does).
+- German uses informal "du", no gendered forms beyond what's already there, and these terms:
+  Set/Sets, Ordner, Bibliothek, Niveau/Niveaus, Karte, Karteikarten, Wort/Wörter, Übersetzung,
+  Bedeutung, Beispiel(satz), Artikel, Nomen, Verb, Adjektiv, Aussprache, Stimme, wiederholen,
+  fällig, gelernt, schwere Wörter, Fehler, Sitzung, Backup, wiederherstellen, Quelle, Wörterbuch,
+  Lesen, Text, offline. German strings run longer: check narrow rows and buttons at phone width.
+
 ## Local environment quirks
 
 - npm's default cache isn't writable here: use

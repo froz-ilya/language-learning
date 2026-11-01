@@ -22,6 +22,7 @@ import {
 } from '../sources/providers/dewiktionary';
 import { PageLoader } from './pageLoader';
 import { enWiktionaryGlosses, enWiktionaryPrefix } from '../sources/providers/enwiktionary';
+import { t } from '../i18n.svelte';
 import { googleText, type TextQuery } from '../sources/providers/google';
 import { myMemoryText } from '../sources/providers/mymemory';
 
@@ -39,7 +40,7 @@ export interface Suggestion {
 
 /** Thrown when nothing was found because every source that could answer failed, was cooling or offline. */
 export class SourceUnavailableError extends Error {
-  constructor(message = 'No dictionary source is reachable right now. Try again later.') {
+  constructor(message = t('words.error.noSource')) {
     super(message);
     this.name = 'SourceUnavailableError';
   }
@@ -946,7 +947,7 @@ export async function translateText(text: string, from: 'de' | Lang, to: 'de' | 
   if (!text.trim()) return '';
   const out = await runChainDetailed('translate-text', TEXT_PROVIDERS, { text, from, to }, signal);
   if (out.result) return out.result.value;
-  if (out.failed.length || out.skipped.length) throw new SourceUnavailableError('No translation service is reachable right now.');
+  if (out.failed.length || out.skipped.length) throw new SourceUnavailableError(t('words.error.noTranslator'));
   return text; // Both services echoed it back: nothing to translate.
 }
 

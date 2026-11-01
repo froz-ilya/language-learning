@@ -1,11 +1,13 @@
 <script lang="ts">
+  import { t } from '../lib/i18n.svelte';
+
   /** Shimmering placeholder lines while content loads. */
   let { lines = 3 }: { lines?: number } = $props();
 
   const WIDTHS = [92, 76, 84, 60, 70];
 </script>
 
-<div class="skeleton" aria-busy="true" aria-label="Loading">
+<div class="skeleton" aria-busy="true" aria-label={t('shell.loading')}>
   {#each { length: lines } as _, i}
     <span class="line" style:width="{i === lines - 1 && lines > 1 ? 45 : WIDTHS[i % WIDTHS.length]}%"></span>
   {/each}

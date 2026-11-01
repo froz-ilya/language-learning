@@ -6,10 +6,11 @@
   import Skeleton from '../components/Skeleton.svelte';
   import ProgressRow from '../components/library/ProgressRow.svelte';
   import EmptyState from '../components/library/EmptyState.svelte';
-  import { afterSheet, createFolder, createSet, plural, removeSet, stagger, sumProgress } from '../components/library/actions';
+  import { afterSheet, createFolder, createSet, removeSet, stagger, sumProgress } from '../components/library/actions';
   import { go } from '../lib/router.svelte';
   import { primeKeyboard } from '../lib/ui/keyboard';
   import { live } from '../lib/live.svelte';
+  import { systemName, t, tn } from '../lib/i18n.svelte';
   import { dur } from '../lib/motion';
   import { db } from '../lib/db/schema';
   import { allFolders } from '../lib/db/repo';
@@ -39,10 +40,10 @@
   const isEmpty = $derived(!!data.value && !folders.length && !unfiled.length);
 
   function addMenu() {
-    return chooseAction('Add to library', [
-      { label: 'New set', icon: 'cards', run: () => void afterSheet(() => createSet()) },
-      { label: 'New folder', icon: 'folder', run: () => void afterSheet(() => createFolder()) },
-      { label: 'Import words', icon: 'import', run: () => go('/import') },
+    return chooseAction(t('library.addTo'), [
+      { label: t('library.newSet'), icon: 'cards', run: () => void afterSheet(() => createSet()) },
+      { label: t('library.newFolder'), icon: 'folder', run: () => void afterSheet(() => createFolder()) },
+      { label: t('library.importWords'), icon: 'import', run: () => go('/import') },
     ]);
   }
 
@@ -54,28 +55,28 @@
 </script>
 
 <div class="page">
-  <Header title="Library">
+  <Header title={t('library.title')}>
     {#snippet actions()}
-      <button class="icon-btn" aria-label="Search for a word" onclick={openSearch}><Icon name="search" /></button>
-      <button class="icon-btn" aria-label="Import" onclick={() => go('/import')}><Icon name="import" /></button>
-      <button class="icon-btn plus" aria-label="Add" onclick={addMenu}><Icon name="plus" /></button>
+      <button class="icon-btn" aria-label={t('library.searchWord')} onclick={openSearch}><Icon name="search" /></button>
+      <button class="icon-btn" aria-label={t('library.import')} onclick={() => go('/import')}><Icon name="import" /></button>
+      <button class="icon-btn plus" aria-label={t('common.add')} onclick={addMenu}><Icon name="plus" /></button>
     {/snippet}
   </Header>
 
   {#if !data.value}
     <div class="card"><Skeleton lines={5} /></div>
   {:else if isEmpty}
-    <EmptyState icon="cards" title="Your library is empty" text="Make a set for words you meet, or bring one over from Quizlet.">
-      <button class="btn btn-primary btn-lg btn-block" onclick={() => createSet()}><Icon name="plus" /> Create a set</button>
-      <button class="btn btn-block" onclick={() => go('/import')}><Icon name="import" /> Import words</button>
+    <EmptyState icon="cards" title={t('library.emptyTitle')} text={t('library.emptyText')}>
+      <button class="btn btn-primary btn-lg btn-block" onclick={() => createSet()}><Icon name="plus" /> {t('library.createSet')}</button>
+      <button class="btn btn-block" onclick={() => go('/import')}><Icon name="import" /> {t('library.importWords')}</button>
     </EmptyState>
     <p class="hint small muted center">
-      Looking for ready-made words? <a href="#/levels">Browse levels</a>
+      {t('library.readyMade')} <a href="#/levels">{t('library.browseLevels')}</a>
     </p>
   {:else}
     {#if folders.length}
       <section class="section">
-        <h2 class="section-title">Folders</h2>
+        <h2 class="section-title">{t('library.folders')}</h2>
         <div class="rows">
           {#each folders as f, i (f.id)}
             {@const st = folderStats.get(f.id!)}
@@ -87,10 +88,10 @@
             >
               <ProgressRow
                 href="#/folder/{f.id}"
-                title={f.name}
+                title={systemName(f.name)}
                 icon="folder"
                 tone="warn"
-                sub={plural(st?.sets ?? 0, 'set')}
+                sub={tn('common.sets', st?.sets ?? 0)}
                 progress={st?.sets ? st.progress : undefined}
               />
             </div>
@@ -100,7 +101,7 @@
     {/if}
 
     <section class="section">
-      <h2 class="section-title">Sets</h2>
+      <h2 class="section-title">{t('library.sets')}</h2>
       {#if unfiled.length}
         <div class="rows">
           {#each unfiled as s, i (s.id)}
@@ -113,17 +114,17 @@
             >
               <ProgressRow
                 href="#/set/{s.id}"
-                title={s.name}
+                title={systemName(s.name)}
                 progress={p}
-                left={{ label: 'Delete', icon: 'trash', tone: 'bad', run: () => removeSet(s) }}
-                right={{ label: 'Learn', icon: 'play', tone: 'accent', run: () => go(`/learn/set/${s.id}`) }}
+                left={{ label: t('common.delete'), icon: 'trash', tone: 'bad', run: () => removeSet(s) }}
+                right={{ label: t('library.learn'), icon: 'play', tone: 'accent', run: () => go(`/learn/set/${s.id}`) }}
               />
             </div>
           {/each}
         </div>
-        <p class="hint small muted center">Tip: swipe a set left to delete, right to learn.</p>
+        <p class="hint small muted center">{t('library.swipeHint')}</p>
       {:else}
-        <button class="btn btn-ghost btn-block" onclick={() => createSet()}><Icon name="plus" /> New set</button>
+        <button class="btn btn-ghost btn-block" onclick={() => createSet()}><Icon name="plus" /> {t('library.newSet')}</button>
       {/if}
     </section>
   {/if}

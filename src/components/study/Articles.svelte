@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ARTICLE, displayPlural, speakableTerm } from '../../lib/german/articles';
+  import { t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import { gradeForResult } from '../../lib/srs/fsrs';
@@ -66,17 +67,17 @@
 
   {#if picked}
     <div class="card feedback" class:ok={correct} class:no={!correct}>
-      <div class="head row"><ResultIcon ok={correct} />{correct ? 'Correct!' : 'Not quite'}</div>
+      <div class="head row"><ResultIcon ok={correct} />{correct ? t('study.correct') : t('study.notQuite')}</div>
       <div class="row result-row">
         <div class="term"><Term {card} /></div>
         <SpeakButton text={speakableTerm(card)} />
       </div>
-      {#if card.plural}<div class="muted">Plural: {displayPlural(card)}</div>{/if}
+      {#if card.plural}<div class="muted">{t('study.plural', { plural: displayPlural(card) })}</div>{/if}
       <Preps preps={card.preps} />
       {#if !correct}<NoteHint notes={card.notes} />{/if}
       <Examples {card} />
     </div>
-    <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>Continue</button>
+    <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>{t('common.continue')}</button>
   {/if}
 </div>
 

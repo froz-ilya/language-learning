@@ -1,3 +1,4 @@
+import { t } from '../../i18n.svelte';
 import type { LevelCode } from '../../levels/types';
 import type { Article, ArticleSummary, ReadingSourceInfo } from '../types';
 import { htmlToParagraphs, stripTags } from '../text';
@@ -250,7 +251,7 @@ export function klexikonSource(info: ReadingSourceInfo, host: string): Source {
     } catch (e) {
       if (e instanceof SourceError && e.code === 'missingtitle') {
         markRemoved(prefix + key);
-        throw new SourceError(`This article was removed from ${info.name}.`, 404, 'removed');
+        throw new SourceError(t('reading.error.removed', { name: info.name }), 404, 'removed');
       }
       throw e;
     }

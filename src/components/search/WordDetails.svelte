@@ -17,6 +17,7 @@
   import { ARTICLE, displayTerm, speakableTerm } from '../../lib/german/articles';
   import { parseGermanInput } from '../../lib/german/parseTerm';
   import { STATUS_LABELS } from '../../lib/progress';
+  import { i18n, t, tParts } from '../../lib/i18n.svelte';
   import type { ArticleVariant, Gender, LookupResult } from '../../lib/types';
   import { ownedCards, type OwnedCard } from '../../lib/search/addToSet';
   import {
@@ -201,15 +202,15 @@
   {#if lookingUp && !info}
     <Skeleton lines={2} />
   {:else if !info}
-    <div class="note small" lang="en">
+    <div class="note small" lang={i18n.lang}>
       <Icon name={online.value ? 'search' : 'refresh'} size={20} />
       <div>
         {#if !online.value}
-          <strong>Needs internet.</strong> “{current}” isn’t in the offline dictionary — connect to look it up.
+          {#each tParts('words.details.offline', { word: current }) as p}{#if p.slot}<strong>{t('words.details.needsInternet')}</strong>{:else}{p.text}{/if}{/each}
         {:else if lookup.remoteState === 'failed'}
-          The dictionary didn’t answer. Try again in a moment.
+          {t('words.details.noAnswer')}
         {:else}
-          Couldn’t find “{current}” in the dictionary.
+          {t('words.details.notFound', { word: current })}
         {/if}
       </div>
     </div>
@@ -225,7 +226,7 @@
         isAdded={(a) => hasArticle(a.genders[0])}
         disabled={lookingUp}
       />
-      <div class="small muted" lang="en">Each article has its own meaning — tap one to see it, + to add it.</div>
+      <div class="small muted" lang={i18n.lang}>{t('words.details.articlesHint')}</div>
     </div>
   {:else}
     {#if forms}<div class="forms muted">{forms}</div>{/if}
@@ -235,13 +236,13 @@
     {:else if lookup.remoteState === 'loading'}
       <Skeleton lines={1} />
     {:else}
-      <div class="small muted" lang="en">
+      <div class="small muted" lang={i18n.lang}>
         {#if !online.value}
-          <strong>Needs internet</strong> for a translation of this word.
+          {#each tParts('words.details.offlineTranslation') as p}{#if p.slot}<strong>{t('words.details.needsInternet')}</strong>{:else}{p.text}{/if}{/each}
         {:else if lookup.remoteState === 'failed'}
-          The dictionary is unavailable right now.
+          {t('words.details.unavailable')}
         {:else}
-          No translation found.
+          {t('words.details.noTranslation')}
         {/if}
       </div>
     {/if}
@@ -258,27 +259,31 @@
   {/if}
 
   {#if shownOwned.length}
-    <div class="owned" lang="en">
+    <div class="owned" lang={i18n.lang}>
       {#each shownOwned.slice(0, MAX_OWNED) as c (c.id)}
         <button type="button" class="owned-row" onclick={() => go(`/set/${c.setId}`)}>
           <span class="dot s-{c.status}"></span>
           <span class="owned-text"
-            >In «<span lang="de">{c.setName}</span>»<span class="muted">{` · ${STATUS_LABELS[c.status]}`}</span></span
+            >{#each tParts('words.details.inSet') as p}{#if p.slot}<span lang="de">{c.setName}</span>{:else}{p.text}{/if}{/each}<span class="muted"
+                >{` · ${STATUS_LABELS[c.status]}`}</span
+              ></span
           >
           <Icon name="chevron" size={16} />
         </button>
       {/each}
       {#if shownOwned.length > MAX_OWNED}
-        <div class="small muted more">and in {shownOwned.length - MAX_OWNED} more</div>
+        <div class="small muted more">{t('words.details.moreSets', { n: shownOwned.length - MAX_OWNED })}</div>
       {/if}
     </div>
   {/if}
 
   {#if !lookingUp || info}
-    <button type="button" class="btn btn-block" class:btn-primary={!shownOwned.length} lang="en" onclick={addSelected} disabled={lookingUp}>
+    <button type="button" class="btn btn-block" class:btn-primary={!shownOwned.length} lang={i18n.lang} onclick={addSelected} disabled={lookingUp}>
       <Icon name="plus" size={20} />
       <span class="ellipsis">
-        {#if (split || options.length > 1) && label}Add <span lang="de">{label}</span> to {shownOwned.length ? 'another' : 'a'} set{:else if shownOwned.length}Add to another set{:else}Add to a set{/if}
+        {#if (split || options.length > 1) && label}
+          {#each tParts(shownOwned.length ? 'words.details.addWordToAnother' : 'words.details.addWordToSet') as p}{#if p.slot}<span lang="de">{label}</span>{:else}{p.text}{/if}{/each}
+        {:else if shownOwned.length}{t('words.details.addToAnother')}{:else}{t('words.details.addToSet')}{/if}
       </span>
     </button>
   {/if}

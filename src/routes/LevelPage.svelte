@@ -7,8 +7,9 @@
   import Skeleton from '../components/Skeleton.svelte';
   import ProgressRow from '../components/library/ProgressRow.svelte';
   import FillProgress from '../components/library/FillProgress.svelte';
-  import { afterSheet, isLevel, levelIndex, levelName, plural, setKnownWithUndo, stagger } from '../components/library/actions';
+  import { afterSheet, isLevel, levelIndex, levelName, setKnownWithUndo, stagger } from '../components/library/actions';
   import { go, route } from '../lib/router.svelte';
+  import { systemName, t, tn } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
   import { dur } from '../lib/motion';
   import { online } from '../lib/online.svelte';
@@ -16,21 +17,12 @@
   import { cardsInFolder, levelFolder, setsInFolder } from '../lib/db/repo';
   import { progressOf, reviewsFor, STATUS_LABELS, type WordStatus } from '../lib/progress';
   import { installLevel, uninstallLevel } from '../lib/levels/install';
-  import { LEVEL_TITLES, type LevelIndex } from '../lib/levels/types';
+  import type { LevelIndex } from '../lib/levels/types';
   import { chooseAction, confirmAction, showToast } from '../lib/ui/dialogs.svelte';
   import type { Card } from '../lib/types';
 
   const raw = (route.parts[1] ?? '').toUpperCase();
   const code = isLevel(raw) ? raw : null;
-
-  const DESCRIPTIONS: Record<string, string> = {
-    A1: 'Your very first words: people, numbers, food, home and the everyday verbs you hear all the time.',
-    A2: 'Everyday situations: shopping, travel, work, health and describing the world around you.',
-    B1: 'Talk about experiences, plans and opinions — the words that make conversations flow.',
-    B2: 'Richer vocabulary for news, work and abstract topics.',
-    C1: 'Nuanced words for complex texts and precise expression.',
-    C2: 'Rare and refined vocabulary for near-native reading.',
-  };
 
   const data = live(async () => {
     if (!code) return null;
@@ -73,8 +65,8 @@
     } catch (e) {
       console.warn('install failed', e);
       installError = online.value
-        ? `Couldn’t get the words ready. ${(e as Error).message || ''}`.trim()
-        : 'You’re offline. Connect to the internet to download this level.';
+        ? t('levelPage.installFailed', { error: (e as Error).message || '' }).trim()
+        : t('levelPage.installOffline');
       return false;
     } finally {
       installing = null;
@@ -93,7 +85,7 @@
   async function start() {
     if (await install()) {
       makeFocus();
-      showToast(`${code} is ready. Viel Erfolg!`);
+      showToast(t('levelPage.ready', { code: code! }));
     }
   }
 
@@ -114,42 +106,42 @@
     const name = levelName(code);
     return chooseAction(name, [
       {
-        label: 'Mark whole level as known',
+        label: t('library.markLevelKnown'),
         icon: 'check',
         run: () =>
           void afterSheet(async () => {
             const ok = await confirmAction({
-              title: `Mark all of ${code} as known?`,
-              message: `All ${d.ids.length} words count as learned and are skipped in sessions.`,
-              confirmLabel: 'Mark as known',
+              title: t('levelPage.markTitle', { code }),
+              message: t('levelPage.markMessage', { n: d.ids.length }),
+              confirmLabel: t('library.markKnown'),
             });
-            if (ok) await setKnownWithUndo(d.ids, true, `${code} marked as known`);
+            if (ok) await setKnownWithUndo(d.ids, true, t('levelPage.marked', { code }));
           }),
       },
       {
-        label: 'Reset progress',
+        label: t('library.resetProgress'),
         icon: 'refresh',
         run: () =>
           void afterSheet(async () => {
             const ok = await confirmAction({
-              title: `Reset progress in ${code}?`,
-              message: 'Every word goes back to “New”.',
-              confirmLabel: 'Reset',
+              title: t('levelPage.resetTitle', { code }),
+              message: t('levelPage.resetMessage'),
+              confirmLabel: t('library.reset'),
               destructive: true,
             });
-            if (ok) await setKnownWithUndo(d.ids, false, `${code} progress reset`);
+            if (ok) await setKnownWithUndo(d.ids, false, t('levelPage.resetDone', { code }));
           }),
       },
       {
-        label: 'Remove level',
+        label: t('levelPage.remove'),
         icon: 'trash',
         destructive: true,
         run: () =>
           void afterSheet(async () => {
             const ok = await confirmAction({
-              title: `Remove ${code}?`,
-              message: 'Its words and your progress in this level will be deleted. You can add the level again later.',
-              confirmLabel: 'Remove',
+              title: t('levelPage.removeTitle', { code }),
+              message: t('levelPage.removeMessage'),
+              confirmLabel: t('common.remove'),
               destructive: true,
             });
             if (!ok) return;
@@ -159,9 +151,9 @@
                 settings.focus = '';
                 void saveSettings();
               }
-              showToast(`${code} removed`);
+              showToast(t('levelPage.removed', { code }));
             } catch (e) {
-              showToast(`Couldn’t remove ${code}: ${(e as Error).message}`);
+              showToast(t('levelPage.removeFailed', { code, error: (e as Error).message }));
             }
           }),
       },
@@ -171,13 +163,13 @@
 
 <div class="page">
   {#if !code}
-    <Header title="Level" backTo="/levels" />
-    <div class="empty">This level doesn’t exist.</div>
+    <Header title={t('levelPage.title')} backTo="/levels" />
+    <div class="empty">{t('levelPage.missing')}</div>
   {:else}
     <Header title={levelName(code)} backTo="/levels">
       {#snippet actions()}
         {#if data.value?.installed}
-          <button class="icon-btn" aria-label="Level actions" onclick={menu}><Icon name="more" /></button>
+          <button class="icon-btn" aria-label={t('levelPage.actions')} onclick={menu}><Icon name="more" /></button>
         {/if}
       {/snippet}
     </Header>
@@ -189,36 +181,36 @@
       <div class="stack" in:fade|global={{ duration: dur(200) }}>
         <section class="intro card">
           <div class="badge">{code}</div>
-          <h2>{LEVEL_TITLES[code]}</h2>
-          <p class="muted">{DESCRIPTIONS[code]}</p>
+          <h2>{t(`level.${code}.title`)}</h2>
+          <p class="muted">{t(`levelPage.desc.${code}`)}</p>
           <div class="facts">
             {#if info}
-              <span class="chip"><Icon name="cards" size={16} /> {info.words.toLocaleString('en')} words</span>
-              <span class="chip">{plural(info.topics.length, 'topic')}</span>
+              <span class="chip"><Icon name="cards" size={16} /> {tn('common.words', info.words)}</span>
+              <span class="chip">{tn('levelPage.topicCount', info.topics.length)}</span>
             {/if}
           </div>
           {#if info?.topics.length}
             <div class="topics">
-              {#each info.topics.slice(0, 8) as t}
-                <span class="topic">{t.name}</span>
+              {#each info.topics.slice(0, 8) as topic}
+                <span class="topic">{topic.name}</span>
               {/each}
-              {#if info.topics.length > 8}<span class="topic more">+{info.topics.length - 8} more</span>{/if}
+              {#if info.topics.length > 8}<span class="topic more">{t('levelPage.moreTopics', { n: info.topics.length - 8 })}</span>{/if}
             </div>
           {/if}
         </section>
 
         {#if installing}
           <div transition:slide={{ duration: dur(200) }}>
-            <FillProgress done={installing.done} total={installing.total} label="Getting your words ready…" />
+            <FillProgress done={installing.done} total={installing.total} label={t('levelPage.preparing')} />
           </div>
         {:else}
           {#if installError}
             <div class="error small" transition:slide={{ duration: dur(200) }}>{installError}</div>
           {/if}
           <button class="btn btn-primary btn-lg btn-block" onclick={start}>
-            <Icon name="play" filled size={18} /> {installError ? 'Try again' : 'Start this level'}
+            <Icon name="play" filled size={18} /> {installError ? t('common.retry') : t('levelPage.start')}
           </button>
-          <button class="btn btn-ghost btn-block" onclick={placement}>I already know some — take a placement check</button>
+          <button class="btn btn-ghost btn-block" onclick={placement}>{t('levelPage.placementOffer')}</button>
         {/if}
       </div>
     {:else}
@@ -228,7 +220,7 @@
         <ProgressRing ratio={d.progress.ratio} size={112} stroke={10}>
           <span class="ring-text">
             <span class="pct">{Math.round(d.progress.ratio * 100)}%</span>
-            <span class="ring-sub">learned</span>
+            <span class="ring-sub">{t('levelPage.learned')}</span>
           </span>
         </ProgressRing>
         <ul class="counts">
@@ -244,16 +236,16 @@
 
       <div class="stack actions">
         <button class="btn btn-primary btn-lg btn-block" disabled={!d.ids.length} onclick={learn}>
-          <Icon name="play" filled size={18} /> Learn
+          <Icon name="play" filled size={18} /> {t('library.learn')}
         </button>
         <div class="row">
-          <button class="btn grow" onclick={() => go(`/modes/level/${code}`)}><Icon name="cards" size={20} /> More ways to study</button>
-          <button class="btn grow" onclick={() => go(`/placement/${code}`)}><Icon name="sparkle" size={20} /> Placement check</button>
+          <button class="btn grow" onclick={() => go(`/modes/level/${code}`)}><Icon name="cards" size={20} /> {t('library.moreWays')}</button>
+          <button class="btn grow" onclick={() => go(`/placement/${code}`)}><Icon name="sparkle" size={20} /> {t('placement.title')}</button>
         </div>
       </div>
 
       <section class="section">
-        <h2 class="section-title">Topics <span>{d.sets.length}</span></h2>
+        <h2 class="section-title">{t('levelPage.topics')} <span>{d.sets.length}</span></h2>
         {#each d.sets as s, i (s.id)}
           <div
             class="item"
@@ -263,9 +255,9 @@
           >
             <ProgressRow
               href="#/set/{s.id}"
-              title={s.topic || s.name}
+              title={s.topic || systemName(s.name)}
               progress={d.bySet.get(s.id!)}
-              right={{ label: 'Learn', icon: 'play', tone: 'accent', run: () => go(`/learn/set/${s.id}`) }}
+              right={{ label: t('library.learn'), icon: 'play', tone: 'accent', run: () => go(`/learn/set/${s.id}`) }}
             />
           </div>
         {/each}

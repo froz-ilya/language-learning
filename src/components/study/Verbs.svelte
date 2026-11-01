@@ -1,6 +1,7 @@
 <script lang="ts">
   import { checkForm } from '../../lib/german/answer';
   import { displayVerbForms } from '../../lib/german/articles';
+  import { t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import { gradeForResult } from '../../lib/srs/fsrs';
@@ -146,7 +147,7 @@
 
   {#if askAux}
     <div class="field">
-      <div class="label">Perfekt with</div>
+      <div class="label">{t('study.verbs.perfektWith')}</div>
       <div class="segmented" class:seg-ok={checked?.aux} class:seg-no={checked && !checked.aux}>
         {#each ['haben', 'sein'] as const as a}
           <button
@@ -174,7 +175,7 @@
       {@attach feedbackFx(checked.all ? 'good' : 'bad')}
     >
       <div class="head row" class:good={checked.all} class:bad={!checked.all}>
-        <ResultIcon ok={checked.all} />{checked.all ? 'Correct!' : 'Not quite'}
+        <ResultIcon ok={checked.all} />{checked.all ? t('study.correct') : t('study.notQuite')}
       </div>
       <div class="row">
         <div class="forms" lang="de">{card.term} – {displayVerbForms(card)}</div>
@@ -183,9 +184,9 @@
       <Preps preps={card.preps} />
       <Examples {card} />
     </div>
-    <button type="submit" class="btn btn-primary btn-lg btn-block">Continue</button>
+    <button type="submit" class="btn btn-primary btn-lg btn-block">{t('common.continue')}</button>
   {:else}
-    <button type="submit" class="btn btn-primary btn-lg btn-block">Check</button>
+    <button type="submit" class="btn btn-primary btn-lg btn-block">{t('study.check')}</button>
   {/if}
 </form>
 

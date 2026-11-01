@@ -1,4 +1,5 @@
 import { db } from '../db/schema';
+import { canonicalName, systemName } from '../i18n.svelte';
 import { addFolder, addSet, emptyCard, saveCard } from '../db/repo';
 import type { Card, Lang, LookupResult } from '../types';
 import type { LexEntry } from '../dict/types';
@@ -9,7 +10,7 @@ import type { Article, SavedArticle } from './types';
 import { plainToParagraphs } from './text';
 
 /** Name of the user folder that holds one word set per article. */
-export const READING_FOLDER = 'Reading';
+export const READING_FOLDER = canonicalName('reading');
 const MAX_SET_NAME = 60;
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -24,6 +25,11 @@ export function articlePath(id: string): string {
 /** Inverse of articlePath, from route.parts (["article", source, rest]). */
 export function articleIdFromParts(parts: string[]): string {
   return `${parts[1]}:${parts[2] ?? ''}`;
+}
+
+/** The title to show: "My text" follows the language, a real title (even "Lesen") stays as it is. */
+export function articleTitle(a: Pick<Article, 'source' | 'title'>): string {
+  return a.source === 'paste' && a.title === canonicalName('myText') ? systemName(a.title) : a.title;
 }
 
 // ---------- Rows ----------
@@ -113,11 +119,11 @@ export async function createPasted(title: string, text: string): Promise<string>
     ...newRow({
       id,
       source: 'paste',
-      title: title.trim() || paragraphs[0]?.split(/\s+/).slice(0, 6).join(' ') || 'My text',
+      title: title.trim() || paragraphs[0]?.split(/\s+/).slice(0, 6).join(' ') || canonicalName('myText'),
       paragraphs,
       url: '',
       license: '',
-      attribution: 'Your own text',
+      attribution: canonicalName('ownText'),
     }),
     savedAt: now,
   });

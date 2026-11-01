@@ -9,6 +9,7 @@
   import SmartIntro from '../components/study/SmartIntro.svelte';
   import Verbs from '../components/study/Verbs.svelte';
   import Write from '../components/study/Write.svelte';
+  import { fmtNumber, t } from '../lib/i18n.svelte';
   import { back, go, route } from '../lib/router.svelte';
   import { saveSettings, settings } from '../lib/settings.svelte';
   import { isSpeechSupported, stopSpeaking } from '../lib/speech/tts';
@@ -186,27 +187,27 @@
 <div class="page learn">
   <SessionBar
     {title}
-    count={phase === 'running' ? `${done} / ${total}` : ''}
+    count={phase === 'running' ? `${fmtNumber(done)} / ${fmtNumber(total)}` : ''}
     ratio={phase === 'running' ? progress : null}
     onclose={close}
   />
 
   {#if phase === 'loading'}
-    <div class="empty">Loading…</div>
+    <div class="empty">{t('common.loading')}</div>
   {:else if phase === 'empty'}
     <div class="caught-up stack">
       {#if noWords}
-        <div class="big-msg">No words yet</div>
-        <div class="muted">Add some words first, then come back to learn them.</div>
-        <button class="btn btn-lg btn-block" onclick={close}>Back</button>
+        <div class="big-msg">{t('study.empty.noWords')}</div>
+        <div class="muted">{t('study.learn.addFirst')}</div>
+        <button class="btn btn-lg btn-block" onclick={close}>{t('common.back')}</button>
       {:else}
         <div class="emoji" aria-hidden="true">🎉</div>
-        <div class="big-msg">All caught up</div>
-        <div class="muted">Nothing is due right now. Come back later — or keep going:</div>
+        <div class="big-msg">{t('study.learn.caughtUp')}</div>
+        <div class="muted">{t('study.learn.nothingDue')}</div>
         {#if anyway}
-          <button class="btn btn-primary btn-lg btn-block" onclick={learnAnyway}>Learn new words anyway</button>
+          <button class="btn btn-primary btn-lg btn-block" onclick={learnAnyway}>{t('study.learn.anyway')}</button>
         {/if}
-        <button class="btn btn-lg btn-block" class:btn-primary={!anyway} onclick={() => go(modesPath)}>More ways to study</button>
+        <button class="btn btn-lg btn-block" class:btn-primary={!anyway} onclick={() => go(modesPath)}>{t('study.learn.moreWays')}</button>
       {/if}
     </div>
   {:else if phase === 'running' && item}
@@ -234,8 +235,8 @@
   {:else if phase === 'results' && results}
     <SessionResults correct={results.correct} total={results.total} missed={results.missed} {becameHard}>
       {#snippet actions()}
-        <button class="btn btn-primary btn-lg btn-block" onclick={load}>Keep going</button>
-        <button class="btn btn-lg btn-block" onclick={close}>Done</button>
+        <button class="btn btn-primary btn-lg btn-block" onclick={load}>{t('study.learn.keepGoing')}</button>
+        <button class="btn btn-lg btn-block" onclick={close}>{t('common.done')}</button>
       {/snippet}
     </SessionResults>
   {/if}

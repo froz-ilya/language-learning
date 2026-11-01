@@ -1,5 +1,6 @@
 <script lang="ts">
   import { speakableTerm } from '../../lib/german/articles';
+  import { t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import { slideIn } from '../../lib/study/fx';
@@ -22,7 +23,7 @@
 <div class="stack">
   {#key item.seq}
     <div class="card prompt" in:slideIn>
-      <div class="muted small">{answerGerman ? 'Translate into German' : 'Translate'}</div>
+      <div class="muted small">{answerGerman ? t('study.write.toGerman') : t('study.write.translate')}</div>
       {#if answerGerman}
         <div class="big tr">{item.card.translation}</div>
       {:else}

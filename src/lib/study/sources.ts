@@ -1,5 +1,6 @@
 import { db } from '../db/schema';
 import { cardsInFolder, cardsInSet, levelFolder } from '../db/repo';
+import { systemName, t } from '../i18n.svelte';
 import type { Card, Review } from '../types';
 import { HARD_MISSES, isHard } from '../progress';
 
@@ -13,13 +14,27 @@ export type SourceKind = 'set' | 'folder' | 'level' | 'smart';
 export type SmartId = 'today' | 'due' | 'new' | 'starred' | 'mistakes' | 'hard' | 'all';
 
 export const SMART_LABELS: Record<SmartId, string> = {
-  today: 'Today',
-  due: 'Due today',
-  new: 'New words',
-  starred: 'Starred',
-  mistakes: 'Mistakes',
-  hard: 'Hard words',
-  all: 'All words',
+  get today() {
+    return t('study.smart.today');
+  },
+  get due() {
+    return t('study.smart.due');
+  },
+  get new() {
+    return t('study.smart.new');
+  },
+  get starred() {
+    return t('study.smart.starred');
+  },
+  get mistakes() {
+    return t('study.smart.mistakes');
+  },
+  get hard() {
+    return t('study.smart.hard');
+  },
+  get all() {
+    return t('study.smart.all');
+  },
 };
 
 /** Cards answered wrong within this window count as "Mistakes". */
@@ -121,8 +136,14 @@ export async function cardsForSource(kind: SourceKind, id: string, focus = ''): 
 }
 
 export async function sourceTitle(kind: SourceKind, id: string): Promise<string> {
-  if (kind === 'set') return (await db.sets.get(Number(id)))?.name ?? 'Set';
-  if (kind === 'folder') return (await db.folders.get(Number(id)))?.name ?? 'Folder';
-  if (kind === 'level') return `Level ${id}`;
-  return SMART_LABELS[id as SmartId] ?? 'Study';
+  if (kind === 'set') {
+    const set = await db.sets.get(Number(id));
+    return set ? systemName(set.name) : t('common.set');
+  }
+  if (kind === 'folder') {
+    const folder = await db.folders.get(Number(id));
+    return folder ? systemName(folder.name) : t('common.folder');
+  }
+  if (kind === 'level') return t('common.level', { code: id });
+  return SMART_LABELS[id as SmartId] ?? t('study.sourceFallback');
 }

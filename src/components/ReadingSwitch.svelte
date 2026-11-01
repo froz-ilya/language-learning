@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '../lib/i18n.svelte';
+
   /**
    * Switcher between the readings of one word: "treffen | sich treffen", "sein (verb) | sein
    * (possessive) | das Sein". Same look on the add screen, in search and in the reader's word
@@ -19,7 +21,7 @@
   } = $props();
 </script>
 
-<div class="segmented options" role="group" aria-label="Readings of this word">
+<div class="segmented options" role="group" aria-label={t('reading.switch.label')}>
   {#each options as o (o.id)}
     <button
       type="button"

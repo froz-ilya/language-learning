@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { speakableTerm } from '../../lib/german/articles';
+  import { fmtNumber, t, tn } from '../../lib/i18n.svelte';
   import { dur, easeOut } from '../../lib/motion';
   import type { Card } from '../../lib/types';
   import SpeakButton from '../SpeakButton.svelte';
@@ -47,7 +48,13 @@
 
   const perfect = $derived(total > 0 && correct === total);
   const headline = $derived(
-    perfect ? 'Perfect!' : total && correct / total >= 0.8 ? 'Great job!' : total && correct / total >= 0.5 ? 'Nice work' : 'Keep practising',
+    perfect
+      ? t('study.results.perfect')
+      : total && correct / total >= 0.8
+        ? t('study.results.great')
+        : total && correct / total >= 0.5
+          ? t('study.results.nice')
+          : t('study.results.keepPractising'),
   );
 </script>
 
@@ -57,9 +64,9 @@
   <div class="card score">
     <div class="headline">{headline}</div>
     <div class="score-num" class:good={perfect}>
-      <span>{shown}</span><span class="of"> / {total}</span>
+      <span>{fmtNumber(shown)}</span><span class="of"> / {fmtNumber(total)}</span>
     </div>
-    <div class="muted">correct on the first try</div>
+    <div class="muted">{t('study.results.firstTry')}</div>
   </div>
 
   {#if becameHard.length}
@@ -67,10 +74,10 @@
       <span class="hard-icon"><Icon name="flame" size={22} filled /></span>
       <span class="hard-text">
         <strong>
-          {becameHard.length === 1 ? 'A word became a hard word' : `${becameHard.length} words became hard words`}
+          {tn('study.results.hardTitle', becameHard.length)}
         </strong>
         <span class="small muted">
-          {becameHard.map((c) => c.term).join(', ')} — give {becameHard.length === 1 ? 'it' : 'them'} a memory hook
+          {tn('study.results.hardHint', becameHard.length, { terms: becameHard.map((c) => c.term).join(', ') })}
         </span>
       </span>
       <Icon name="chevron" size={18} />
@@ -79,7 +86,7 @@
 
   {#if missed.length}
     <div>
-      <div class="section-title">To review ({missed.length})</div>
+      <div class="section-title">{t('study.results.toReview', { n: missed.length })}</div>
       <div class="list">
         {#each missed as c, i (c.id ?? i)}
           <div class="list-item">
@@ -93,7 +100,7 @@
       </div>
     </div>
   {:else if total > 0}
-    <div class="center muted">No mistakes — well done!</div>
+    <div class="center muted">{t('study.results.noMistakes')}</div>
   {/if}
 
   {@render actions()}

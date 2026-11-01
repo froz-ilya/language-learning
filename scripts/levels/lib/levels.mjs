@@ -1,7 +1,7 @@
 // @ts-nocheck
 // Stage 5: topics, per-level grouping and the LevelFile / LevelIndex output (pure functions).
 import { formatMeanings } from './extract.mjs';
-import { levelOf, BANDS } from './words.mjs';
+import { BANDS } from './words.mjs';
 
 export const TOPICS = [
   'Menschen & Familie', 'Körper & Gesundheit', 'Essen & Trinken', 'Wohnen & Haushalt', 'Stadt & Verkehr',
@@ -110,30 +110,35 @@ function articleSet(w, list, sets) {
   return [...sets.values()].includes(MIXED) ? MIXED : w.topic;
 }
 
+/** Identity of a preset word across rebuilds: term|pos, with #gender for an added article. */
+export const presetKey = (w) => `${w.term}|${w.pos}${w.article ? `#${w.article}` : ''}`;
+
 /**
  * Build LevelFiles + LevelIndex from enriched words ({term,rawPos,pos,…,tr (meanings),example,
- * example_ru,example_en,topic,rank}). Ids are "A1:Haus", "A1:Haus#<rawPos>" for a later
- * homograph, and "B2:See#f" for an added article of a split noun (`mainKey`, `article`), which
- * never takes part in the homograph count so the other ids stay as they were.
+ * example_ru,example_en,topic,rank,level}). A word in `ids` (presetKey → id) keeps that id, even
+ * if its prefix names another level by now: ids only identify ("A1:Waffe" can be a B2 word) and
+ * progress is tied to them. New ids are "A1:Haus", "A1:Haus#<rawPos>" when that is taken, and
+ * "B2:See#f" for an added article of a split noun (`mainKey`, `article`).
  */
-export function buildLevels(words, sources) {
-  const seen = new Map();
+export function buildLevels(words, sources, { ids = new Map(), version = 1 } = {}) {
+  const used = new Set(ids.values());
+  const newId = (w, code) => {
+    const plain = w.mainKey ? `${code}:${w.term}#${w.article}` : `${code}:${w.term}`;
+    const id = used.has(plain) ? `${code}:${w.term}#${w.rawPos}` : plain;
+    if (used.has(id)) throw new Error(`id ${id} is taken`);
+    used.add(id);
+    return id;
+  };
   const files = [];
-  const index = { version: 1, sources, levels: [] };
+  const index = { version, sources, levels: [] };
   for (const [code] of BANDS) {
-    const all = words.filter((w) => levelOf(w.rank) === code).sort((a, b) => a.rank - b.rank);
+    const all = words.filter((w) => w.level === code).sort((a, b) => a.rank - b.rank);
     const list = all.filter((w) => !w.mainKey);
     const sets = groupTopics(list);
     for (const w of all) if (w.mainKey) sets.set(w, articleSet(w, list, sets));
     const out = all.map((w) => {
-      let id = `${code}:${w.term}#${w.article}`;
-      if (!w.mainKey) {
-        const n = (seen.get(w.term) ?? 0) + 1;
-        seen.set(w.term, n);
-        id = n === 1 ? `${code}:${w.term}` : `${code}:${w.term}#${w.rawPos}`;
-      }
       const word = {
-        id,
+        id: ids.get(presetKey(w)) ?? newId(w, code),
         term: w.term,
         pos: w.pos,
         genders: w.genders,
@@ -153,7 +158,7 @@ export function buildLevels(words, sources) {
       }
       return word;
     });
-    files.push({ level: code, words: out });
+    files.push({ level: code, version, words: out });
     const counts = new Map();
     for (const w of out) counts.set(w.topic, (counts.get(w.topic) ?? 0) + 1);
     index.levels.push({ code, words: out.length, topics: [...counts].map(([name, count]) => ({ name, count })) });

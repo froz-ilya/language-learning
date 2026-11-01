@@ -59,7 +59,7 @@
     {/each}
   </div>
 
-  <p class="note small muted">Levels are approximate, based on word frequency.</p>
+  <p class="note small muted">A1–B1 are the official Goethe-Zertifikat word lists. There are none above B1, so B2–C2 are estimates from learner materials and word frequency.</p>
 </div>
 
 <style>

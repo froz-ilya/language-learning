@@ -21,6 +21,12 @@ const mem = vi.hoisted(() => {
     async bulkAdd(rows: Row[]) {
       for (const r of rows) await this.add(r);
     }
+    async bulkUpdate(items: { key: unknown; changes: Row }[]) {
+      for (const { key, changes } of items) Object.assign(this.rows.get(key)!, changes);
+    }
+    async toArray() {
+      return this.all();
+    }
     async put(row: Row) {
       return this.add(row);
     }

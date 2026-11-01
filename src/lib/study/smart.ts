@@ -34,7 +34,7 @@ export function cardState(review: Review | undefined): CardState {
 
 /**
  * Source order for new words: level words (presetId) by id — they are installed in frequency
- * order; user words by createdAt, then id.
+ * order, words a list update added after them; user words by createdAt, then id.
  */
 export function sourceOrder(a: Card, b: Card): number {
   if (a.presetId && b.presetId) return (a.id ?? 0) - (b.id ?? 0);

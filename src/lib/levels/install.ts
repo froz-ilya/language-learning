@@ -1,6 +1,6 @@
 import { db } from '../db/schema';
 import { emptyCard, levelFolder } from '../db/repo';
-import type { Card, Lang } from '../types';
+import type { Card, Folder, Lang, WordSet } from '../types';
 import { LEVEL_TITLES, type LevelCode, type LevelFile, type LevelIndex, type LevelWord } from './types';
 
 const CHUNK = 200;
@@ -18,6 +18,16 @@ async function getJson<T>(file: string): Promise<T> {
 /** Fetch public/levels/index.json (works offline once cached). */
 export function fetchLevelIndex(): Promise<LevelIndex> {
   return getJson<LevelIndex>('index.json');
+}
+
+/** public/levels/<code>.json */
+export function fetchLevelFile(code: LevelCode): Promise<LevelFile> {
+  return getJson<LevelFile>(`${code}.json`);
+}
+
+/** The folder of studied words that left their level (see syncLevels), if there is one. */
+export async function movedFolder(): Promise<Folder | undefined> {
+  return (await db.folders.toArray()).find((f) => f.role === 'moved');
 }
 
 /** Folder name shown in the library, e.g. "A1 · Beginner". */
@@ -56,21 +66,23 @@ export function topicsInOrder(words: LevelWord[]): string[] {
 /**
  * Install a level into the library: a folder with `level = code`, one set per topic
  * (`level`, `topic` set), cards with `presetId`, translations in `lang`.
- * Idempotent: words whose presetId already exists are skipped. Returns the folder id.
+ * Idempotent: words whose presetId already exists are skipped, but one waiting in the "moved"
+ * folder comes home with its progress. Returns the folder id.
  */
 export async function installLevel(
   code: LevelCode,
   lang: Lang,
   onProgress?: (done: number, total: number) => void,
 ): Promise<number> {
-  const file = await getJson<LevelFile>(`${code}.json`);
+  const file = await fetchLevelFile(code);
   const words = file.words ?? [];
 
   const { folderId, setIds } = await db.transaction('rw', db.folders, db.sets, async () => {
     const now = Date.now();
     const existing = await levelFolder(code);
     const folderId =
-      existing?.id ?? ((await db.folders.add({ name: levelFolderName(code), level: code, createdAt: now })) as number);
+      existing?.id ??
+      ((await db.folders.add({ name: levelFolderName(code), level: code, createdAt: now, dataVersion: file.version ?? 1 })) as number);
     const sets = await db.sets.where('folderId').equals(folderId).toArray();
     const setIds = new Map<string, number>();
     for (const s of sets) if (s.topic && !setIds.has(s.topic)) setIds.set(s.topic, s.id!);
@@ -85,11 +97,12 @@ export async function installLevel(
   });
 
   const ids = words.map((w) => w.id);
-  const present = new Set<string>();
+  const present = new Map<string, Card>();
   for (let i = 0; i < ids.length; i += 500) {
     const rows = await db.cards.where('presetId').anyOf(ids.slice(i, i + 500)).toArray();
-    for (const c of rows) present.add(c.presetId);
+    for (const c of rows) present.set(c.presetId, c);
   }
+  await bringBackMoved(words, present, setIds);
   const todo = words.filter((w) => !present.has(w.id));
   const total = todo.length;
   onProgress?.(0, total);
@@ -103,6 +116,30 @@ export async function installLevel(
     onProgress?.(Math.min(i + CHUNK, total), total);
   }
   return folderId;
+}
+
+/** Move this level's cards out of the "moved" folder, dropping what that leaves empty. */
+async function bringBackMoved(words: LevelWord[], present: Map<string, Card>, setIds: Map<string, number>) {
+  await db.transaction('rw', db.folders, db.sets, db.cards, async () => {
+    const folder = await movedFolder();
+    if (!folder) return;
+    const sets = await db.sets.where('folderId').equals(folder.id!).toArray();
+    const moved = new Set(sets.map((s) => s.id));
+    const home = words.flatMap((w) => {
+      const card = present.get(w.id);
+      return card && moved.has(card.setId) ? [{ key: card.id!, changes: { setId: setIds.get(w.topic)! } }] : [];
+    });
+    await db.cards.bulkUpdate(home);
+    await removeEmptySets(sets);
+    if (!(await db.sets.where('folderId').equals(folder.id!).count())) await db.folders.delete(folder.id!);
+  });
+}
+
+/** Delete the given sets where no card is left. */
+export async function removeEmptySets(sets: WordSet[]): Promise<void> {
+  for (const s of sets) {
+    if (!(await db.cards.where('setId').equals(s.id!).count())) await db.sets.delete(s.id!);
+  }
 }
 
 /** Remove an installed level with all its words and progress. */

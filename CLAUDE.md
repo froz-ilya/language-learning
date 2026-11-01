@@ -34,8 +34,11 @@ migration that is tested.
   must still read correctly. Caches may be versioned (cache key prefix, see `CACHE_VERSION` in
   src/lib/lookup/lookup.ts) and cleared in an upgrade step; user-made data may not be dropped.
 - **Backups:** `importBackup()` must accept every older backup version (normalize old records).
-- **Level presets:** word ids (`A1:Haus`) must stay stable across data rebuilds; progress is tied
-  to them.
+- **Level presets:** word ids (`A1:Haus`) never change across data rebuilds, even when a word
+  changes level (`A1:Waffe` is a B2 word); progress is tied to them and the level is the file a
+  word is in. `node scripts/levels/check-ids.mjs` must pass. When a rebuild moves words, raise
+  `DATA_VERSION` in scripts/levels/build.mjs: `syncLevels()` (src/lib/levels/sync.ts) then updates
+  installed levels at launch, keeping everything the user made of a word.
 - **Tests:** every schema version or stored-format change adds a case to
   src/lib/db/migration.test.ts that creates the *old* database exactly as that version stored
   it and checks it opens correctly. Old schema snapshots there are never edited.
@@ -49,6 +52,11 @@ migration that is tested.
   that rate-limits or blocks — back off.
 - Generated data (public/levels, public/dict, public/reading) is committed; download caches under
   `scripts/*/.cache` are gitignored.
+- Levels: A1–B1 are the Goethe-Zertifikat lists (DWDS, rows mapped by scripts/levels/goethe.json:
+  DWDS lacks most of the PDFs' group lists, which `extra` restores). Use only which word is at which
+  level; Goethe's example sentences are protected. No official list exists above B1, so B2–C2 are
+  estimates (scripts/levels/lib/graded.mjs): compounds of listed words are B2 (`notCompound` holds
+  the hand-checked exceptions), then DAFlex (CC BY-NC-SA: keep the credit), then frequency.
 
 ## Local environment quirks
 

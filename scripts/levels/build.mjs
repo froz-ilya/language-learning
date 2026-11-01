@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 // @ts-nocheck
-// Builds approximate CEFR level presets (public/levels/*.json) from word frequency.
+// Builds the CEFR level presets (public/levels/*.json): A1–B1 from the Goethe-Zertifikat word lists
+// (via DWDS); B2–C2, which have no official list, are estimates (lib/graded.mjs).
 //   node scripts/levels/build.mjs [--stage=dict|rank|words|translate|all] [--offline]
 // Downloads and intermediate results are cached in scripts/levels/.cache/ (gitignored),
 // so reruns are fast and translation requests are not repeated. Delete .cache/dict.json after
 // changing lib/extract.mjs or lib/dict.mjs. Hand-made inputs (committed): topics.json (word|pos →
-// topic) and overrides.json (excluded homographs/noise, hand-fixed translations).
+// topic), overrides.json (excluded homographs/noise, hand-fixed translations) and goethe.json (how
+// the lists' rows map to our lemmas). Word ids are read back from public/levels: a word keeps its
+// id for good, also when it changes level, so progress stays with it (scripts/levels/check-ids.mjs).
+// DATA_VERSION goes up with every rebuild that moves words: it makes installed levels sync.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,8 +17,10 @@ import { buildDict, DICT_FORMAT } from './lib/dict.mjs';
 import { formatMeanings } from './lib/extract.mjs';
 import { articleCounts, candidates, exclusionReason, lemmaCounts, mainArticles, parseFrequency, rankLemmas } from './lib/rank.mjs';
 import { Translator } from './lib/google.mjs';
-import { buildLevels, topicOf } from './lib/levels.mjs';
-import { articleWords, BANDS, baseWords, levelOf } from './lib/words.mjs';
+import { GOETHE_LEVELS, goetheEntries, parseGoethe, placeGoethe } from './lib/goethe.mjs';
+import { gradeRest, parseDaflex } from './lib/graded.mjs';
+import { buildLevels, presetKey, topicOf } from './lib/levels.mjs';
+import { articleWords, BANDS, baseWords } from './lib/words.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const CACHE = path.join(HERE, '.cache');
@@ -23,9 +29,12 @@ const OUT = path.join(ROOT, 'public/levels');
 
 const FREQ_URL = 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_50k.txt';
 const DUMP_URL = 'https://kaikki.org/dewiktionary/raw-wiktextract-data.jsonl.gz';
+const GOETHE_URL = 'https://www.dwds.de/api/lemma/goethe';
+const DAFLEX_URL = 'https://cental.uclouvain.be/cefrlex/static/resources/de/DAFlex.tsv';
 const TOTAL = 8000;
+const DATA_VERSION = 2;
 const SOURCES =
-  'Word frequency: FrequencyWords (OpenSubtitles 2018, CC BY-SA 4.0) · Dictionary: Wiktionary via kaikki.org (CC BY-SA 4.0) · Example translations: Google Translate';
+  'Levels A1–B1: Goethe-Zertifikat word lists (© Goethe-Institut) via DWDS · Levels B2–C2: estimated with DAFlex (CEFRLex, CC BY-NC-SA 4.0) · Word frequency: FrequencyWords (OpenSubtitles 2018, CC BY-SA 4.0) · Dictionary: Wiktionary via kaikki.org (CC BY-SA 4.0) · Example translations: Google Translate';
 
 const args = new Set(process.argv.slice(2));
 const STAGE = [...args].find((a) => a.startsWith('--stage='))?.slice(8) ?? 'all';
@@ -67,6 +76,34 @@ async function loadDict(freq) {
   return dict;
 }
 
+/** The Goethe lists as rows per level; each list stays in .cache once downloaded. */
+async function loadGoethe() {
+  const lists = {};
+  for (const level of GOETHE_LEVELS) {
+    const file = cachePath(`goethe-${level}.csv`);
+    await download(`${GOETHE_URL}/${level}.csv`, file);
+    lists[level] = parseGoethe(fs.readFileSync(file, 'utf8'));
+  }
+  return lists;
+}
+
+async function loadDaflex() {
+  const file = cachePath('DAFlex.tsv');
+  await download(DAFLEX_URL, file);
+  return parseDaflex(fs.readFileSync(file, 'utf8'));
+}
+
+/** presetKey → id of every word in the committed level files. */
+function committedIds() {
+  const ids = new Map();
+  for (const [code] of BANDS) {
+    const file = path.join(OUT, `${code}.json`);
+    if (!fs.existsSync(file)) continue;
+    for (const w of readJson(file).words) ids.set(presetKey({ ...w, article: /#[mfn]$/.test(w.id) ? w.id.slice(-1) : '' }), w.id);
+  }
+  return ids;
+}
+
 const overrides = readJson(path.join(HERE, 'overrides.json'));
 
 export async function rank() {
@@ -100,6 +137,22 @@ async function main() {
   const added = articleWords(ranked, dict.lemmas, counts, overrides.tr, new Set(overrides.exclude));
   console.log(`articles of split nouns: ${added.length} (${added.map((w) => `${w.key} #${w.rank}`).join(', ')})`);
   words.push(...added);
+  // A1–B1 are the Goethe lists; the rest are estimated, from B2 up.
+  const lemmas = mainArticles(dict.lemmas);
+  const table = readJson(path.join(HERE, 'goethe.json'));
+  const { added: listed, unmatched } = placeGoethe(goetheEntries(await loadGoethe(), table), words, {
+    lemmas,
+    rankedAll: rankLemmas(r.totals, dict.lemmas),
+    tokenCount: new Map(r.freq),
+    make: (g) => baseWords([g], lemmas, overrides.tr)[0],
+  });
+  console.log(`Goethe: ${listed.length} words added (${listed.map((w) => w.term).join(', ')})`);
+  if (unmatched.length) console.warn(`  ⚠ ${unmatched.length} list entries without a lemma: ${unmatched.map((e) => `${e.level}:${e.lemma}`).join(', ')}`);
+  words.push(...listed);
+  gradeRest(words, await loadDaflex(), table.notCompound);
+  const by = (how) => words.filter((w) => w.levelBy === how);
+  console.log(`Above B1: ${by('compound').length} compounds, ${by('daflex').length} by DAFlex, ${by('frequency').length} by frequency`);
+  for (const [code] of BANDS) console.log(`${code}: ${words.filter((w) => w.level === code).length}`);
   const miss = (l) => words.filter((w) => !w.tr[l].length).length;
   console.log(`words ${words.length}; missing ru ${miss('ru')}, en ${miss('en')}, examples ${words.filter((w) => !w.example).length}`);
   writeJson(cachePath('words-base.json'), words);
@@ -108,7 +161,7 @@ async function main() {
   // Stage 4: Google fills what Wiktionary lacks, cached in .cache/google.json. Priority: missing
   // word translations level by level (ru, then en), then example translations A1 → C2.
   const gt = new Translator(cachePath('google.json'), { offline: OFFLINE });
-  const byLevel = (list) => BANDS.map(([code]) => list.filter((w) => levelOf(w.rank) === code));
+  const byLevel = (list) => BANDS.map(([code]) => list.filter((w) => w.level === code));
   for (const lang of ['ru', 'en']) {
     // Added articles always have both languages (Google can't tell "der See" from "die See").
     for (const missing of byLevel(words.filter((w) => !w.tr[lang].length && !w.mainKey))) {
@@ -134,7 +187,7 @@ async function main() {
   // Stage 5: topics, grouping, output.
   const topics = readJson(path.join(HERE, 'topics.json'));
   for (const w of words) w.topic = topicOf(w, topics);
-  const { files, index } = buildLevels(words, SOURCES);
+  const { files, index } = buildLevels(words, SOURCES, { ids: committedIds(), version: DATA_VERSION });
   fs.mkdirSync(OUT, { recursive: true });
   for (const f of files) fs.writeFileSync(path.join(OUT, `${f.level}.json`), JSON.stringify(f));
   fs.writeFileSync(path.join(OUT, 'index.json'), JSON.stringify(index));

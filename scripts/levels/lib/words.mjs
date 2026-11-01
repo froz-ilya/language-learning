@@ -18,6 +18,16 @@ export function levelOf(rank) {
   return null;
 }
 
+/**
+ * Level of a word outside the Goethe lists: its frequency band, B2 at the lowest. A word the lists
+ * leave out isn't a beginner's word, however often films say it ("Waffe", "verdammt").
+ */
+export function frequencyLevel(rank) {
+  const level = levelOf(rank);
+  const codes = BANDS.map(([code]) => code);
+  return codes[Math.max(codes.indexOf(level), codes.indexOf('B2'))];
+}
+
 /** Base word records (no topic yet) from ranked groups. */
 export function baseWords(ranked, lemmas, trOverrides = {}) {
   return ranked.map((g, i) => {

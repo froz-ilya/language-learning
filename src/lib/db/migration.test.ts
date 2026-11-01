@@ -2,7 +2,7 @@
 // Each test builds a database exactly as an old version stored it, then opens it with today's code.
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** Schemas exactly as each released version declared them. Never edit these: add a new one. */
 const V1 = {
@@ -89,6 +89,7 @@ beforeEach(async () => {
   await Dexie.delete('deutsch');
   vi.resetModules();
 });
+afterEach(() => vi.unstubAllGlobals());
 
 describe('upgrading the database', () => {
   it('opens a v1 database and fills in every field added since', async () => {
@@ -237,6 +238,227 @@ describe('upgrading the database', () => {
     expect(isHard(card, review)).toBe(true);
     // A flat old translation reads as one meaning with its synonyms.
     expect(splitMeanings(card.translation)).toEqual([['стол', 'столик']]);
+  });
+});
+
+describe('levels that changed lists (index version 2)', () => {
+  const tr = (term: string) => ({ ru: `ru-${term}`, en: `en-${term}` });
+  /** A word of the new lists; its id is the one it was installed with. */
+  const word = (id: string, topic: string) => {
+    const term = id.split(':')[1];
+    return { id, term, pos: 'noun', genders: ['f'], plural: '', praeteritum: '', partizip2: '', auxiliary: '', tr: tr(term), topic, rank: 1 };
+  };
+  const LISTS: Record<string, unknown[]> = {
+    A1: [word('A1:Haus', 'Wohnen'), word('C1:Koffer', 'Reisen'), word('A1:Abfahrt', 'Reisen')],
+    A2: [word('A1:Monat', 'Zeit')],
+    B1: [],
+    B2: [word('A1:Waffe', 'Gesellschaft'), word('A1:Kerl', 'Gesellschaft'), word('A1:Blut', 'Gesellschaft'), word('A1:Schatz', 'Gesellschaft')],
+    C1: [],
+    C2: [],
+  };
+  /** Serves the lists; `files` as a version that isn't the index's models a stale cached copy. */
+  function serve({ index = 2, files = 2, offline = false } = {}) {
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (offline) throw new TypeError('Failed to fetch');
+      const code = url.match(/levels\/(\w+)\.json$/)?.[1] ?? '';
+      const body = code === 'index' ? { version: index, sources: '', levels: [] } : { level: code, version: files, words: LISTS[code] };
+      return { ok: true, status: 200, json: async () => body };
+    });
+  }
+  const oldCard = (setId: number, id: string, extra = {}) => {
+    const term = id.split(':')[1];
+    const { id: _saved, ...card } = v1Card as typeof v1Card & { id?: number }; // add() writes the id into v1Card
+    return { ...card, setId, term, translation: `ru-${term}`, examples: [], notes: '', starred: 0, known: 0, presetId: id, ...extra };
+  };
+
+  /** A v6 database: A1 installed from the frequency lists, partly studied, A2 installed too. */
+  async function seedV6(levels = ['A1', 'A2']) {
+    const d = oldDb(6, V5);
+    await d.table('folders').add({ name: 'A1 · Beginner', level: 'A1', createdAt: 1 }); // id 1
+    await d.table('sets').add({ name: 'Wohnen', folderId: 1, level: 'A1', topic: 'Wohnen', createdAt: 1 }); // id 1
+    await d.table('sets').add({ name: 'Funktionswörter 3', folderId: 1, level: 'A1', topic: 'Funktionswörter 3', createdAt: 2 }); // id 2
+    await d.table('folders').add({ name: 'School', level: '', createdAt: 1 }); // id 2
+    await d.table('sets').add({ name: 'Mine', folderId: 2, level: '', topic: '', createdAt: 3 }); // id 3
+    if (levels.includes('A2')) {
+      await d.table('folders').add({ name: 'A2 · Elementary', level: 'A2', createdAt: 1 }); // id 3
+      await d.table('sets').add({ name: 'Natur', folderId: 3, level: 'A2', topic: 'Natur', createdAt: 4 }); // id 4
+    }
+    await d.table('cards').bulkAdd([
+      oldCard(1, 'A1:Haus'), // stays
+      oldCard(2, 'A1:Waffe'), // → B2, studied
+      oldCard(2, 'A1:Kerl'), // → B2, untouched
+      oldCard(2, 'A1:Blut', { starred: 1 }), // → B2, starred
+      oldCard(2, 'A1:Schatz', { translation: 'my own words' }), // → B2, edited
+      oldCard(2, 'A1:Monat'), // → A2, studied
+      oldCard(3, 'B1:Abfahrt2', { presetId: 'A1:Abfahrt' }), // the user keeps this one in their own set
+      { ...oldCard(2, 'A1:Eigen'), presetId: '' }, // a user word in a level set
+    ]);
+    const review = (cardId: number) => ({ cardId, due: fsrs.due.getTime(), fsrs, mistakes: 2, lastWrong: 5 });
+    await d.table('reviews').bulkPut([review(1), review(2), review(6)]);
+    await d.table('settings').put(v1Settings);
+    d.close();
+  }
+
+  async function sync() {
+    const { syncLevels } = await import('../levels/sync');
+    const { db } = await import('./schema');
+    return { synced: await syncLevels('ru'), db };
+  }
+  const setOf = async (db: Dexie, presetId: string) => {
+    const card = await db.table('cards').where('presetId').equals(presetId).first();
+    return card && (await db.table('sets').get(card.setId));
+  };
+
+  it('moves words to their new level and keeps every bit of progress', async () => {
+    await seedV6();
+    serve();
+    const { synced, db } = await sync();
+    expect(synced).toBe(true);
+    expect(await setOf(db, 'A1:Haus')).toMatchObject({ name: 'Wohnen', folderId: 1 });
+    // Moved between installed levels: same card, same review.
+    expect(await setOf(db, 'A1:Monat')).toMatchObject({ topic: 'Zeit', folderId: 3 });
+    expect(await db.table('cards').get(6)).toMatchObject({ presetId: 'A1:Monat' });
+    expect(await db.table('reviews').count()).toBe(3);
+    // New words of the lists arrive, also ones that were in a level not installed before.
+    expect(await setOf(db, 'C1:Koffer')).toMatchObject({ topic: 'Reisen', folderId: 1 });
+    expect(await db.table('cards').where('presetId').equals('C1:Koffer').first()).toMatchObject({ translation: 'ru-Koffer' });
+    // The user's own words and set stay put, and no duplicate is added for their card.
+    expect(await db.table('cards').where('term').equals('Eigen').first()).toMatchObject({ setId: 2 });
+    expect(await db.table('cards').where('presetId').equals('A1:Abfahrt').toArray()).toMatchObject([{ setId: 3 }]);
+    expect(await db.table('folders').get(1)).toMatchObject({ dataVersion: 2 });
+    expect(await db.table('folders').get(3)).toMatchObject({ dataVersion: 2 });
+  });
+
+  it('keeps what the user made of a word whose level isn’t installed, in a visible folder', async () => {
+    await seedV6();
+    serve();
+    const { db } = await sync();
+    for (const id of ['A1:Waffe', 'A1:Blut', 'A1:Schatz']) {
+      expect(await setOf(db, id)).toMatchObject({ name: 'B2 words', level: '', topic: 'B2' });
+    }
+    expect(await db.table('reviews').get(2)).toMatchObject({ mistakes: 2 });
+    expect(await db.table('cards').where('presetId').equals('A1:Schatz').first()).toMatchObject({ translation: 'my own words' });
+    const folder = await db.table('folders').filter((f) => f.role === 'moved').first();
+    expect(folder).toMatchObject({ name: 'Moved from levels', level: '' });
+    // A card nobody touched is only a copy of the list: it comes back with B2.
+    expect(await db.table('cards').where('presetId').equals('A1:Kerl').count()).toBe(0);
+  });
+
+  it('removes level sets left empty, but keeps one that still holds the user’s word', async () => {
+    await seedV6();
+    serve();
+    const { db } = await sync();
+    expect(await db.table('sets').get(1)).toBeTruthy();
+    expect(await db.table('sets').get(2)).toBeTruthy(); // "Eigen" is still there
+    expect(await db.table('sets').get(4)).toBeUndefined(); // A2's old "Natur" had no words left
+  });
+
+  it('moves Today’s focus to the level when its topic set is gone', async () => {
+    await seedV6();
+    const d = oldDb(6, V5);
+    await d.table('settings').update('main', { focus: 'set/4' }); // A2's "Natur", emptied below
+    d.close();
+    serve();
+    const { loadSettings, settings } = await import('../settings.svelte');
+    await loadSettings();
+    const { db } = await sync();
+    expect(settings.focus).toBe('level/A2');
+    expect(await db.settings.get('main')).toMatchObject({ focus: 'level/A2' });
+  });
+
+  it('leaves a focus on a set that is still there', async () => {
+    await seedV6();
+    const d = oldDb(6, V5);
+    await d.table('settings').update('main', { focus: 'set/1' });
+    d.close();
+    serve();
+    const { loadSettings, settings } = await import('../settings.svelte');
+    await loadSettings();
+    await sync();
+    expect(settings.focus).toBe('set/1');
+  });
+
+  it('brings moved words home with their progress when the level is installed', async () => {
+    await seedV6();
+    serve();
+    const { db } = await sync();
+    const { installLevel, movedFolder } = await import('../levels/install');
+    await installLevel('B2', 'ru');
+    expect(await setOf(db, 'A1:Waffe')).toMatchObject({ level: 'B2', topic: 'Gesellschaft' });
+    expect(await db.table('cards').where('presetId').equals('A1:Waffe').first()).toMatchObject({ id: 2 });
+    expect(await db.table('reviews').get(2)).toBeTruthy();
+    expect(await db.table('cards').where('presetId').equals('A1:Kerl').count()).toBe(1);
+    expect(await db.table('cards').where('presetId').equals('A1:Waffe').count()).toBe(1);
+    expect(await movedFolder()).toBeUndefined();
+    expect(await db.table('sets').where('name').equals('B2 words').count()).toBe(0);
+  });
+
+  it('runs once: a second launch changes nothing', async () => {
+    await seedV6();
+    serve();
+    const { db } = await sync();
+    const before = await db.table('cards').toArray();
+    const { syncLevels } = await import('../levels/sync');
+    expect(await syncLevels('ru')).toBe(false);
+    expect(await db.table('cards').toArray()).toEqual(before);
+  });
+
+  it('waits while offline or while the cache still serves the old files', async () => {
+    await seedV6();
+    serve({ offline: true });
+    const { synced, db } = await sync();
+    expect(synced).toBe(false);
+    serve({ files: 1 });
+    const { syncLevels } = await import('../levels/sync');
+    expect(await syncLevels('ru')).toBe(false);
+    expect(await db.table('cards').count()).toBe(8);
+    expect(await db.table('folders').get(1)).not.toHaveProperty('dataVersion');
+    // Once the cache has the new files, it happens after all.
+    serve();
+    expect(await syncLevels('ru')).toBe(true);
+  });
+
+  it('is all or nothing: a write failing halfway leaves the old levels, and the next launch redoes it', async () => {
+    await seedV6();
+    serve();
+    const { syncLevels } = await import('../levels/sync');
+    const { db } = await import('./schema');
+    const before = await db.cards.toArray();
+    const setsBefore = await db.sets.count();
+    const bulkDelete = vi.spyOn(db.cards, 'bulkDelete').mockRejectedValueOnce(new Error('disk full')); // after cards moved
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await syncLevels('ru')).toBe(false);
+    expect(await db.cards.toArray()).toEqual(before);
+    expect(await db.sets.count()).toBe(setsBefore);
+    expect(await db.folders.filter((f) => f.role === 'moved').count()).toBe(0);
+    expect(await db.folders.get(1)).not.toHaveProperty('dataVersion');
+    bulkDelete.mockRestore();
+    error.mockRestore();
+    expect(await syncLevels('ru')).toBe(true);
+    expect(await setOf(db, 'A1:Waffe')).toMatchObject({ name: 'B2 words' });
+  });
+
+  it('syncs a level restored from an old backup', async () => {
+    await seedV6();
+    serve();
+    const { db } = await sync();
+    const { exportBackup, importBackup } = await import('./backup');
+    const backup = JSON.parse(await (await exportBackup()).text());
+    for (const f of backup.folders) delete f.dataVersion;
+    await importBackup(JSON.stringify(backup), 'replace');
+    const { syncLevels } = await import('../levels/sync');
+    expect(await syncLevels('ru')).toBe(true);
+    expect(await setOf(db, 'A1:Waffe')).toMatchObject({ name: 'B2 words' });
+    expect(await db.table('reviews').count()).toBe(3);
+  });
+
+  it('leaves a database with no levels alone, without any request', async () => {
+    await seedV1();
+    const fetched = vi.fn();
+    vi.stubGlobal('fetch', fetched);
+    const { synced } = await sync();
+    expect(synced).toBe(false);
+    expect(fetched).not.toHaveBeenCalled();
   });
 });
 

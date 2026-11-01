@@ -551,6 +551,674 @@
     },
     "Leiter|noun#f": {
       "ru": "лестница, стремянка"
+    },
+    "Abfalleimer|noun": {
+      "ru": "мусорное ведро"
+    },
+    "Abo|noun": {
+      "en": "subscription",
+      "ru": "подписка, абонемент"
+    },
+    "Absenderin|noun": {
+      "ru": "отправительница"
+    },
+    "Anbieter|noun": {
+      "ru": "поставщик, провайдер"
+    },
+    "Anmeldung|noun": {
+      "ru": "регистрация, запись"
+    },
+    "Annonce|noun": {
+      "ru": "объявление (в газете)"
+    },
+    "Ansage|noun": {
+      "ru": "объявление"
+    },
+    "Architektin|noun": {
+      "ru": "архитектор (женщина)"
+    },
+    "Auszubildende|noun": {
+      "en": "apprentice, trainee",
+      "ru": "ученик, стажёр (на производстве)"
+    },
+    "Bankleitzahl|noun": {
+      "ru": "банковский код"
+    },
+    "Beamtin|noun": {
+      "ru": "чиновница, госслужащая"
+    },
+    "Berufsschule|noun": {
+      "ru": "профессиональное училище"
+    },
+    "Betreuerin|noun": {
+      "ru": "воспитательница, сопровождающая"
+    },
+    "Betriebsrat|noun": {
+      "ru": "производственный совет"
+    },
+    "Betriebsrätin|noun": {
+      "en": "works council member",
+      "ru": "член производственного совета (женщина)"
+    },
+    "Bewohnerin|noun": {
+      "ru": "жительница"
+    },
+    "Bioabfall|noun": {
+      "en": "organic waste",
+      "ru": "биоотходы"
+    },
+    "Briefträgerin|noun": {
+      "en": "postwoman, mail carrier",
+      "ru": "почтальон (женщина)"
+    },
+    "Bundespräsidentin|noun": {
+      "ru": "федеральный президент (женщина)"
+    },
+    "Bäckerin|noun": {
+      "en": "baker"
+    },
+    "Bürgerin|noun": {
+      "ru": "гражданка"
+    },
+    "CD-Player|noun": {
+      "ru": "CD-плеер"
+    },
+    "Camp|noun": {
+      "en": "camp",
+      "ru": "лагерь"
+    },
+    "Castingshow|noun": {
+      "ru": "кастинг-шоу"
+    },
+    "Chipkarte|noun": {
+      "ru": "чип-карта"
+    },
+    "Doktorin|noun": {
+      "en": "doctor",
+      "ru": "врач, доктор (женщина)"
+    },
+    "E-Bike|noun": {
+      "ru": "электровелосипед"
+    },
+    "E-Book|noun": {
+      "ru": "электронная книга"
+    },
+    "Ehepartner|noun": {
+      "ru": "супруг, супруга"
+    },
+    "Einbrecherin|noun": {
+      "ru": "взломщица"
+    },
+    "Einleitung|noun": {
+      "ru": "введение"
+    },
+    "Eintritt|noun": {
+      "ru": "вход; входная плата"
+    },
+    "Einwohnerin|noun": {
+      "ru": "жительница"
+    },
+    "Einzahlung|noun": {
+      "ru": "взнос, вклад"
+    },
+    "Erwachsene|noun": {
+      "ru": "взрослый"
+    },
+    "Fachfrau|noun": {
+      "ru": "специалистка"
+    },
+    "Fahrerin|noun": {
+      "ru": "водитель (женщина)"
+    },
+    "Fitness|noun": {
+      "ru": "фитнес"
+    },
+    "Fortbildung|noun": {
+      "ru": "повышение квалификации"
+    },
+    "Friede|noun": {
+      "en": "peace",
+      "ru": "мир"
+    },
+    "Fundsache|noun": {
+      "ru": "найденная вещь"
+    },
+    "Fußgängerin|noun": {
+      "en": "pedestrian",
+      "ru": "пешеход (женщина)"
+    },
+    "Förderung|noun": {
+      "ru": "поддержка, содействие; добыча"
+    },
+    "Gebrauchsanweisung|noun": {
+      "ru": "инструкция по применению"
+    },
+    "Geografie|noun": {
+      "en": "geography",
+      "ru": "география"
+    },
+    "Geschwindigkeitsbeschränkung|noun": {
+      "ru": "ограничение скорости"
+    },
+    "Halbpension|noun": {
+      "ru": "полупансион"
+    },
+    "Handwerkerin|noun": {
+      "ru": "ремесленница"
+    },
+    "Hauptschule|noun": {
+      "ru": "основная школа"
+    },
+    "Hausmann|noun": {
+      "ru": "домохозяин"
+    },
+    "Hausmeisterin|noun": {
+      "en": "caretaker, janitor",
+      "ru": "завхоз, комендант (женщина)"
+    },
+    "Hit|noun": {
+      "en": "hit"
+    },
+    "Hochschule|noun": {
+      "ru": "вуз"
+    },
+    "Homepage|noun": {
+      "ru": "домашняя страница, сайт"
+    },
+    "Händlerin|noun": {
+      "ru": "торговка"
+    },
+    "Hörerin|noun": {
+      "en": "listener",
+      "ru": "слушательница"
+    },
+    "Inserat|noun": {
+      "ru": "объявление (в газете)"
+    },
+    "Intensivkurs|noun": {
+      "ru": "интенсивный курс"
+    },
+    "Kauffrau|noun": {
+      "en": "businesswoman, merchant",
+      "ru": "коммерсантка, менеджер (женщина)"
+    },
+    "Kfz|abbrev": {
+      "en": "motor vehicle",
+      "ru": "автомобиль, транспортное средство"
+    },
+    "Kindertagesstätte|noun": {
+      "ru": "детский сад"
+    },
+    "Kita|noun": {
+      "ru": "детский сад"
+    },
+    "Klassenfahrt|noun": {
+      "ru": "школьная поездка"
+    },
+    "Konsum|noun": {
+      "ru": "потребление"
+    },
+    "Kopierer|noun": {
+      "ru": "копировальный аппарат"
+    },
+    "Kriminalpolizei|noun": {
+      "ru": "уголовная полиция"
+    },
+    "Kursleiterin|noun": {
+      "en": "course instructor",
+      "ru": "руководительница курса, преподавательница"
+    },
+    "Kursleiter|noun": {
+      "ru": "руководитель курса, преподаватель"
+    },
+    "Lehrstelle|noun": {
+      "ru": "место ученика, место для обучения профессии"
+    },
+    "Lernerin|noun": {
+      "en": "learner",
+      "ru": "учащаяся"
+    },
+    "Lerner|noun": {
+      "ru": "учащийся"
+    },
+    "Lieblingslied|noun": {
+      "ru": "любимая песня"
+    },
+    "Lkw|abbrev": {
+      "ru": "грузовик"
+    },
+    "Malerin|noun": {
+      "ru": "художница"
+    },
+    "Mechanikerin|noun": {
+      "ru": "механик (женщина)"
+    },
+    "Metzger|noun": {
+      "en": "butcher",
+      "ru": "мясник"
+    },
+    "Mieterin|noun": {
+      "ru": "квартиросъёмщица"
+    },
+    "Migrantin|noun": {
+      "en": "migrant",
+      "ru": "мигрантка"
+    },
+    "Migration|noun": {
+      "ru": "миграция"
+    },
+    "Ministerin|noun": {
+      "ru": "женщина-министр"
+    },
+    "Mitarbeiterin|noun": {
+      "ru": "сотрудница"
+    },
+    "Mitschüler|noun": {
+      "ru": "одноклассник"
+    },
+    "Mobilität|noun": {
+      "en": "mobility"
+    },
+    "Moderatorin|noun": {
+      "en": "presenter, host"
+    },
+    "Mountainbike|noun": {
+      "ru": "горный велосипед"
+    },
+    "Müllabfuhr|noun": {
+      "ru": "вывоз мусора"
+    },
+    "Nachwuchs|noun": {
+      "ru": "потомство; молодое поколение"
+    },
+    "Nationalfeiertag|noun": {
+      "ru": "национальный праздник"
+    },
+    "Obergeschoss|noun": {
+      "ru": "верхний этаж"
+    },
+    "Partnerin|noun": {
+      "en": "partner",
+      "ru": "партнёрша, спутница жизни"
+    },
+    "Personalie|noun": {
+      "ru": "личные данные"
+    },
+    "Personenstand|noun": {
+      "ru": "гражданское состояние"
+    },
+    "Pflegerin|noun": {
+      "ru": "сиделка, медсестра"
+    },
+    "Pkw|abbrev": {
+      "ru": "легковой автомобиль"
+    },
+    "Politikerin|noun": {
+      "ru": "женщина-политик"
+    },
+    "Praktikantin|noun": {
+      "ru": "практикантка, стажёрка"
+    },
+    "Profisportlerin|noun": {
+      "en": "professional athlete",
+      "ru": "профессиональная спортсменка"
+    },
+    "Prüferin|noun": {
+      "en": "examiner, inspector",
+      "ru": "экзаменатор (женщина)"
+    },
+    "Prüfer|noun": {
+      "en": "examiner, inspector"
+    },
+    "Radfahrerin|noun": {
+      "ru": "велосипедистка"
+    },
+    "Realschule|noun": {
+      "en": "secondary school",
+      "ru": "реальная школа"
+    },
+    "Rentnerin|noun": {
+      "ru": "пенсионерка"
+    },
+    "Reporterin|noun": {
+      "en": "reporter",
+      "ru": "репортёр (женщина)"
+    },
+    "Rufnummer|noun": {
+      "en": "phone number",
+      "ru": "номер телефона"
+    },
+    "Rundfahrt|noun": {
+      "en": "round trip, tour",
+      "ru": "экскурсия, круговая поездка"
+    },
+    "Rückfahrt|noun": {
+      "ru": "обратный путь"
+    },
+    "Rückmeldung|noun": {
+      "ru": "обратная связь"
+    },
+    "Schade|noun": {
+      "en": "damage, harm",
+      "ru": "вред, ущерб"
+    },
+    "Schnupfen|noun": {
+      "en": "cold, runny nose",
+      "ru": "насморк"
+    },
+    "Schulabschluss|noun": {
+      "ru": "аттестат, окончание школы"
+    },
+    "Schulden|noun": {
+      "ru": "долги"
+    },
+    "Sekretariat|noun": {
+      "ru": "секретариат"
+    },
+    "Seniorin|noun": {
+      "ru": "пенсионерка, пожилая женщина"
+    },
+    "Sonderangebot|noun": {
+      "ru": "специальное предложение, скидка"
+    },
+    "Sonnabend|noun": {
+      "en": "Saturday",
+      "ru": "суббота"
+    },
+    "Sozialarbeiterin|noun": {
+      "en": "social worker",
+      "ru": "социальная работница"
+    },
+    "Sozialarbeiter|noun": {
+      "ru": "социальный работник"
+    },
+    "Speisewagen|noun": {
+      "ru": "вагон-ресторан"
+    },
+    "Spezialistin|noun": {
+      "ru": "специалистка"
+    },
+    "Sportplatz|noun": {
+      "ru": "спортивная площадка"
+    },
+    "Studierende|noun": {
+      "ru": "студент, студентка"
+    },
+    "Suchtmittel|noun": {
+      "ru": "наркотическое средство"
+    },
+    "Tagesablauf|noun": {
+      "ru": "распорядок дня"
+    },
+    "Technikerin|noun": {
+      "ru": "техник (женщина)"
+    },
+    "Terminkalender|noun": {
+      "ru": "ежедневник"
+    },
+    "Trainerin|noun": {
+      "ru": "тренер (женщина)"
+    },
+    "Trend|noun": {
+      "ru": "тренд, тенденция"
+    },
+    "Umtausch|noun": {
+      "ru": "обмен"
+    },
+    "Uni|noun": {
+      "en": "university, uni",
+      "ru": "университет"
+    },
+    "Unternehmerin|noun": {
+      "en": "entrepreneur",
+      "ru": "предпринимательница"
+    },
+    "User|noun": {
+      "ru": "пользователь"
+    },
+    "Verbrecherin|noun": {
+      "en": "criminal",
+      "ru": "преступница"
+    },
+    "Verliererin|noun": {
+      "en": "loser",
+      "ru": "проигравшая"
+    },
+    "Vermietung|noun": {
+      "ru": "сдача в аренду, прокат"
+    },
+    "Vertreterin|noun": {
+      "en": "representative",
+      "ru": "представительница"
+    },
+    "Volkshochschule|noun": {
+      "ru": "народная школа, курсы для взрослых"
+    },
+    "Vorfahrt|noun": {
+      "ru": "преимущественное право проезда"
+    },
+    "WC|noun": {
+      "en": "toilet, restroom"
+    },
+    "WG|abbrev": {
+      "ru": "совместное проживание, съёмная квартира на несколько человек"
+    },
+    "Wanderung|noun": {
+      "ru": "поход; миграция"
+    },
+    "Weiterbildung|noun": {
+      "ru": "повышение квалификации"
+    },
+    "Wetterbericht|noun": {
+      "ru": "прогноз погоды"
+    },
+    "Wiederhören|noun": {
+      "en": "goodbye (on the phone)",
+      "ru": "до свидания (по телефону)"
+    },
+    "Wirtin|noun": {
+      "ru": "хозяйка (гостиницы, квартиры)"
+    },
+    "Wohngemeinschaft|noun": {
+      "ru": "совместное проживание, квартира на несколько жильцов"
+    },
+    "Workshop|noun": {
+      "ru": "мастер-класс, семинар"
+    },
+    "Zahncreme|noun": {
+      "ru": "зубная паста"
+    },
+    "Zertifikat|noun": {
+      "ru": "сертификат"
+    },
+    "Zuhörerin|noun": {
+      "ru": "слушательница"
+    },
+    "alltäglich|adj": {
+      "ru": "повседневный, обыденный"
+    },
+    "alternativ|adj": {
+      "ru": "альтернативный"
+    },
+    "aufregend|adj": {
+      "en": "exciting",
+      "ru": "волнующий, захватывающий"
+    },
+    "aufwärts|adv": {
+      "ru": "вверх"
+    },
+    "ausdrucken|verb": {
+      "ru": "распечатывать"
+    },
+    "beinah|adv": {
+      "en": "almost, nearly",
+      "ru": "почти, чуть не"
+    },
+    "berufstätig|adj": {
+      "en": "working, employed",
+      "ru": "работающий"
+    },
+    "besetzt|adj": {
+      "en": "occupied, busy",
+      "ru": "занятый"
+    },
+    "besucht|adj": {
+      "ru": "посещаемый"
+    },
+    "chic|adj": {
+      "en": "chic, stylish",
+      "ru": "шикарный, элегантный"
+    },
+    "dauernd|adj": {
+      "ru": "постоянный, длительный"
+    },
+    "donnern|verb": {
+      "ru": "греметь"
+    },
+    "dorther|adv": {
+      "en": "from there"
+    },
+    "eckig|adj": {
+      "ru": "угловатый, квадратный"
+    },
+    "eintausend|num": {
+      "ru": "одна тысяча"
+    },
+    "festsetzen|verb": {
+      "ru": "устанавливать, назначать; задерживать"
+    },
+    "feststehen|verb": {
+      "ru": "быть решённым, быть установленным"
+    },
+    "fließend|adj": {
+      "ru": "свободный (о речи); текущий"
+    },
+    "gewohnt|adj": {
+      "ru": "привычный"
+    },
+    "gleichberechtigt|adj": {
+      "en": "having equal rights",
+      "ru": "равноправный"
+    },
+    "halbtags|adv": {
+      "en": "part-time, half-day",
+      "ru": "на полставки, полдня"
+    },
+    "haltbar|adj": {
+      "ru": "прочный; долго хранящийся"
+    },
+    "heim|adv": {
+      "ru": "домой"
+    },
+    "herunterfahren|verb": {
+      "ru": "съезжать вниз; выключать (компьютер)"
+    },
+    "inner|adj": {
+      "en": "inner, internal",
+      "ru": "внутренний"
+    },
+    "integrieren|verb": {
+      "ru": "интегрировать"
+    },
+    "interessiert|adj": {
+      "ru": "заинтересованный"
+    },
+    "jedes Mal|phrase": {
+      "ru": "каждый раз"
+    },
+    "kaputtgehen|verb": {
+      "ru": "ломаться, портиться"
+    },
+    "man|pron": {
+      "ru": "(неопределённо-личное: говорят, делают)"
+    },
+    "mehrere|pron": {
+      "ru": "несколько"
+    },
+    "mich|pron": {
+      "ru": "меня"
+    },
+    "mitten|adv": {
+      "ru": "посреди, в середине"
+    },
+    "möbliert|adj": {
+      "ru": "меблированный"
+    },
+    "nachschlagen|verb": {
+      "ru": "смотреть (в словаре), справляться"
+    },
+    "nochmal|adv": {
+      "en": "again, once more",
+      "ru": "ещё раз"
+    },
+    "pauschal|adj": {
+      "ru": "общий, паушальный; огульный"
+    },
+    "per|prep": {
+      "en": "by, via",
+      "ru": "через, посредством"
+    },
+    "radfahren|unknown": {
+      "en": "cycle, ride a bike",
+      "ru": "ездить на велосипеде"
+    },
+    "regional|adj": {
+      "ru": "региональный"
+    },
+    "schuld|adj": {
+      "ru": "виноватый"
+    },
+    "selber|pron": {
+      "ru": "сам"
+    },
+    "stehenbleiben|verb": {
+      "en": "stop, stand still",
+      "ru": "останавливаться"
+    },
+    "stressig|adj": {
+      "ru": "напряжённый, стрессовый"
+    },
+    "surfen|verb": {
+      "ru": "сёрфить; сидеть в интернете"
+    },
+    "tolerant|adj": {
+      "ru": "терпимый, толерантный"
+    },
+    "unentschieden|adj": {
+      "ru": "нерешённый; вничью"
+    },
+    "unterlassen|verb": {
+      "ru": "воздерживаться, не делать"
+    },
+    "unterstreichen|verb": {
+      "ru": "подчёркивать"
+    },
+    "virtuell|adj": {
+      "ru": "виртуальный"
+    },
+    "voraussichtlich|adj": {
+      "ru": "предположительный, ожидаемый"
+    },
+    "wert|adj": {
+      "ru": "стоящий; дорогой, уважаемый"
+    },
+    "zirka|adv": {
+      "en": "approximately, about",
+      "ru": "примерно, около"
+    },
+    "zuordnen|verb": {
+      "ru": "соотносить, относить к"
+    },
+    "zurücklaufen|verb": {
+      "en": "run back, walk back",
+      "ru": "бежать обратно, идти обратно"
+    },
+    "Übersetzerin|noun": {
+      "en": "translator",
+      "ru": "переводчица"
+    },
+    "äußerlich|adj": {
+      "ru": "внешний"
     }
   },
   "articleShare": {

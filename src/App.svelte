@@ -2,9 +2,11 @@
   // ROUTE TABLE (shell agent: keep the routes; restyle the shell — tab bar, transitions, hosts).
   import { route, back, isTabRoot, parentOf } from './lib/router.svelte';
   import { online } from './lib/online.svelte';
-  import { ui } from './lib/ui/dialogs.svelte';
+  import { showToast, ui } from './lib/ui/dialogs.svelte';
   import { reducedMotion } from './lib/motion';
   import { checkBackupReminder } from './lib/backupReminder';
+  import { syncLevels } from './lib/levels/sync';
+  import { settings } from './lib/settings.svelte';
   import { isIOS } from './lib/platform';
   import { hasOverlay } from './lib/ui/overlay';
   import { onMount } from 'svelte';
@@ -78,6 +80,11 @@
 
   // Backup reminder pop-up (waits for the first screen and any study session; once per launch).
   onMount(checkBackupReminder);
+
+  // Installed levels follow the word lists of this release; progress stays with the words.
+  onMount(async () => {
+    if (await syncLevels(settings.lang)) showToast('Levels updated to the new word lists. Your progress is kept.');
+  });
 
   const Page = $derived(ROUTES[route.parts[0] as keyof typeof ROUTES] ?? Home);
   const onTabRoot = $derived(isTabRoot(route.path));

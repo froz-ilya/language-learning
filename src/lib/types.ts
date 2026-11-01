@@ -16,6 +16,13 @@ export interface Folder {
   /** '' for user folders; 'A1'…'C2' for an installed level preset. */
   level: string;
   createdAt: number;
+  /**
+   * Level folder: the version of the level lists (index.json) it matches; absent means 1.
+   * Older than today's lists → syncLevels() brings it up to date.
+   */
+  dataVersion?: number;
+  /** 'moved': holds studied words whose level changed to one that isn't installed (syncLevels). */
+  role?: 'moved';
 }
 
 /** folderId 0 means "not in a folder" (IndexedDB cannot index null). */
@@ -50,7 +57,7 @@ export interface Card {
   needsFill: number;
   /** 1 = marked "known" manually: skipped in sessions, counts as done in progress. */
   known: number;
-  /** Level preset word id like "A1:Haus"; '' for user words. */
+  /** Level preset word id like "A1:Haus", kept for good: only identifies, "A1:" may be outdated. */
   presetId: string;
   createdAt: number;
   /**

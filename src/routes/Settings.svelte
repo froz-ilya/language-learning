@@ -185,7 +185,7 @@
   // ---------- About ----------
 
   const FALLBACK_SOURCES =
-    'Word frequency: FrequencyWords (OpenSubtitles, CC BY-SA) · Dictionary: Wiktionary (CC BY-SA) · Translations: Google Translate';
+    'Levels A1–B1: Goethe-Zertifikat word lists via DWDS · Levels B2–C2: estimated with DAFlex (CC BY-NC-SA) · Word frequency: FrequencyWords (OpenSubtitles, CC BY-SA) · Dictionary: Wiktionary (CC BY-SA) · Translations: Google Translate';
   let sources = $state(FALLBACK_SOURCES);
   levelIndex().then((i) => {
     if (i?.sources) sources = i.sources;
@@ -197,6 +197,8 @@
     { name: 'Wikipedia', what: 'Reading: articles', license: 'CC BY-SA 4.0' },
     { name: 'Project Gutenberg', what: 'Reading: classic stories', license: 'Public domain' },
     { name: 'Wiktionary via kaikki.org', what: 'Offline dictionary', license: 'CC BY-SA' },
+    { name: 'Goethe-Institut via DWDS', what: 'Word lists A1–B1', license: '© Goethe-Institut' },
+    { name: 'DAFlex (CEFRLex)', what: 'Level estimates B2–C2', license: 'CC BY-NC-SA 4.0' },
     { name: 'FrequencyWords', what: 'Word frequency', license: 'CC BY-SA' },
     { name: 'MyMemory', what: 'Translations (fallback)', license: 'Translated.net' },
   ];
@@ -457,7 +459,7 @@
     </div>
     <div class="card small muted stack-sm">
       <div>{sources}</div>
-      <div>Levels are approximate, based on word frequency.</div>
+      <div>A1–B1 are the official Goethe-Zertifikat word lists. There are none above B1, so B2–C2 are estimates from learner materials and word frequency.</div>
     </div>
     <div class="list credits">
       {#each CREDITS as c}

@@ -26,7 +26,9 @@ import {
   tieRank,
 } from '../../../scripts/levels/lib/rank.mjs';
 import { buildLevels, groupTopics, topicOf } from '../../../scripts/levels/lib/levels.mjs';
-import { articleWords, baseWords, levelOf } from '../../../scripts/levels/lib/words.mjs';
+import { articleWords, baseWords, frequencyLevel, levelOf } from '../../../scripts/levels/lib/words.mjs';
+import { goetheEntries, parseGoethe, placeGoethe } from '../../../scripts/levels/lib/goethe.mjs';
+import { compoundParts, firstLevel, gradeRest, parseDaflex, splitCompound } from '../../../scripts/levels/lib/graded.mjs';
 import { splitLines } from '../../../scripts/levels/lib/google.mjs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -444,7 +446,7 @@ describe('articles with different meanings', () => {
     const noRu: Any = { ...lemmas, 'See|noun': { ...lemmas['See|noun'], articles: [lemmas['See|noun'].articles[0], { ...lemmas['See|noun'].articles[1], tr: { ru: [], en: [['sea']] } }] } };
     expect(articleWords(ranked, noRu, counts)).toEqual([]);
     for (const w of [...words, ...added]) w.topic = 'Natur & Wetter';
-    const { files } = buildLevels([...words, ...added], 'src');
+    const { files } = buildLevels([...words, ...added].map((w) => ({ ...w, level: 'A1' })), 'src');
     const a1 = files[0].words;
     expect(a1.map((w: Any) => w.id)).toEqual(['A1:Haus', 'A1:See', 'A1:Tisch', 'A1:See#f']);
     expect(a1.map((w: Any) => w.rank)).toEqual([1, 2, 3, 3]);
@@ -491,7 +493,7 @@ describe('levels', () => {
   });
 
   it('builds files with unique ids and optional example translations', () => {
-    const base = { genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', topic: 'Alltagsverben' };
+    const base = { genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', topic: 'Alltagsverben', level: 'A1' };
     const words = [
       { ...base, term: 'sein', rawPos: 'verb', pos: 'verb', tr: { ru: [['быть']], en: [['be']] }, rank: 1, example: 'Ich bin da.', example_en: 'I am here.', example_ru: '' },
       { ...base, term: 'sein', rawPos: 'pron', pos: 'other', tr: { ru: [['его']], en: [['his', 'its', 'one’s', 'x']] }, rank: 2, topic: 'Funktionswörter' },
@@ -509,6 +511,192 @@ describe('levels', () => {
   });
 });
 
+describe('Goethe lists', () => {
+  const rec = (word: string, rawPos: string, pos: string, extra: Any = {}) => ({
+    word, rawPos, pos, genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', examples: [],
+    tr: { ru: [[`ru-${word}`]], en: [[`en-${word}`]] }, ...extra,
+  });
+  const lemmas: Any = {
+    'Haus|noun': rec('Haus', 'noun', 'noun', { genders: ['n'] }),
+    'gerade|adj': rec('gerade', 'adj', 'adj'),
+    'gerade|adv': rec('gerade', 'adv', 'other'),
+    'sein|verb': rec('sein', 'verb', 'verb'),
+    'sein|pron': rec('sein', 'pron', 'other'),
+    'Koffer|noun': rec('Koffer', 'noun', 'noun', { genders: ['m'], offensive: true }),
+    'Gehalt|noun': rec('Gehalt', 'noun', 'noun', { articles: [{ genders: ['m'] }, { genders: ['n'] }] }),
+  };
+  const make = (g: Any) => baseWords([g], lemmas)[0];
+  const place = (entries: Any[], words: Any[]) =>
+    placeGoethe(entries, words, { lemmas, rankedAll: words.map((w) => ({ key: w.key, members: [w.key], count: 1000 - w.rank })), tokenCount: new Map([['koffer', 500]]), make });
+  const entry = (lemma: string, wortart: string, level: string, gender = '') => ({ lemma, wortart, gender, level });
+
+  it('reads the CSV, also a genus with two values', () => {
+    const csv = `"Lemma","URL","Wortart","Genus","Artikel","nur_im_Plural"\n"Abend","u","Substantiv","mask.","der","0"\n"Gehalt","u","Substantiv","neutr., mask.","","0"\n"ab","u","Präposition","","","0"\n`;
+    expect(parseGoethe(csv)).toEqual([
+      { lemma: 'Abend', wortart: 'Substantiv', gender: 'm' },
+      { lemma: 'Gehalt', wortart: 'Substantiv', gender: 'n' },
+      { lemma: 'ab', wortart: 'Präposition', gender: '' },
+    ]);
+  });
+
+  it('applies the hand table: skips, aliases and what the lists only imply', () => {
+    const lists = {
+      A1: [
+        { lemma: '%', wortart: 'Symbol', gender: '' },
+        { lemma: 'der', wortart: 'bestimmter Artikel', gender: '' },
+        { lemma: 'Sie', wortart: 'Substantiv', gender: 'f' },
+        { lemma: 'Sie', wortart: 'Personalpronomen', gender: '' },
+        { lemma: 'meine', wortart: 'Possessivpronomen', gender: '' },
+        { lemma: 'getrennt', wortart: 'partizipiales Adjektiv', gender: '' },
+      ],
+    };
+    const table = { skip: ['der', 'Sie|Substantiv'], alias: { meine: 'mein', getrennt: 'trennen|Verb' }, extra: { A1: ['du', 'Monat', 'speichern|Verb'] } };
+    expect(goetheEntries(lists, table).map((e: Any) => [e.lemma, e.wortart])).toEqual([
+      ['Sie', 'Personalpronomen'],
+      ['mein', 'Possessivpronomen'],
+      ['trennen', 'Verb'],
+      ['du', ''],
+      ['Monat', 'Substantiv'],
+      ['speichern', 'Verb'],
+    ]);
+  });
+
+  it('sets levels; adjective and adverb are one card, a verb and a pronoun are two', () => {
+    const words = [
+      { key: 'Haus|noun', term: 'Haus', pos: 'noun', rank: 5 },
+      { key: 'gerade|adj', term: 'gerade', pos: 'adj', rank: 50 },
+      { key: 'sein|verb', term: 'sein', pos: 'verb', rank: 2 },
+    ];
+    const { added, unmatched } = place(
+      [entry('Haus', 'Substantiv', 'B1', 'n'), entry('Haus', 'Substantiv', 'A1', 'n'), entry('gerade', 'Adverb', 'A2'), entry('sein', 'Possessivpronomen', 'A1'), entry('Xyz', 'Substantiv', 'A1')],
+      words,
+    );
+    expect(words.map((w: Any) => w.level)).toEqual(['A1', 'A2', undefined]); // the lowest level counts
+    expect(added.map((w: Any) => [w.term, w.level])).toEqual([['sein', 'A1']]);
+    expect(unmatched.map((e: Any) => e.lemma)).toEqual(['Xyz']);
+  });
+
+  it('adds a listed word however rare or flagged, at the rank its frequency gives', () => {
+    const words = [{ key: 'Haus|noun', term: 'Haus', pos: 'noun', rank: 1 }, { key: 'gerade|adj', term: 'gerade', pos: 'adj', rank: 900 }];
+    const { added } = place([entry('Koffer', 'Substantiv', 'A1', 'm')], words);
+    expect(added[0]).toMatchObject({ term: 'Koffer', level: 'A1', genders: ['m'], rank: 2 });
+  });
+
+  it('gives the level to the article the list means', () => {
+    const words: Any[] = [
+      { key: 'Gehalt|noun', term: 'Gehalt', pos: 'noun', rank: 900 },
+      { key: 'Gehalt|noun#n', mainKey: 'Gehalt|noun', article: 'n', term: 'Gehalt', pos: 'noun', rank: 950 },
+    ];
+    place([entry('Gehalt', 'Substantiv', 'A2', 'n')], words);
+    expect(words.map((w) => w.level)).toEqual([undefined, 'A2']);
+  });
+
+  it('puts words outside the lists at B2 or above', () => {
+    expect([1, 700, 2600, 5000, 7000].map(frequencyLevel)).toEqual(['B2', 'B2', 'B2', 'C1', 'C2']);
+  });
+
+  it('keeps ids when words change level, and never reuses one', () => {
+    const base = { genders: [], plural: '', praeteritum: '', partizip2: '', auxiliary: '', topic: 'Alltagsverben', tr: { ru: [], en: [] }, rawPos: 'noun', pos: 'noun' };
+    const words = [
+      { ...base, term: 'Waffe', level: 'B2', rank: 300 },
+      { ...base, term: 'Abend', level: 'A1', rank: 400 },
+      { ...base, term: 'See', level: 'A1', rank: 500 },
+      { ...base, term: 'See', mainKey: 'See|noun', article: 'f', level: 'B2', rank: 600 },
+      { ...base, term: 'Neu', level: 'A1', rank: 700 },
+      { ...base, term: 'Neu', rawPos: 'adj', pos: 'adj', level: 'A1', rank: 701 },
+    ];
+    const ids = new Map([
+      ['Waffe|noun', 'A1:Waffe'],
+      ['Abend|noun', 'C2:Abend'],
+      ['See|noun', 'A2:See'],
+      ['See|noun#f', 'B2:See#f'],
+    ]);
+    const { files, index } = buildLevels(words, 'src', { ids, version: 2 });
+    expect(files[0].words.map((w: Any) => w.id)).toEqual(['C2:Abend', 'A2:See', 'A1:Neu', 'A1:Neu#adj']);
+    expect(files[3].words.map((w: Any) => w.id)).toEqual(['A1:Waffe', 'B2:See#f']);
+    expect(files[0].version).toBe(2);
+    expect(index.version).toBe(2);
+  });
+});
+
+describe('levels above B1', () => {
+  const listed = [
+    { term: 'Arbeit', pos: 'noun', level: 'A1' },
+    { term: 'Zeit', pos: 'noun', level: 'A1' },
+    { term: 'Kind', pos: 'noun', level: 'A1' },
+    { term: 'Zimmer', pos: 'noun', level: 'A1' },
+    { term: 'Ende', pos: 'noun', level: 'A1' },
+    { term: 'Tag', pos: 'noun', level: 'A1' },
+    { term: 'waschen', pos: 'verb', level: 'A1' },
+    { term: 'Maschine', pos: 'noun', level: 'A2' },
+    { term: 'rot', pos: 'adj', level: 'A1' },
+    { term: 'Wein', pos: 'noun', level: 'A1' },
+    { term: 'Galgen', pos: 'noun', level: 'C2' }, // not listed: no part of a compound
+  ];
+  const row = (word: string, tag: string, docs: number[]) => [word, tag, ...Array(7).fill(0), ...docs, 0].map((c) => `"${c}"`).join('\t');
+  const tsv = (...rows: string[]) => ['header', ...rows].join('\n');
+
+  it('reads DAFlex and sums a word’s tags', () => {
+    const docs = parseDaflex(tsv(row('Arbeit', 'NN', [1, 0, 3, 0, 0, 0]), row('arbeit', 'NE', [0, 2, 0, 0, 0, 0]), row('gehen', 'V', [9, 0, 0, 0, 0, 0]), row('gut', 'ADJD', [4, 0, 0, 0, 0, 0])));
+    expect(docs.get('arbeit|noun')).toEqual([1, 2, 3, 0, 0, 0]);
+    expect(docs.get('gehen|verb')).toEqual([9, 0, 0, 0, 0, 0]);
+    expect(docs.get('gut|other')).toEqual([4, 0, 0, 0, 0, 0]);
+  });
+
+  it('understands the real file: verbs have the tag V', () => {
+    const docs = parseDaflex(readFileSync(new URL('../../../scripts/levels/__fixtures__/daflex-sample.tsv', import.meta.url), 'utf8'));
+    expect(firstLevel(docs.get('schwören|verb'))).toBeTruthy();
+    expect(firstLevel(docs.get('arbeitgeber|noun'))).toBeTruthy();
+  });
+
+  it('takes the first level with real use, not a single stray document', () => {
+    expect(firstLevel([1, 1, 3, 9, 0, 0])).toBe('B1');
+    expect(firstLevel([0, 1, 1, 2, 0, 0])).toBe('B2');
+    expect(firstLevel([1, 0, 0, 0, 0, 1])).toBeNull();
+    expect(firstLevel(undefined)).toBeNull();
+  });
+
+  it('splits compounds of listed words, with their joints', () => {
+    const { modifiers, heads } = compoundParts(listed);
+    const split = (t: string) => splitCompound(t, modifiers, heads);
+    expect(split('Arbeitszeit')).toEqual(['arbeit', 'zeit']);
+    expect(split('Kinderzimmer')).toEqual(['kind', 'zimmer']);
+    expect(split('Waschmaschine')).toEqual(['wasch', 'maschine']);
+    expect(split('Rotwein')).toEqual(['rot', 'wein']);
+    expect(split('Galgenzeit')).toBeNull(); // a part that isn't in A1–B1
+    expect(split('Zeit')).toBeNull();
+  });
+
+  it('grades in order: compound, DAFlex (never below B2), frequency', () => {
+    const word = (term: string, pos: string, rank: number) => ({ term, pos, rank }) as Any;
+    const words = [
+      ...listed.filter((w) => w.level !== 'C2'),
+      word('Arbeitszeit', 'noun', 7000),
+      word('Legende', 'noun', 3000),
+      word('Waffe', 'noun', 300),
+      word('Umstand', 'noun', 7000),
+      word('Heuchler', 'noun', 6500),
+      word('Kerl', 'noun', 300),
+      word('rollen', 'verb', 5000),
+    ] as Any[];
+    const daflex = parseDaflex(tsv(
+      row('Waffe', 'NN', [0, 3, 0, 0, 0, 0]),
+      row('Umstand', 'NN', [0, 0, 0, 0, 7, 0]),
+      row('Rollen', 'NN', [5, 0, 0, 0, 0, 0]), // a noun: says nothing about the verb
+    ));
+    gradeRest(words, daflex, ['Legende']);
+    const got = (t: string) => { const w = words.find((x) => x.term === t); return [w.level, w.levelBy]; };
+    expect(got('Arbeitszeit')).toEqual(['B2', 'compound']);
+    expect(got('Waffe')).toEqual(['B2', 'daflex']); // A2 in DAFlex, but only Goethe's words are A2
+    expect(got('Umstand')).toEqual(['C1', 'daflex']);
+    expect(got('Heuchler')).toEqual(['C2', 'frequency']);
+    expect(got('Legende')).toEqual(['B2', 'frequency']); // not split, though "Leg-ende" would
+    expect(got('Kerl')).toEqual(['B2', 'frequency']); // however often films say it
+    expect(got('rollen')).toEqual(['C1', 'frequency']);
+    expect(words.find((w) => w.term === 'Arbeit').levelBy).toBeUndefined(); // listed words stay
+  });
+});
+
 describe('google', () => {
   it('splits a multi-line response back into lines', () => {
     const data = [[['The house is big.\n', 'x'], ['I am going home. ', 'y'], ['He comes.', 'z']]];
@@ -522,6 +710,7 @@ describe('generated output', () => {
     const index = JSON.parse(readFileSync(new URL('../../../public/levels/index.json', import.meta.url), 'utf8'));
     expect(index.levels.map((l: Any) => l.code)).toEqual(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
     expect(index.sources).toMatch(/FrequencyWords/);
+    expect(index.sources).toMatch(/DAFlex/);
     const a1 = JSON.parse(readFileSync(new URL('../../../public/levels/A1.json', import.meta.url), 'utf8'));
     expect(a1.level).toBe('A1');
     expect(a1.words).toHaveLength(index.levels[0].words);
@@ -529,6 +718,25 @@ describe('generated output', () => {
     for (const t of ['Haus', 'gehen', 'gut', 'Wasser']) expect(terms).toContain(t);
     const ids = new Set(index.levels.flatMap((l: Any) => JSON.parse(readFileSync(new URL(`../../../public/levels/${l.code}.json`, import.meta.url), 'utf8')).words.map((w: Any) => w.id)));
     expect(ids.size).toBe(index.levels.reduce((n: number, l: Any) => n + l.words, 0));
+  });
+
+  it('follows the Goethe lists up to B1 and has every word once', () => {
+    const levelOfTerm = new Map<string, string>();
+    for (const code of ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
+      for (const w of JSON.parse(readFileSync(new URL(`../../../public/levels/${code}.json`, import.meta.url), 'utf8')).words) {
+        if (!levelOfTerm.has(w.term)) levelOfTerm.set(w.term, code);
+      }
+    }
+    // Subtitle words aren't beginner words any more; listed words are in, however rare in films.
+    for (const t of ['Waffe', 'töten', 'verdammt', 'Teufel']) expect(levelOfTerm.get(t)).toBe('B2');
+    // Compounds of listed words are B2, however rare in films; these only look like compounds.
+    for (const t of ['Arbeitszeit', 'Kinderzimmer', 'Jahreszeit', 'Abendessen']) expect(levelOfTerm.get(t)).toBe('B2');
+    expect(levelOfTerm.get('Mittelalter')).not.toBe('A1');
+    for (const t of ['Koffer', 'billig', 'Fahrkarte', 'Haltestelle', 'du']) expect(levelOfTerm.get(t)).toBe('A1');
+    for (const t of ['Gesicht', 'Weihnachten', 'Physik']) expect(levelOfTerm.get(t)).toBe('A2');
+    for (const t of ['Regierung', 'Elefant', 'Smartphone', 'Blut']) expect(levelOfTerm.get(t)).toBe('B1');
+    // Regional variants Goethe marks as Austrian or Swiss only stay out.
+    for (const t of ['Znüni', 'Paradeiser', 'Velo']) expect(levelOfTerm.has(t)).toBe(false);
   });
 
   it('has separate words for articles with different meanings', () => {

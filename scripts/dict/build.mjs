@@ -214,7 +214,22 @@ function selectLemmas(freq, dict, overrides, levels) {
     groups.push({ id, members: [key], word: baseWords([{ key, members: [key] }], lemmas, overrides.tr)[0] });
   }
 
-  // Preset words always stay in, whatever their position.
+  // Preset words always stay in, whatever their position: the Goethe lists also hold words the
+  // rules above leave out ("billig" for a rare offensive sense, "Baby" as subtitle noise). At the
+  // end of the list, so that no other rank moves.
+  const listed = new Set(groups.map((g) => g.id));
+  for (const [key, rec] of Object.entries(dict.lemmas)) {
+    const id = groupId(rec);
+    if (!levels.has(id) || listed.has(id)) continue;
+    listed.add(id);
+    groups.push({
+      id,
+      members: [key],
+      word: baseWords([{ key, members: [key] }], lemmas, overrides.tr)[0],
+      tokenCount: tokenCount.get(rec.word.toLowerCase()) ?? 0,
+    });
+  }
+
   const selected = groups.filter((g, i) => i < MAX_LEMMAS || levels.has(g.id));
   const inPresets = new Set(selected.map((g) => g.id));
   const missing = [...levels.keys()].filter((k) => !inPresets.has(k) && !/#[mfn]$/.test(k));

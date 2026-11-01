@@ -254,6 +254,23 @@ async function addExtra(w: string, lower: string, push: (id: string, entry: LexE
   }
 }
 
+/**
+ * Does a noun or adjective reached through its forms beat the lower-case lemmas of a capitalised
+ * word? A full plural ("Federn") has all four cases behind it, so rank alone decides. A dative
+ * plural ("Teilen") or an adjective's ending on a verb's spelling ("Heiligen") has less, and must
+ * be 3× more common: "Besuchen Sie", "Spielen wir" are verbs. Function words and adverbs keep
+ * their reading ("Wegen", "Falls", "Abends"), and any other spelling isn't this noun's ("Parken").
+ */
+function outweighs(e: LexEntry, lower: string, lemmas: LexEntry[]): boolean {
+  if (lemmas.some((l) => l.pos === 'other')) return false;
+  const common = e.rank * 3 < Math.min(...lemmas.map((l) => l.rank));
+  if (e.pos === 'noun') {
+    const plural = e.plural.toLowerCase();
+    return plural === lower || (common && `${plural}n` === lower);
+  }
+  return e.pos === 'adj' && common && lemmas.some((l) => l.pos === 'verb');
+}
+
 const ARTICLE = /^(der|die|das|den|dem|des|ein|eine|einen|einem|einer|eines)\s+/i;
 const EDGE_PUNCT = /^[^\p{L}]+|[^\p{L}]+$/gu;
 
@@ -295,13 +312,6 @@ async function lookup(word: string, withExtra: boolean): Promise<LocalHit[]> {
     if (entry?.term === w) push(id, entry, 0);
     else if (entry && (entry.term === cap || entry.term === lower)) push(id, entry, 1);
   }
-  // A capitalised word may just start a sentence: when the lower-case reading is far more common
-  // ("Sie" → sie #3, not the noun "Sie" #10405), rank it with the exact match. Real nouns
-  // ("Essen" vs essen) are rarely 10× less frequent, so they keep winning.
-  if (w !== lower) {
-    const best = Math.min(...hits.filter((h) => h.tier === 0).map((h) => h.hit.entry.rank));
-    for (const h of hits) if (h.tier === 1 && h.hit.entry.term === lower && h.hit.entry.rank * 10 < best) h.tier = 0;
-  }
   const formIds = piece?.forms[lower];
   if (formIds) {
     for (const id of formIds) push(id, await entryOf(id), 1, w);
@@ -310,6 +320,22 @@ async function lookup(word: string, withExtra: boolean): Promise<LocalHit[]> {
     for (const c of ruleCandidates(lower)) {
       const p = await pieceFor(c);
       for (const id of p?.byLower.get(c) ?? []) push(id, p?.lemmas.get(id), 1, w);
+    }
+  }
+  // A capitalised word may just start a sentence: when the lower-case reading is far more common
+  // ("Sie" → sie #3, not the noun "Sie" #10405), rank it with the exact match. Real nouns
+  // ("Essen" vs essen) are rarely 10× less frequent, so they keep winning. With no exact match the
+  // lower-case lemma stands in for one, and only an inflection that outweighs it joins it there
+  // ("Federn" is Feder before federn; "Wegen" stays wegen, and other verbs stay behind).
+  if (w !== lower) {
+    const plain = hits.filter((h) => h.tier === 1 && h.hit.entry.term === lower);
+    const exact = hits.filter((h) => h.tier === 0).map((h) => h.hit.entry.rank);
+    if (exact.length) {
+      const best = Math.min(...exact);
+      for (const h of plain) if (h.hit.entry.rank * 10 < best) h.tier = 0;
+    } else if (plain.length) {
+      const lemmas = plain.map((h) => h.hit.entry);
+      for (const h of hits) if (plain.includes(h) || outweighs(h.hit.entry, lower, lemmas)) h.tier = 0;
     }
   }
   if (withExtra && !hits.some((h) => h.hit.entry.pos === 'verb') && (!hits.length || (await extraMayKnow(w, lower)))) {

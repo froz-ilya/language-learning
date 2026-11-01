@@ -196,6 +196,102 @@ describe('lookupLocal', () => {
   });
 });
 
+describe('capitalised words', () => {
+  // Rank, tags, then plural (a noun) or Präteritum and Partizip II (a verb), as the build stores them.
+  const noun = (rank: number, gender: string, plural: string) => [rank, `n${gender}`, '', 'x', plural];
+  const verb = (rank: number) => [rank, 'vh', '', 'x', '2te', '0'];
+  const piece = {
+    lemmas: {
+      Sie: noun(10405, 'n', 'Sie'),
+      sie: [3, 'o', '', 'x'],
+      Feder: noun(2895, 'f', 'Federn'),
+      federn: verb(4170),
+      Arbeit: noun(194, 'f', 'Arbeiten'),
+      arbeiten: verb(229),
+      Teil: noun(329, 'm', 'Teile'),
+      teilen: verb(1832),
+      mitteilen: verb(1899),
+      Besuch: noun(588, 'm', 'Besuche'),
+      besuchen: verb(1079),
+      Park: noun(972, 'm', 'Parks'),
+      parken: verb(3504),
+      Klage: noun(2602, 'f', 'Klagen'),
+      klagen: verb(4240),
+      anklagen: verb(2067),
+      Pol: noun(2819, 'm', 'Pole'),
+      Pole: noun(13619, 'm', 'Polen'),
+      polen: verb(3854),
+      Weg: noun(79, 'm', 'Wege'),
+      wegen: [214, 'o', '', 'x'],
+      spät: [196, 'a', '', 'x'],
+      später: [306, 'a', '', 'x'],
+      heilig: [656, 'a', '', 'x'],
+      heiligen: verb(7324),
+      lieb: [193, 'a', '', 'x'],
+      lieben: verb(223),
+    },
+    forms: {
+      federn: ['Feder'],
+      arbeiten: ['Arbeit'],
+      teilen: ['Teil', 'mitteilen'],
+      besuchen: ['Besuch'],
+      parken: ['Park'],
+      klagen: ['Klage', 'anklagen'],
+      polen: ['Pol', 'Pole'],
+      wegen: ['Weg'],
+      später: ['spät'],
+      heiligen: ['heilig'],
+      lieben: ['lieb'],
+    },
+  };
+  const prefixes = ['si', 'fe', 'ar', 'te', 'mi', 'be', 'pa', 'kl', 'an', 'po', 'we', 'sp', 'he', 'li'];
+
+  beforeEach(() => {
+    extra = {
+      'index.json': JSON.stringify({ version: 1, sources: '', count: 1, pieces: Object.fromEntries(prefixes.map((k) => [k, 'all.json'])) }),
+      'all.json': JSON.stringify(piece),
+    };
+  });
+
+  it('ranks a far more common lower-case reading with an exact match ("Sie")', async () => {
+    expect(terms(await local.lookupLocal('Sie'))).toEqual(['sie', 'Sie']);
+    expect((await local.lemmatize('Sie'))?.term).toBe('sie');
+  });
+
+  it('reads a full plural as its noun when the noun is more common than the verb spelled the same', async () => {
+    expect(terms(await local.lookupLocal('Federn'))).toEqual(['Feder', 'federn']);
+    expect((await local.lemmatize('Federn'))?.term).toBe('Feder');
+    expect((await local.lemmatize('Arbeiten'))?.term).toBe('Arbeit');
+    // In lower case it is the verb, and a capital alone doesn't lift a rarer noun over it.
+    expect(terms(await local.lookupLocal('federn'))).toEqual(['federn', 'Feder']);
+    expect((await local.lemmatize('Polen'))?.term).toBe('polen');
+  });
+
+  it('keeps a verb a dative plural is not far more common than', async () => {
+    expect((await local.lemmatize('Besuchen'))?.term).toBe('besuchen');
+    expect((await local.lemmatize('Teilen'))?.term).toBe('Teil');
+  });
+
+  it('ignores a noun that this spelling is not a plural of', async () => {
+    expect((await local.lemmatize('Parken'))?.term).toBe('parken');
+  });
+
+  it('keeps other verbs behind the noun and the verb itself ("Klagen" is not anklagen)', async () => {
+    expect(terms(await local.lookupLocal('Klagen'))).toEqual(['Klage', 'klagen', 'anklagen']);
+    expect(terms(await local.lookupLocal('Teilen'))).toEqual(['Teil', 'teilen', 'mitteilen']);
+  });
+
+  it('keeps function words, adverbs and adjectives with a form of another word to themselves', async () => {
+    expect((await local.lemmatize('Wegen'))?.term).toBe('wegen');
+    expect((await local.lemmatize('Später'))?.term).toBe('später');
+  });
+
+  it('reads an adjective ending as the adjective only when far more common than the verb', async () => {
+    expect((await local.lemmatize('Heiligen'))?.term).toBe('heilig');
+    expect((await local.lemmatize('Lieben'))?.term).toBe('lieben');
+  });
+});
+
 describe('determiner forms of a verb homograph', () => {
   it('reads the forms of the possessive sein as the possessive, the verb\'s as the verb', async () => {
     for (const w of ['seinen', 'seine', 'seinem', 'seiner', 'seines']) {
@@ -661,6 +757,19 @@ describe('generated dictionary (public/dict)', () => {
     expect(terms(await local.lookupLocal('rief'))).toContain('anrufen');
     expect((await local.lookupLocal('Tisch'))[0].entry).toMatchObject({ pos: 'noun', genders: ['m'], plural: 'Tische' });
     expect((await local.prefixLocal('Sch')).length).toBe(8);
+  });
+
+  it.skipIf(!existsSync(new URL('index.json', DICT)))('reads capitalised words by what they most likely are', async () => {
+    const lemma = async (w: string) => (await local.lemmatize(w))?.term;
+    expect(await lemma('Sie')).toBe('sie');
+    // Nouns, not the rarer verbs spelled like their plurals.
+    for (const [w, term] of [['Federn', 'Feder'], ['Stunden', 'Stunde'], ['Schulen', 'Schule'], ['Arbeiten', 'Arbeit'], ['Teilen', 'Teil'], ['Orten', 'Ort']]) {
+      expect(await lemma(w), w).toBe(term);
+    }
+    // Verbs that open a sentence ("Besuchen Sie …"), function words and adverbs.
+    for (const w of ['Besuchen', 'Spielen', 'Drücken', 'Parken', 'Starten', 'Lieben', 'Wegen', 'Falls', 'Später', 'Ihr', 'Mehrere', 'Leider', 'Abends']) {
+      expect(await lemma(w), w).toBe(w.toLowerCase());
+    }
   });
 
   it.skipIf(!existsSync(new URL('index.json', DICT)))('reads determiner forms as determiners, not as verbs', async () => {

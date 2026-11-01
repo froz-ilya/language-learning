@@ -36,6 +36,8 @@ const lange = lex('lange', 'other');
 const lang = lex('lang', 'adj');
 const sehen = lex('sehen', 'verb');
 const ansehen = lex('ansehen', 'verb');
+const arbeiten = lex('arbeiten', 'verb');
+const Arbeit = lex('Arbeit', 'noun');
 
 /** lookupLocal's order, as the real dictionary gives it. */
 const STUB: Record<string, LocalHit[]> = {
@@ -55,6 +57,7 @@ const STUB: Record<string, LocalHit[]> = {
   lange: [hit(lange), hit(lang, 'lange')],
   sah: [hit(sehen, 'sah'), hit(ansehen, 'sah')],
   alte: [hit(lex('alt', 'adj'), 'alte')],
+  Arbeiten: [hit(Arbeit, 'Arbeiten'), hit(arbeiten)],
 };
 const hitsOf = (w: string) => STUB[w] ?? [];
 
@@ -80,6 +83,12 @@ describe('rankReadings', () => {
     ['Essen ist gut.', 'Essen', 'essen/verb'],
     ['Er sagte: Essen ist gut.', 'Essen', 'essen/verb'],
     ['„Essen ist gut.“', 'Essen', 'essen/verb'],
+    // A capitalised infinitive before "Sie" or "wir" opens a question or a request.
+    ['Arbeiten Sie hier?', 'Arbeiten', 'arbeiten/verb'],
+    ['Arbeiten wir!', 'Arbeiten', 'arbeiten/verb'],
+    ['Er sagte: Arbeiten sie zusammen?', 'Arbeiten', 'arbeiten/verb'],
+    ['Arbeiten sind fertig.', 'Arbeiten', 'Arbeit/noun'],
+    ['Wir nennen Arbeiten Sie.', 'Arbeiten', 'Arbeit/noun'],
     // "Sie" is never the noun.
     ['Wir haben Sie gesehen.', 'Sie', 'sie/other'],
     // Determiner before a noun.

@@ -6,6 +6,8 @@
  * - A lower-case word is not a noun (nouns go last); neither are "Sie" and "Es", whichever way
  *   they are written. Mid-sentence, a capitalised word is a noun or a name (nouns go first). At
  *   the start of a sentence the case says nothing. Text in all capitals is left alone.
+ * - At the start of a sentence, a capitalised infinitive right before "Sie" or "wir" is the verb
+ *   ("Arbeiten Sie hier?", "Spielen wir!"): that spelling is no other finite form.
  * - A determiner-shaped word directly before a noun, or an adjective + noun, is the determiner
  *   ("sein Arm", "seine alte Frau", "meinen Freund").
  * - After "zu", and at the end of a clause with a modal, an infinitive is the verb ("zu sein",
@@ -30,6 +32,8 @@ const DETERMINER_SHAPED = /^(?:ein|kein|mein|dein|sein|ihr|unser|eu?r|euer|dies|
 const OPENS_NOUN = /^(?:de[rmns]|die|das|(?:ein|kein|mein|dein|sein|ihr|unser|eu?r|dies|jed)(?:e[nmrs]?)?|euer|am|im|ans|ins|aufs|beim|vom|zum|zur|ums|fürs|durchs)$/;
 /** Capitalised pronouns, not the noun of a noun phrase ("Was meinen Sie?"). */
 const COURTESY = /^(?:sie|ihnen|ihr(?:e[nmrs]?)?)$/i;
+/** Subjects a finite verb spelled like its infinitive has right behind it. */
+const INFINITIVE_SUBJECT = /^(?:sie|wir)$/i;
 /** Pronouns with a junk noun reading: "das Sie", "das Es". */
 const NOT_NOUNS = /^(?:sie|es)$/i;
 /** Finite modals (and werden) that leave an infinitive at the end of the clause. */
@@ -118,7 +122,10 @@ export function rankReadings(tokens: Token[], i: number, hitsOf: HitsOf): LexEnt
   const isInfinitive = (e: LexEntry) => isVerb(e) && e.term === lower;
   const hasAdj = list.some((e) => e.pos === 'adj');
 
-  if ((lowerCase || start) && DETERMINER_SHAPED.test(lower) && nounPhrase) {
+  const nextAt = neighbour(tokens, i, 1);
+  if (start && !lowerCase && list.some(isInfinitive) && nextAt !== undefined && INFINITIVE_SUBJECT.test(tokens[nextAt].text)) {
+    list = toFront(list, isInfinitive);
+  } else if ((lowerCase || start) && DETERMINER_SHAPED.test(lower) && nounPhrase) {
     list = toFront(toFront(list, (e) => e.pos === 'other'), (e) => e.pos === 'other' && stem(e));
   } else if (lowerCase && list.some(isInfinitive) && (prev === 'zu' ? !(hasAdj && nounPhrase) : endsClause(tokens, i) && modalBefore(tokens, i))) {
     list = toFront(list, isInfinitive);

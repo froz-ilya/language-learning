@@ -199,7 +199,7 @@ describe('lookupLocal', () => {
 describe('capitalised words', () => {
   // Rank, tags, then plural (a noun) or Präteritum and Partizip II (a verb), as the build stores them.
   const noun = (rank: number, gender: string, plural: string) => [rank, `n${gender}`, '', 'x', plural];
-  const verb = (rank: number) => [rank, 'vh', '', 'x', '2te', '0'];
+  const verb = (rank: number, level = '') => [rank, `vh${level}`, '', 'x', '2te', '0'];
   const piece = {
     lemmas: {
       Sie: noun(10405, 'n', 'Sie'),
@@ -209,7 +209,7 @@ describe('capitalised words', () => {
       Arbeit: noun(194, 'f', 'Arbeiten'),
       arbeiten: verb(229),
       Teil: noun(329, 'm', 'Teile'),
-      teilen: verb(1832),
+      teilen: verb(1832, '2'),
       mitteilen: verb(1899),
       Besuch: noun(588, 'm', 'Besuche'),
       besuchen: verb(1079),
@@ -229,6 +229,15 @@ describe('capitalised words', () => {
       heiligen: verb(7324),
       lieb: [193, 'a', '', 'x'],
       lieben: verb(223),
+      Ding: noun(205, 'n', 'Dinge'),
+      dingen: verb(1721),
+      Mal: noun(57, 'n', 'Male'),
+      malen: verb(1167, '2'),
+      bereit: [297, 'a', '', 'x'],
+      bereiten: verb(1968, '3'),
+      Laut: noun(604, 'm', 'Laute'),
+      Laute: noun(2874, 'f', 'Lauten'),
+      lauten: verb(1182),
     },
     forms: {
       federn: ['Feder'],
@@ -242,9 +251,13 @@ describe('capitalised words', () => {
       später: ['spät'],
       heiligen: ['heilig'],
       lieben: ['lieb'],
+      dingen: ['Ding'],
+      malen: ['Mal'],
+      bereiten: ['bereit'],
+      lauten: ['Laut', 'Laute'],
     },
   };
-  const prefixes = ['si', 'fe', 'ar', 'te', 'mi', 'be', 'pa', 'kl', 'an', 'po', 'we', 'sp', 'he', 'li'];
+  const prefixes = ['si', 'fe', 'ar', 'te', 'mi', 'be', 'pa', 'kl', 'an', 'po', 'we', 'sp', 'he', 'li', 'di', 'ma', 'la'];
 
   beforeEach(() => {
     extra = {
@@ -267,8 +280,19 @@ describe('capitalised words', () => {
     expect((await local.lemmatize('Polen'))?.term).toBe('polen');
   });
 
+  it('leaves a full plural rarer than the verb among the other forms, by rank', async () => {
+    expect(terms(await local.lookupLocal('Lauten'))).toEqual(['lauten', 'Laut', 'Laute']);
+  });
+
   it('keeps a verb a dative plural is not far more common than', async () => {
     expect((await local.lemmatize('Besuchen'))?.term).toBe('besuchen');
+    expect((await local.lemmatize('Dingen'))?.term).toBe('Ding');
+  });
+
+  it('keeps an A1–B1 verb first against a dative plural or an adjective, whatever the ranks say', async () => {
+    expect((await local.lemmatize('Malen'))?.term).toBe('malen');
+    expect((await local.lemmatize('Bereiten'))?.term).toBe('bereiten');
+    // The few dative plurals real text uses far more than the verb.
     expect((await local.lemmatize('Teilen'))?.term).toBe('Teil');
   });
 
@@ -763,11 +787,11 @@ describe('generated dictionary (public/dict)', () => {
     const lemma = async (w: string) => (await local.lemmatize(w))?.term;
     expect(await lemma('Sie')).toBe('sie');
     // Nouns, not the rarer verbs spelled like their plurals.
-    for (const [w, term] of [['Federn', 'Feder'], ['Stunden', 'Stunde'], ['Schulen', 'Schule'], ['Arbeiten', 'Arbeit'], ['Teilen', 'Teil'], ['Orten', 'Ort']]) {
+    for (const [w, term] of [['Federn', 'Feder'], ['Stunden', 'Stunde'], ['Schulen', 'Schule'], ['Arbeiten', 'Arbeit'], ['Teilen', 'Teil'], ['Gründen', 'Grund'], ['Orten', 'Ort']]) {
       expect(await lemma(w), w).toBe(term);
     }
     // Verbs that open a sentence ("Besuchen Sie …"), function words and adverbs.
-    for (const w of ['Besuchen', 'Spielen', 'Drücken', 'Parken', 'Starten', 'Lieben', 'Wegen', 'Falls', 'Später', 'Ihr', 'Mehrere', 'Leider', 'Abends']) {
+    for (const w of ['Besuchen', 'Spielen', 'Drücken', 'Parken', 'Starten', 'Lieben', 'Malen', 'Bereiten', 'Schätzen', 'Lauten', 'Wegen', 'Falls', 'Später', 'Ihr', 'Mehrere', 'Leider', 'Abends']) {
       expect(await lemma(w), w).toBe(w.toLowerCase());
     }
   });

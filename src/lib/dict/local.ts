@@ -254,19 +254,25 @@ async function addExtra(w: string, lower: string, push: (id: string, entry: LexE
   }
 }
 
+/** Dative plurals real text uses far more than the A1–B1 verb spelled the same (see outweighs). */
+const DATIVE_OVER_VERB = new Set(['teilen', 'gründen']);
+
 /**
  * Does a noun or adjective reached through its forms beat the lower-case lemmas of a capitalised
- * word? A full plural ("Federn") has all four cases behind it, so rank alone decides. A dative
- * plural ("Teilen") or an adjective's ending on a verb's spelling ("Heiligen") has less, and must
- * be 3× more common: "Besuchen Sie", "Spielen wir" are verbs. Function words and adverbs keep
- * their reading ("Wegen", "Falls", "Abends"), and any other spelling isn't this noun's ("Parken").
+ * word? A full plural ("Federn") has all four cases behind it, so it only has to be more common. A
+ * dative plural ("Dingen") or an adjective's ending on a verb's spelling ("Heiligen") has less: it
+ * must be 3× more common, and a verb on the A1–B1 lists stays first whatever the ranks say ("Malen",
+ * "Bereiten"; ranks can be inflated: Mal #57). Function words and adverbs keep their reading
+ * ("Wegen", "Falls", "Abends"), and any other spelling isn't this noun's ("Parken").
  */
 function outweighs(e: LexEntry, lower: string, lemmas: LexEntry[]): boolean {
   if (lemmas.some((l) => l.pos === 'other')) return false;
-  const common = e.rank * 3 < Math.min(...lemmas.map((l) => l.rank));
+  const best = Math.min(...lemmas.map((l) => l.rank));
+  const listed = lemmas.some((l) => l.pos === 'verb' && l.level && LEVELS.indexOf(l.level) <= LEVELS.indexOf('B1'));
+  const common = e.rank * 3 < best && (!listed || DATIVE_OVER_VERB.has(lower));
   if (e.pos === 'noun') {
     const plural = e.plural.toLowerCase();
-    return plural === lower || (common && `${plural}n` === lower);
+    return (plural === lower && e.rank < best) || (common && `${plural}n` === lower);
   }
   return e.pos === 'adj' && common && lemmas.some((l) => l.pos === 'verb');
 }

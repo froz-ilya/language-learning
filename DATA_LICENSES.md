@@ -37,5 +37,9 @@ No license is granted here for the following, even where it sits in the files li
 
 The app fetches these on the device while it runs. Apart from the test samples above, their content
 isn't in this repository: Wiktionary, [Wikipedia](https://de.wikipedia.org) (CC BY-SA 4.0), Wikinews
-(CC BY 2.5), MiniKlexikon and Klexikon articles (CC BY-SA 4.0), Google Translate and
+(CC BY 2.5), MiniKlexikon and Klexikon articles (CC BY-SA 4.0), [tagesschau](https://www.tagesschau.de)
+(© ARD), [Deutsche Welle](https://www.dw.com/de/) (© DW), Google Translate and
 [MyMemory](https://mymemory.translated.net). The app shows the attribution under every article.
+
+News from tagesschau and Deutsche Welle isn't openly licensed. The phone reads it from the publisher,
+and it's never stored in this repository. The news test samples use invented text.

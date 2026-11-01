@@ -4,12 +4,14 @@ import {
   endOfDay,
   filterByScope,
   isDueOrNew,
+  isDueToday,
   isStudyMode,
   modeApplies,
   modeAvailability,
   resolveDirection,
   Session,
   shuffle,
+  startOfDay,
   STUDY_MODES,
 } from './session';
 import { choiceOptions, matchRounds } from './quiz';
@@ -89,6 +91,16 @@ describe('scope', () => {
     expect(isDueOrNew(review(1, endOfDay(now)), now)).toBe(true);
     expect(isDueOrNew(review(1, endOfDay(now) + 1), now)).toBe(false);
     expect(isDueOrNew(undefined, now)).toBe(true);
+  });
+  it('a word answered today waits for tomorrow', () => {
+    const answered = (at: number): Review => ({
+      ...review(1, now),
+      fsrs: { last_review: new Date(at) } as Review['fsrs'],
+    });
+    expect(isDueToday(answered(startOfDay(now)), now)).toBe(false);
+    expect(isDueToday(answered(startOfDay(now) - 1), now)).toBe(true);
+    expect(isDueOrNew(answered(startOfDay(now)), now)).toBe(false);
+    expect(isDueToday(answered(startOfDay(now)), endOfDay(now) + 1)).toBe(true);
   });
 });
 

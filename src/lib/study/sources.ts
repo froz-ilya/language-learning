@@ -3,6 +3,7 @@ import { cardsInFolder, cardsInSet, levelFolder } from '../db/repo';
 import { systemName, t } from '../i18n.svelte';
 import type { Card, Review } from '../types';
 import { HARD_MISSES, isHard } from '../progress';
+import { endOfDay, isDueToday, startOfDay } from './session';
 
 /**
  * A study "source" is what you learn from:
@@ -40,14 +41,22 @@ export const SMART_LABELS: Record<SmartId, string> = {
 /** Cards answered wrong within this window count as "Mistakes". */
 const MISTAKE_WINDOW_MS = 14 * 24 * 3600 * 1000;
 
-function endOfToday(): number {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d.getTime();
+async function dueCardIds(): Promise<number[]> {
+  return (await db.reviews.where('due').belowOrEqual(endOfDay()).filter((r) => isDueToday(r)).primaryKeys()) as number[];
 }
 
-async function dueCardIds(): Promise<number[]> {
-  return (await db.reviews.where('due').belowOrEqual(endOfToday()).primaryKeys()) as number[];
+/** Words studied for the first time today, in any mode: what the daily limit counts. */
+export function newStudiedToday(now: Date | number = Date.now()): Promise<number> {
+  const from = startOfDay(now);
+  return db.reviews.filter((r) => (r.firstAt ?? 0) >= from).count();
+}
+
+/**
+ * Lists opened on purpose to practice these very words: their words may come back the day they
+ * were answered, and the daily limit doesn't apply.
+ */
+export function isChosenList(kind: SourceKind, id: string): boolean {
+  return kind === 'smart' && (id === 'starred' || id === 'mistakes' || id === 'hard');
 }
 
 async function reviewedIds(): Promise<Set<number>> {

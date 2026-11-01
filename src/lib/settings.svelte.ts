@@ -11,6 +11,7 @@ export const defaultSettings: Settings = {
   requireArticle: true,
   direction: 'mixed',
   newPerSession: 10,
+  newPerDay: 20,
   focus: '',
   backupEvery: 7,
   lastBackupAt: 0,

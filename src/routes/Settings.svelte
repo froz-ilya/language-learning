@@ -223,6 +223,7 @@
     { id: 'de', label: 'Deutsch' },
   ]);
   const NEW_PER_SESSION = [5, 10, 15, 20];
+  const NEW_PER_DAY = [10, 20, 30, 50, 0];
 
   const LANGS = $derived<{ id: Lang; label: string }[]>([
     { id: 'ru', label: t('common.russian') },
@@ -273,6 +274,17 @@
         <div class="segmented full" role="radiogroup" aria-label={t('settings.learning.newPerSession')}>
           {#each NEW_PER_SESSION as n}
             <button role="radio" aria-checked={settings.newPerSession === n} class:active={settings.newPerSession === n} onclick={() => set('newPerSession', n)}>{n}</button>
+          {/each}
+        </div>
+      </div>
+      <div class="list-item column">
+        <div class="row full">
+          <span class="grow">{t('settings.learning.newPerDay')}</span>
+          <span class="muted">{settings.newPerDay || t('settings.learning.noLimit')}</span>
+        </div>
+        <div class="segmented full" role="radiogroup" aria-label={t('settings.learning.newPerDay')}>
+          {#each NEW_PER_DAY as n}
+            <button role="radio" aria-checked={settings.newPerDay === n} aria-label={n ? undefined : t('settings.learning.noLimit')} class:active={settings.newPerDay === n} onclick={() => set('newPerDay', n)}>{n || '∞'}</button>
           {/each}
         </div>
       </div>

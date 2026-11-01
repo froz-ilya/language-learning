@@ -76,6 +76,8 @@ export interface Review {
   fsrs: FsrsCard;
   mistakes: number;
   lastWrong: number;
+  /** Epoch ms of the word's first graded answer. Optional: absent on reviews saved before it existed. */
+  firstAt?: number;
 }
 
 export type Direction = 'de-x' | 'x-de' | 'mixed';
@@ -92,6 +94,8 @@ export interface Settings {
   direction: Direction;
   /** New (never studied) words added to a smart session. */
   newPerSession: number;
+  /** New words a day across all smart sessions (0 = no limit). "Learn anyway" goes past it. */
+  newPerDay: number;
   /** Source of new words for the Today session, e.g. "set/3", "level/A1"; '' = own sets. */
   focus: string;
   /** Backup reminder interval in days (0 = off). Shown as a pop-up when the app opens. */

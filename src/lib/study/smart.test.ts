@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Card, Review } from '../types';
 import { placementPassed, placementSample, spreadSample } from './placement';
-import { cardState, chooseMode, planSmartQueue, SmartSession, sourceOrder, type ModeContext } from './smart';
+import { cardState, chooseMode, newForSession, planSmartQueue, SmartSession, sourceOrder, type ModeContext } from './smart';
 
 const DAY = 24 * 3600 * 1000;
 const NOW = new Date(2026, 9, 27, 12, 0, 0).getTime();
@@ -62,6 +62,21 @@ describe('cardState', () => {
   });
 });
 
+describe('newForSession', () => {
+  it('gives the full session while the daily limit allows it', () => {
+    expect(newForSession(10, 20, 0)).toBe(10);
+    expect(newForSession(10, 20, 10)).toBe(10);
+  });
+  it('shrinks to what is left of the day, then to nothing', () => {
+    expect(newForSession(10, 20, 15)).toBe(5);
+    expect(newForSession(10, 20, 20)).toBe(0);
+    expect(newForSession(10, 20, 35)).toBe(0); // went past it with "Learn anyway"
+  });
+  it('a daily limit of 0 means no limit', () => {
+    expect(newForSession(10, 0, 500)).toBe(10);
+  });
+});
+
 describe('planSmartQueue', () => {
   it('puts due cards first (most overdue first), then new cards in source order', () => {
     const cards = [card(1), card(2), card(3), card(4, { createdAt: 0 }), card(5)];
@@ -78,6 +93,27 @@ describe('planSmartQueue', () => {
   it('counts cards due later today as due', () => {
     const reviews = new Map([[1, review(1, NOW + 3600 * 1000)]]);
     expect(planSmartQueue([card(1)], reviews, { newPerSession: 0, now: NOW }).due).toHaveLength(1);
+  });
+
+  it('keeps a card answered today for tomorrow, even if it is due in minutes', () => {
+    const answered = (at: number): Review => ({
+      ...review(1, at + 10 * 60 * 1000),
+      fsrs: { stability: 2.3, reps: 1, last_review: new Date(at) } as Review['fsrs'],
+    });
+    const today = answered(NOW - 3600 * 1000);
+    expect(planSmartQueue([card(1)], new Map([[1, today]]), { newPerSession: 0, now: NOW }).due).toEqual([]);
+    // The next day it's the first thing to ask.
+    expect(planSmartQueue([card(1)], new Map([[1, today]]), { newPerSession: 0, now: NOW + DAY }).due).toHaveLength(1);
+    // Answered yesterday and due today: asked as usual.
+    expect(planSmartQueue([card(1)], new Map([[1, answered(NOW - DAY)]]), { newPerSession: 0, now: NOW }).due).toHaveLength(1);
+    // A list opened on purpose asks it again.
+    expect(planSmartQueue([card(1)], new Map([[1, today]]), { newPerSession: 0, now: NOW, sameDay: true }).due).toHaveLength(1);
+  });
+
+  it('with no new words allowed, still counts the ones waiting', () => {
+    const plan = planSmartQueue([card(1), card(2)], new Map(), { newPerSession: 0, now: NOW });
+    expect(plan.fresh).toEqual([]);
+    expect(plan.moreNew).toBe(2);
   });
 
   it('caps due cards at 30 and new cards at newPerSession', () => {

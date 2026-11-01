@@ -6,6 +6,7 @@
   import Skeleton from '../components/Skeleton.svelte';
   import EmptyState from '../components/library/EmptyState.svelte';
   import ArticleRow from '../components/reading/ArticleRow.svelte';
+  import FilterChips from '../components/reading/FilterChips.svelte';
   import LevelChips from '../components/reading/LevelChips.svelte';
   import { go } from '../lib/router.svelte';
   import { live } from '../lib/live.svelte';
@@ -15,12 +16,12 @@
   import { db } from '../lib/db/schema';
   import { fmtNumber, t, tn } from '../lib/i18n.svelte';
   import { LEVELS, type LevelCode } from '../lib/levels/types';
-  import { feedErrorText, feeds, interleave, loadFeed, readUi, resetFeed } from '../lib/reading/feed.svelte';
-  import { sourceInfo, sourcesForLevel } from '../lib/reading/sources';
+  import { feedErrorText, feeds, filterNews, interleave, loadFeed, loadNews, mergeNews, news, newsDate, newsSearch, readUi, resetFeed, searchNews } from '../lib/reading/feed.svelte';
+  import { NEWS_SOURCE_IDS, NEWS_TOPICS, sourceInfo, sourcesForLevel } from '../lib/reading/sources';
   import { articlePath, articleTitle, pruneTracked, setProgress, stopReading } from '../lib/reading/store';
   import { showToast } from '../lib/ui/dialogs.svelte';
   import { firstSentence, isHeading } from '../lib/reading/text';
-  import type { ReadingSourceId, SavedArticle } from '../lib/reading/types';
+  import type { ArticleSummary, NewsTopic, ReadingSourceId, SavedArticle } from '../lib/reading/types';
 
   /** Default: the level the user is focusing on (settings.focus "level/B1"), else A2. */
   function defaultLevel(): LevelCode {
@@ -37,7 +38,18 @@
 
   $effect(() => {
     const l = level;
-    untrack(() => void loadFeed(l));
+    if (readUi.view === 'articles') untrack(() => void loadFeed(l));
+  });
+
+  // News update when the view opens, and when the app comes back with this view showing.
+  $effect(() => {
+    if (readUi.view !== 'news') return;
+    untrack(() => void loadNews());
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void loadNews();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   });
 
   // Housekeeping: forget articles that were only opened, long ago.
@@ -98,17 +110,86 @@
   }
 
   const sourceNames = $derived(sourceIds.map((id) => sourceInfo(id as ReadingSourceId).name).join(', '));
+
+  const newsFeeds = $derived(NEWS_SOURCE_IDS.map((id) => ({ id, f: news[id] })));
+  const searching = $derived(!!newsSearch.query);
+  const newsPool = $derived(searching ? newsSearch.items : mergeNews(newsFeeds.map(({ f }) => f.items)));
+  const newsItems = $derived(filterNews(newsPool, readUi.newsSource, readUi.newsTopic));
+  const newsLoading = $derived(searching ? newsSearch.loading : newsFeeds.some(({ f }) => f.loading || !f.loadedAt));
+  const newsErrors = $derived(searching ? newsSearch.errors : newsFeeds.flatMap(({ id, f }) => (f.error ? [{ id, error: f.error }] : [])));
+  const newsFailed = $derived(!newsLoading && newsItems.length === 0 && newsErrors.length === newsFeeds.length);
+  const newsSources = $derived(NEWS_SOURCE_IDS.map((id) => sourceInfo(id).name).join(', '));
+
+  const sourceChips = $derived([{ id: '', label: t('reading.news.all') }, ...NEWS_SOURCE_IDS.map((id) => ({ id, label: sourceInfo(id).short ?? sourceInfo(id).name }))]);
+  // Only the topics there's something for (and the chosen one, so it can be unchosen).
+  const topicChips = $derived.by(() => {
+    const present = new Set(filterNews(newsPool, readUi.newsSource, '').map((a) => a.topic));
+    const topics = NEWS_TOPICS.filter((id) => present.has(id) || id === readUi.newsTopic);
+    return [{ id: '', label: t('reading.news.all') }, ...topics.map((id) => ({ id, label: t(`reading.news.topic.${id}`) }))];
+  });
+
+  let searchText = $state(newsSearch.query);
+
+  function submitSearch(e: SubmitEvent) {
+    e.preventDefault();
+    (document.activeElement as HTMLElement | null)?.blur();
+    void searchNews(searchText);
+  }
+
+  function clearSearch() {
+    searchText = '';
+    void searchNews('');
+  }
+
+  function refreshNews() {
+    void (searching ? searchNews(newsSearch.query) : loadNews(true));
+  }
+
+  const newsMeta = (a: ArticleSummary) => [newsDate(a.publishedAt!), a.topic ? t(`reading.news.topic.${a.topic}`) : ''].filter(Boolean).join(' · ');
+
+  const isNews = $derived(readUi.view === 'news');
 </script>
 
 <div class="page">
   <Header title={t('reading.read.title')}>
     {#snippet actions()}
-      <button class="icon-btn" aria-label={t('reading.read.newArticles')} onclick={refresh} disabled={loading}><Icon name="refresh" /></button>
+      {#if isNews}
+        <button class="icon-btn" aria-label={t('reading.news.refresh')} onclick={refreshNews} disabled={newsLoading}><Icon name="refresh" /></button>
+      {:else}
+        <button class="icon-btn" aria-label={t('reading.read.newArticles')} onclick={refresh} disabled={loading}><Icon name="refresh" /></button>
+      {/if}
     {/snippet}
   </Header>
 
-  <LevelChips bind:value={level} onchange={choose} />
-  <p class="level-hint muted small">{t(`level.${level}.title`)} · {sourceNames}</p>
+  <div class="segmented views" role="group" aria-label={t('reading.read.views')}>
+    <button type="button" class:active={!isNews} aria-pressed={!isNews} onclick={() => (readUi.view = 'articles')}>{t('reading.read.viewArticles')}</button>
+    <button type="button" class:active={isNews} aria-pressed={isNews} onclick={() => (readUi.view = 'news')}>{t('reading.read.viewNews')}</button>
+  </div>
+
+  {#if isNews}
+    <form class="news-search" role="search" onsubmit={submitSearch}>
+      <Icon name="search" size={18} />
+      <input
+        type="text"
+        enterkeyhint="search"
+        autocomplete="off"
+        lang="de"
+        aria-label={t('reading.news.search')}
+        placeholder={t('reading.news.search')}
+        bind:value={searchText}
+        oninput={() => searchText === '' && clearSearch()}
+      />
+      {#if searchText}
+        <button type="button" class="icon-btn" aria-label={t('reading.news.clearSearch')} onclick={clearSearch}><Icon name="x" size={16} /></button>
+      {/if}
+    </form>
+    <FilterChips label={t('reading.news.sourceFilter')} options={sourceChips} value={readUi.newsSource} onpick={(id) => (readUi.newsSource = id as ReadingSourceId | '')} />
+    <FilterChips label={t('reading.news.topicFilter')} options={topicChips} value={readUi.newsTopic} onpick={(id) => (readUi.newsTopic = id as NewsTopic | '')} />
+    {#if !searching}<p class="level-hint muted small">{t('reading.news.hint', { sources: newsSources })}</p>{/if}
+  {:else}
+    <LevelChips bind:value={level} onchange={choose} />
+    <p class="level-hint muted small">{t(`level.${level}.title`)} · {sourceNames}</p>
+  {/if}
 
   {#if continuing}
     <div class="continue-wrap" in:fly={{ y: 8, duration: dur(220) }}>
@@ -123,6 +204,54 @@
     </div>
   {/if}
 
+  {#if isNews}
+    <section class="section">
+      <h2 class="section-title">{searching ? t('reading.news.results', { query: newsSearch.query }) : t('reading.news.title')}</h2>
+
+      {#if newsErrors.length && !newsFailed}
+        <div class="notes">
+          {#each newsErrors as { id, error } (id)}
+            <p class="note"><span>{feedErrorText(id, error)}</span><button class="btn-link" onclick={refreshNews}>{t('reading.read.retry')}</button></p>
+          {/each}
+        </div>
+      {/if}
+
+      {#if newsLoading && newsItems.length === 0}
+        <div class="card"><Skeleton lines={4} /></div>
+        <div class="card skel2"><Skeleton lines={3} /></div>
+      {:else if newsFailed}
+        <EmptyState
+          icon="refresh"
+          title={online.value ? t('reading.news.loadFailed') : t('reading.read.offline')}
+          text={online.value ? t('reading.news.sourcesDown') : t('reading.read.offlineHint')}
+        >
+          <button class="btn btn-primary" onclick={refreshNews}>{t('common.retry')}</button>
+        </EmptyState>
+      {:else if newsItems.length === 0}
+        <EmptyState icon="search" title={t('reading.read.emptyTitle')} text={searching ? t('reading.news.noResults') : newsPool.length ? t('reading.news.noMatch') : t('reading.news.empty')}>
+          {#if !searching && !newsPool.length}
+            <button class="btn" onclick={refreshNews}>{t('reading.read.refresh')}</button>
+          {/if}
+        </EmptyState>
+      {:else}
+        <div class="list">
+          {#each newsItems as a (a.id)}
+            {@const row = byId.get(a.id)}
+            <ArticleRow
+              id={a.id}
+              source={a.source}
+              title={row?.title ?? a.title}
+              snippet={a.snippet}
+              level={row?.level ?? ''}
+              meta={newsMeta(a)}
+              progress={row ? ratio(row) : 0}
+              read={!!row?.readAt}
+            />
+          {/each}
+        </div>
+      {/if}
+    </section>
+  {:else}
   <button class="card pressable paste" onclick={() => go('/paste')}>
     <span class="paste-icon"><Icon name="edit" size={20} /></span>
     <span class="paste-text">
@@ -185,6 +314,7 @@
       {/if}
     {/if}
   </section>
+  {/if}
 
   {#if saved.length}
     <section class="section">
@@ -211,6 +341,34 @@
 </div>
 
 <style>
+  .views {
+    margin-bottom: 12px;
+  }
+  .views button {
+    flex: 1;
+  }
+  .news-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    margin-bottom: 10px;
+    padding: 0 6px 0 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    color: var(--muted);
+  }
+  .news-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+  }
   .level-hint {
     margin: 8px 4px 0;
   }

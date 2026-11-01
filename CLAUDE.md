@@ -52,6 +52,10 @@ migration that is tested.
   that rate-limits or blocks — back off.
 - Generated data (public/levels, public/dict, public/reading) is committed; download caches under
   `scripts/*/.cache` are gitignored.
+- News (src/lib/reading/sources/tagesschau.ts, dw.ts) isn't open-licensed: the phone fetches it
+  from the publisher. Its text never goes into public/, the repository or a workflow, and test
+  fixtures are invented text. tagesschau allows 60 requests an hour, so keep the limits in
+  `loadNews()` (src/lib/reading/feed.svelte.ts).
 - Levels: A1–B1 are the Goethe-Zertifikat lists (DWDS, rows mapped by scripts/levels/goethe.json:
   DWDS lacks most of the PDFs' group lists, which `extra` restores). Use only which word is at which
   level; Goethe's example sentences are protected. No official list exists above B1, so B2–C2 are

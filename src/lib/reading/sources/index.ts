@@ -1,13 +1,15 @@
 import type { LevelCode } from '../../levels/types';
 import { db } from '../../db/schema';
 import { t } from '../../i18n.svelte';
-import type { Article, ArticleSummary, ReadingSourceId, ReadingSourceInfo } from '../types';
+import type { Article, ArticleSummary, NewsTopic, ReadingSourceId, ReadingSourceInfo } from '../types';
 import { firstSentence, isHeading } from '../text';
 import type { ListOptions, ListResult, Source } from './types';
 import { catalogEntry, klexikonSource } from './klexikon';
 import { wikinewsSource } from './wikinews';
 import { wikipediaSource } from './wikipedia';
 import { gutenbergSource, GUTENBERG_LICENSE, loadGutenberg } from './gutenberg';
+import { tagesschauSource } from './tagesschau';
+import { dwSource } from './dw';
 import { SourceError } from './mediawiki';
 import CATALOG_LEVELS from './klexikon-levels.json';
 
@@ -18,6 +20,7 @@ export { SourceError } from './mediawiki';
  * Levels: where each source has articles. MiniKlexikon/Klexikon: the levels of the bundled
  * catalog with at least 20 articles (klexikon-levels.json, written by the catalog build).
  * Wikinews/Wikipedia: where their intros usually rate (lists are filtered per batch).
+ * The news sources have no levels: they have their own view on the Read tab.
  */
 export const READING_SOURCES: ReadingSourceInfo[] = [
   {
@@ -56,6 +59,21 @@ export const READING_SOURCES: ReadingSourceInfo[] = [
     homepage: 'https://de.wikipedia.org/',
   },
   {
+    id: 'tagesschau',
+    name: 'tagesschau',
+    levels: [],
+    license: '© ARD',
+    homepage: 'https://www.tagesschau.de/',
+  },
+  {
+    id: 'dw',
+    name: 'Deutsche Welle',
+    short: 'DW',
+    levels: [],
+    license: '© DW',
+    homepage: 'https://www.dw.com/de/',
+  },
+  {
     id: 'paste',
     get name() {
       return t('reading.source.paste');
@@ -65,6 +83,10 @@ export const READING_SOURCES: ReadingSourceInfo[] = [
     homepage: '',
   },
 ];
+
+/** The sources of the news view. */
+export const NEWS_SOURCE_IDS: ReadingSourceId[] = ['tagesschau', 'dw'];
+export const NEWS_TOPICS: NewsTopic[] = ['germany', 'world', 'economy', 'science', 'culture', 'sport'];
 
 /** License deeds, for the attribution line. */
 export const LICENSE_URLS: Record<string, string> = {
@@ -114,6 +136,8 @@ const SOURCES: Record<ReadingSourceId, Source> = {
   wikinews: wikinewsSource(info('wikinews')),
   wikipedia: wikipediaSource(info('wikipedia')),
   gutenberg: gutenbergSource(info('gutenberg')),
+  tagesschau: tagesschauSource(info('tagesschau')),
+  dw: dwSource(info('dw')),
   paste: pasteSource,
 };
 
@@ -141,8 +165,8 @@ export async function listArticles(
 /**
  * The level an article has without the reader's own estimate: the catalog level
  * (MiniKlexikon/Klexikon), the bundled level (Gutenberg), or the level its list showed this
- * session (Wikinews/Wikipedia, rated from the intro). Null when none is known: the reader then
- * estimates from the full text.
+ * session (Wikinews/Wikipedia, rated from the intro). Null when none is known (news too): the
+ * reader then estimates from the full text.
  */
 export async function knownLevel(id: string, title?: string): Promise<LevelCode | null> {
   let source: ReadingSourceId;

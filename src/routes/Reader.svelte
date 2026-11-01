@@ -18,6 +18,7 @@
   import { speak, stopSpeaking } from '../lib/speech/tts';
   import type { LexEntry } from '../lib/dict/types';
   import { getArticle, knownLevel, LICENSE_URLS, sourceInfo } from '../lib/reading/sources';
+  import { newsDate } from '../lib/reading/feed.svelte';
   import { GUTENBERG_LICENSE, nextPart } from '../lib/reading/sources/gutenberg';
   import { isRemovedError } from '../lib/reading/sources/klexikon';
   import { headingText, isHeading, sentenceAt, tokenize, countWords, type Token } from '../lib/reading/text';
@@ -418,6 +419,7 @@
   const isRead = $derived(!!row.value?.readAt);
   const setId = $derived(row.value?.setId ?? 0);
   const info = $derived(article ? sourceInfo(article.source) : null);
+  const subtitle = $derived([info?.name, article?.publishedAt ? newsDate(article.publishedAt) : ''].filter(Boolean).join(' · '));
   const licenseUrl = $derived(article ? LICENSE_URLS[article.license] : undefined);
   const licenseName = $derived(article?.license === GUTENBERG_LICENSE ? t('reading.reader.gutenbergLicense') : article?.license);
   const setName = $derived(article ? articleSetName(articleTitle(article)) : '');
@@ -508,7 +510,7 @@
 
 <div class="page reader">
   <div class="reader-head">
-    <Header title={article ? articleTitle(article) : error ? t('reading.reader.article') : ''} subtitle={info?.name ?? ''} backTo="/read" />
+    <Header title={article ? articleTitle(article) : error ? t('reading.reader.article') : ''} subtitle={subtitle} backTo="/read" />
   </div>
 
   {#if error}

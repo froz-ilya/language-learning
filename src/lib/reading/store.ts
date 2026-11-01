@@ -44,6 +44,7 @@ function newRow(article: Article): SavedArticle {
     url: article.url,
     license: article.license,
     attribution: article.attribution,
+    ...(article.publishedAt ? { publishedAt: article.publishedAt } : {}),
     level: '',
     savedAt: 0,
     readAt: 0,

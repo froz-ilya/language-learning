@@ -160,6 +160,8 @@ describe('upgrading the database', () => {
     const { db } = await import('./schema');
     expect(await db.cards.where('presetId').equals('A1:Tisch').first()).toMatchObject({ known: 1 });
     expect(await db.articles.get('klexikon:Hund')).toMatchObject({ setId: 1, savedAt: 5 });
+    // News rows have a publishedAt; older rows don't and read without it.
+    expect((await db.articles.get('klexikon:Hund'))?.publishedAt).toBeUndefined();
     expect(await db.lookupCache.count()).toBe(0);
   });
 

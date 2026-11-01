@@ -200,6 +200,8 @@
   const CREDITS = $derived<{ name: string; what: string; license: string }[]>([
     { name: 'MiniKlexikon & Klexikon', what: t('settings.credits.encyclopedia'), license: 'CC BY-SA 4.0' },
     { name: 'Wikinews', what: t('settings.credits.news'), license: 'CC BY 2.5' },
+    { name: 'tagesschau', what: t('settings.credits.news'), license: '© ARD' },
+    { name: 'Deutsche Welle', what: t('settings.credits.news'), license: '© DW' },
     { name: 'Wikipedia', what: t('settings.credits.articles'), license: 'CC BY-SA 4.0' },
     { name: 'Project Gutenberg', what: t('settings.credits.stories'), license: t('settings.credits.publicDomain') },
     { name: 'Wiktionary via kaikki.org', what: t('settings.sources.local'), license: 'CC BY-SA' },

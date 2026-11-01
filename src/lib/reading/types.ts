@@ -1,11 +1,19 @@
 import type { LevelCode } from '../levels/types';
 
-/** Reading sources. All are open-licensed; attribution is shown under every article. */
-export type ReadingSourceId = 'miniklexikon' | 'klexikon' | 'wikinews' | 'wikipedia' | 'gutenberg' | 'paste';
+/**
+ * Reading sources. All are open-licensed except the news (tagesschau, dw), which are fetched on
+ * the phone and never bundled (sources/news.ts). Attribution is shown under every article.
+ */
+export type ReadingSourceId = 'miniklexikon' | 'klexikon' | 'wikinews' | 'wikipedia' | 'gutenberg' | 'tagesschau' | 'dw' | 'paste';
+
+/** Topics of the news view: the sources' sections mapped to one list. */
+export type NewsTopic = 'germany' | 'world' | 'economy' | 'science' | 'culture' | 'sport';
 
 export interface ReadingSourceInfo {
   id: ReadingSourceId;
   name: string;
+  /** Shorter name for tight rows (the news filter). */
+  short?: string;
   /** Levels the source has articles at (the Read tab lists it there), e.g. ['A1', 'A2']. */
   levels: LevelCode[];
   license: string;
@@ -24,6 +32,10 @@ export interface ArticleSummary {
   level?: LevelCode;
   /** Word count, if known without fetching the text (catalog articles). */
   words?: number;
+  /** Epoch ms of publication (news). */
+  publishedAt?: number;
+  /** News topic, if the source's section has one. */
+  topic?: NewsTopic;
 }
 
 export interface Article {
@@ -38,6 +50,8 @@ export interface Article {
   license: string;
   /** Attribution line, e.g. "Klexikon · CC BY-SA 4.0". */
   attribution: string;
+  /** Epoch ms of publication (news; missing on everything else and on older rows). */
+  publishedAt?: number;
 }
 
 /** Row in db.articles: an article the user saved, read, or added words from. */

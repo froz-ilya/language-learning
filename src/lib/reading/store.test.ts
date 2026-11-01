@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import type { LexEntry } from '../dict/types';
 import type { LookupResult } from '../types';
-import { buildCard, fieldsFromEntry, fieldsFromLookup } from './store';
+import { db } from '../db/schema';
+import { buildCard, fieldsFromEntry, fieldsFromLookup, trackOpen } from './store';
 
 const verb = (over: Partial<LexEntry>): LexEntry => ({
   term: 'freuen',
@@ -49,5 +50,15 @@ describe('card fields with prepositions', () => {
     expect(card).toMatchObject({ setId: 3, term: 'sich freuen', preps: 'auf + Akk', needsFill: 0, examples: [{ de: 'Ich freue mich auf dich.' }] });
     expect(buildCard(3, { term: 'Tisch', preps: ' ' })).not.toHaveProperty('preps');
     expect(buildCard(3, { term: 'Tisch' })).not.toHaveProperty('preps');
+  });
+});
+
+describe('article rows', () => {
+  const article = { id: 'dw:1', source: 'dw' as const, title: 'T', paragraphs: ['Text.'], url: '', license: '© DW', attribution: 'Deutsche Welle · © DW' };
+
+  it('keep a news article’s date; other articles have none', async () => {
+    expect((await trackOpen({ ...article, publishedAt: 5 })).publishedAt).toBe(5);
+    expect(await trackOpen({ ...article, id: 'klexikon:Hund', source: 'klexikon' })).not.toHaveProperty('publishedAt');
+    await db.articles.clear();
   });
 });

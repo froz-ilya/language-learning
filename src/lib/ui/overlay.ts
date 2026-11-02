@@ -12,6 +12,10 @@
  * calls is in flight waits for it (whenSettled): a new overlay's pushState and the router's
  * go()/replace()/back(). Otherwise a push could land before the pop and be undone by it.
  *
+ * History can't delete an entry, so a closed overlay's stays ahead of the page. A forward swipe
+ * lands on it and shows the same page, so onPopstate steps straight back off such an entry;
+ * otherwise the next back swipe would only undo that and seem to do nothing.
+ *
  *   const overlay = openOverlay(() => (open = false));   // when it opens
  *   overlay.release();                                    // when it closes (any way)
  */
@@ -97,6 +101,7 @@ export function createOverlayStack(env: OverlayEnv) {
       stack.splice(i, 1);
       e.close();
     }
+    if (current && !stack.some((e) => e.pushed && e.id === current)) goBack(1);
   }
 
   function open(close: () => void): OverlayHandle {

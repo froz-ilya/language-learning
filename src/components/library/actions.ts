@@ -10,12 +10,13 @@ import { fetchLevelIndex } from '../../lib/levels/install';
 import { lookupLocal } from '../../lib/dict/local';
 import { isReflexiveTerm } from '../../lib/german/reflexive';
 import { LEVELS, type LevelCode, type LevelIndex } from '../../lib/levels/types';
+import { trackLoad } from '../../lib/pageLoad';
 import type { Card, Review, WordSet } from '../../lib/types';
 
 /** Shared helpers for the library screens (Today, Library, Levels, Folder, Set). */
 
-/** Intro delay for list item i: a short stagger, capped to the first ~10 items. */
-export const stagger = (i: number, step = 35) => dur(Math.min(i, 10) * step);
+/** Intro delay for list item i: a short stagger, capped so long lists don't trickle in. */
+export const stagger = (i: number, step = 35) => dur(Math.min(i, 6) * step);
 
 /** "12 / 40 learned" or "No words yet". */
 export function learnedLine(p: Progress | undefined): string {
@@ -162,6 +163,7 @@ export function levelIndex(): Promise<LevelIndex | null> {
     indexPromise = undefined;
     return null;
   });
+  void indexPromise.then(trackLoad());
   return indexPromise;
 }
 

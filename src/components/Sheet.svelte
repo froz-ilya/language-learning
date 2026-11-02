@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
-  import { dur } from '../lib/motion';
+  import { fade } from 'svelte/transition';
+  import { dur, slideUp } from '../lib/motion';
   import { ui } from '../lib/ui/dialogs.svelte';
   import { t } from '../lib/i18n.svelte';
   import { openOverlay } from '../lib/ui/overlay';
@@ -104,7 +103,7 @@
       tabindex="-1"
       {@attach focusPanel}
       style:transform={dragY ? `translate3d(0, ${dragY}px, 0)` : undefined}
-      transition:fly={{ y: 480, duration: dur(320), easing: cubicOut, opacity: 1 }}
+      transition:slideUp
     >
       <div
         class="sheet-grip"

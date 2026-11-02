@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { fade } from 'svelte/transition';
   import Icon, { type IconName } from '../Icon.svelte';
-  import { dur } from '../../lib/motion';
+  import { dur, enter } from '../../lib/motion';
 
   /** Friendly empty state: a big icon, a title, one line of help and an action or two. */
   let {
@@ -13,7 +12,7 @@
   }: { icon: IconName; title: string; text?: string; children?: Snippet } = $props();
 </script>
 
-<div class="empty-state" in:fade|global={{ duration: dur(200) }}>
+<div class="empty-state" in:enter|global={{ y: 0, duration: dur(200) }}>
   <span class="badge"><Icon name={icon} size={30} /></span>
   <h2>{title}</h2>
   {#if text}<p>{text}</p>{/if}

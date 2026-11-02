@@ -1,6 +1,6 @@
 <script lang="ts">
   import { flip } from 'svelte/animate';
-  import { fly, slide } from 'svelte/transition';
+  import { slide } from 'svelte/transition';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import Term from '../components/Term.svelte';
@@ -21,7 +21,7 @@
   import { go, replace, route } from '../lib/router.svelte';
   import { systemName, t, tn, tParts } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
-  import { dur } from '../lib/motion';
+  import { dur, enter } from '../lib/motion';
   import { online } from '../lib/online.svelte';
   import { db } from '../lib/db/schema';
   import { allFolders, cardsInSet, deleteCard, deleteSet, toggleStar, updateSet } from '../lib/db/repo';
@@ -345,7 +345,7 @@
                 <div
                   class="w"
                   animate:flip={{ duration: dur(250) }}
-                  in:fly|global={{ y: 8, duration: dur(200), delay: stagger(i, 25) }}
+                  in:enter|global={{ y: 8, duration: dur(200), delay: stagger(i, 25) }}
                   out:slide={{ duration: dur(200) }}
                 >
                   <SwipeRow

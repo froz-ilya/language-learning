@@ -1,6 +1,6 @@
 /**
  * Platform detection, for the few places where iOS and Android must behave differently
- * (edge-swipe back, install hints, vibration, voice tips). Every check takes an optional
+ * (install hints, vibration, voice tips). Every check takes an optional
  * navigator-like object so tests can stub it.
  */
 

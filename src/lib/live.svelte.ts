@@ -1,4 +1,5 @@
 import { liveQuery } from 'dexie';
+import { trackLoad } from './pageLoad';
 
 /**
  * Reactive IndexedDB query for components: re-runs whenever the tables it reads change.
@@ -11,12 +12,23 @@ import { liveQuery } from 'dexie';
  */
 export function live<T>(query: () => T | Promise<T>): { readonly value: T | undefined } {
   let value = $state<T | undefined>(undefined);
+  // The page transition waits for the first result (see pageLoad.ts).
+  const loaded = trackLoad();
   $effect(() => {
     const sub = liveQuery(query).subscribe({
-      next: (v) => (value = v),
-      error: (e) => console.error(e),
+      next: (v) => {
+        value = v;
+        loaded();
+      },
+      error: (e) => {
+        console.error(e);
+        loaded();
+      },
     });
-    return () => sub.unsubscribe();
+    return () => {
+      sub.unsubscribe();
+      loaded();
+    };
   });
   return {
     get value() {

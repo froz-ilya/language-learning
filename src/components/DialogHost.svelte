@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { fade, fly, scale } from 'svelte/transition';
+  import { fade, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import Icon from './Icon.svelte';
   import { ui, type ActionItem, type Dialog } from '../lib/ui/dialogs.svelte';
-  import { dur } from '../lib/motion';
+  import { dur, slideUp } from '../lib/motion';
   import { t } from '../lib/i18n.svelte';
   import { openOverlay } from '../lib/ui/overlay';
 
@@ -88,7 +88,7 @@
         aria-label={d.title || t('shell.actions')}
         tabindex="-1"
         {@attach focusPanel}
-        transition:fly={{ y: 320, duration: dur(320), easing: cubicOut, opacity: 1 }}
+        transition:slideUp|global
       >
         <div class="group">
           {#if d.title}<div class="sheet-title">{d.title}</div>{/if}
@@ -110,8 +110,8 @@
         aria-labelledby="dialog-title"
         tabindex="-1"
         {@attach focusPanel}
-        in:scale={{ start: 0.92, duration: dur(220), easing: cubicOut }}
-        out:fade={{ duration: dur(150) }}
+        in:scale|global={{ start: 0.92, duration: dur(220), easing: cubicOut }}
+        out:fade|global={{ duration: dur(150) }}
       >
         <form
           onsubmit={(e) => {

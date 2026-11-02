@@ -19,6 +19,13 @@
     flex-direction: column;
     gap: 10px;
     padding: 4px 0;
+    /* Held back so a quick load goes straight to the content without a flash of placeholder. */
+    animation: skeleton-in var(--dur-fast) var(--ease) 250ms both;
+  }
+  @keyframes skeleton-in {
+    from {
+      opacity: 0;
+    }
   }
   .line {
     display: block;

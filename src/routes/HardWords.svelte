@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { fly } from 'svelte/transition';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import Term from '../components/Term.svelte';
@@ -10,7 +9,7 @@
   import { go } from '../lib/router.svelte';
   import { t, tn, tParts } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
-  import { dur } from '../lib/motion';
+  import { dur, enter } from '../lib/motion';
   import { HARD_MISSES } from '../lib/progress';
   import { speakableTerm } from '../lib/german/articles';
   import { hardCards } from '../lib/study/sources';
@@ -48,7 +47,7 @@
 
       <div class="list">
         {#each hard.value as { card, review }, i (card.id)}
-          <a class="list-item" href="#/card/{card.id}" in:fly|global={{ y: 8, duration: dur(200), delay: stagger(i) }}>
+          <a class="list-item" href="#/card/{card.id}" in:enter|global={{ y: 8, duration: dur(200), delay: stagger(i) }}>
             <div class="grow">
               <div class="title"><Term {card} /></div>
               <div class="sub">{card.translation}</div>

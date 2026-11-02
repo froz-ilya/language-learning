@@ -1,6 +1,8 @@
 import { flushSync, tick } from 'svelte';
 import { reducedMotion } from './motion';
+import { beginPage, endPage, pageLoaded } from './pageLoad';
 import { afterOverlays } from './ui/overlay';
+import { createSwipeTracker } from './ui/systemSwipe';
 
 /**
  * Minimal hash router: "#/set/12?mode=write" → { path: '/set/12', parts: ['set', '12'], query }.
@@ -11,7 +13,8 @@ import { afterOverlays } from './ui/overlay';
  * Moves between two tab roots are 'tab'; replace() is 'replace' (no animation).
  * When the View Transitions API is available (and motion isn't reduced) the route update
  * runs inside document.startViewTransition() and <html data-nav="…"> tells CSS which
- * animation to play (see app.css, "Page transitions").
+ * animation to play (see app.css, "Page transitions"). A move the system already animated
+ * (iOS edge swipe, see ui/systemSwipe.ts) gets no animation of ours.
  *
  * Open dialogs and sheets add same-URL history entries ({ ...state, overlay }) so the system
  * back button closes them first (see ui/overlay.ts). onExternal ignores those pops because the
@@ -79,7 +82,7 @@ function restoreScroll(dir: NavDirection) {
 }
 
 /** Apply a location change to `route`, animated when possible. */
-function commit(hash: string, requested: NavDirection) {
+function commit(hash: string, requested: NavDirection, systemAnimated = false) {
   const from = route.path;
   const to = pathOf(hash);
   const dir: NavDirection =
@@ -90,17 +93,28 @@ function commit(hash: string, requested: NavDirection) {
     parse(hash);
   };
 
+  /** No animation of ours: the page appears as soon as it's ready. */
+  const show = async () => {
+    const entry = beginPage();
+    update();
+    await tick();
+    restoreScroll(dir);
+    await pageLoaded();
+    await tick();
+    endPage(entry);
+  };
+
   const animate =
     typeof document !== 'undefined' &&
     typeof document.startViewTransition === 'function' &&
     dir !== 'replace' &&
     dir !== 'none' &&
+    !systemAnimated &&
     !reducedMotion() &&
     document.visibilityState === 'visible';
 
   if (!animate) {
-    update();
-    void tick().then(() => restoreScroll(dir));
+    void show();
     return;
   }
 
@@ -108,10 +122,14 @@ function commit(hash: string, requested: NavDirection) {
   const root = document.documentElement;
   root.dataset.nav = dir;
   try {
-    const transition = document.startViewTransition(() => {
+    const transition = document.startViewTransition(async () => {
+      const entry = beginPage();
       update();
       flushSync();
-      restoreScroll(dir);
+      // The new page is captured when this returns, so give its data a moment to arrive.
+      await pageLoaded();
+      flushSync();
+      if (endPage(entry)) restoreScroll(dir);
     });
     // A newer navigation skips this one; that rejects `ready`, which is expected.
     transition.ready.catch(() => {});
@@ -122,13 +140,15 @@ function commit(hash: string, requested: NavDirection) {
       });
   } catch {
     delete root.dataset.nav;
-    update();
-    void tick().then(() => restoreScroll(dir));
+    void show();
   }
 }
 
-/** Back/forward buttons, history.back(), or a hash typed by hand. */
-function onExternal() {
+const swipes = createSwipeTracker(() => window.innerWidth);
+
+/** Back/forward buttons, system swipes, history.back(), or a hash typed by hand. */
+function onExternal(e: Event) {
+  const systemAnimated = swipes.takeSwipe((e as PopStateEvent).hasUAVisualTransition);
   const hash = currentHash();
   if (hash === current) return;
   scrollMemo.set(idx, window.scrollY);
@@ -144,7 +164,7 @@ function onExternal() {
     dir = 'forward';
   }
   current = hash;
-  commit(hash, dir);
+  commit(hash, dir, systemAnimated);
 }
 
 if (typeof window !== 'undefined') {
@@ -156,6 +176,9 @@ if (typeof window !== 'undefined') {
   parse(current);
   window.addEventListener('popstate', onExternal);
   window.addEventListener('hashchange', onExternal);
+  const passive = { passive: true, capture: true };
+  window.addEventListener('touchstart', (e) => swipes.touchStart(e.touches[0].clientX), passive);
+  window.addEventListener('touchcancel', () => swipes.touchCancel(), passive);
 }
 
 function toHash(path: string, query?: Record<string, string | number>) {

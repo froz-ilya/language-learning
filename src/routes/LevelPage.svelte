@@ -1,6 +1,6 @@
 <script lang="ts">
   import { flip } from 'svelte/animate';
-  import { fade, fly, slide } from 'svelte/transition';
+  import { slide } from 'svelte/transition';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import ProgressRing from '../components/ProgressRing.svelte';
@@ -11,7 +11,7 @@
   import { go, route } from '../lib/router.svelte';
   import { systemName, t, tn } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
-  import { dur } from '../lib/motion';
+  import { dur, enter } from '../lib/motion';
   import { online } from '../lib/online.svelte';
   import { saveSettings, settings } from '../lib/settings.svelte';
   import { cardsInFolder, levelFolder, setsInFolder } from '../lib/db/repo';
@@ -178,7 +178,7 @@
       <div class="card"><Skeleton lines={5} /></div>
     {:else if !data.value.installed}
       <!-- ---------- Not started ---------- -->
-      <div class="stack" in:fade|global={{ duration: dur(200) }}>
+      <div class="stack" in:enter|global={{ y: 0, duration: dur(200) }}>
         <section class="intro card">
           <div class="badge">{code}</div>
           <h2>{t(`level.${code}.title`)}</h2>
@@ -216,7 +216,7 @@
     {:else}
       <!-- ---------- Installed ---------- -->
       {@const d = data.value}
-      <section class="summary card" in:fade|global={{ duration: dur(200) }}>
+      <section class="summary card" in:enter|global={{ y: 0, duration: dur(200) }}>
         <ProgressRing ratio={d.progress.ratio} size={112} stroke={10}>
           <span class="ring-text">
             <span class="pct">{Math.round(d.progress.ratio * 100)}%</span>
@@ -250,7 +250,7 @@
           <div
             class="item"
             animate:flip={{ duration: dur(250) }}
-            in:fly|global={{ y: 10, duration: dur(220), delay: stagger(i) }}
+            in:enter|global={{ y: 10, duration: dur(220), delay: stagger(i) }}
             out:slide={{ duration: dur(200) }}
           >
             <ProgressRow

@@ -129,7 +129,7 @@
   --shadow-lg: inset 0 0 0 1px var(--hairline), 0 24px 60px -12px rgb(0 0 0 / 0.75);
   --shadow-feature: inset 0 0 0 1px rgb(255 255 255 / 0.07), 0 20px 40px -24px rgb(0 0 0 / 0.9);
   --shadow-accent: 0 10px 26px -10px var(--accent-glow);
-  /* Edge of a page sliding over another (page transitions, edge-swipe back) */
+  /* Edge of a page sliding over another (page transitions) */
   --shadow-edge: -8px 0 32px rgb(0 0 0 / 0.5);
 
   /* Translucent bars, overlays, toasts */
@@ -219,8 +219,8 @@ body {
   font: 17px/1.4 var(--font-ui);
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
-  /* Horizontal only: keeps iOS's vertical rubber-band bounce, but stops sideways swipes from
-     triggering browser back/forward (the app has its own edge-swipe back). */
+  /* Horizontal only: keeps iOS's vertical rubber-band bounce, but stops sideways swipes on rows
+     and cards from triggering browser back/forward. System edge swipes aren't affected. */
   overscroll-behavior-x: none;
 }
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fly, slide } from 'svelte/transition';
+  import { slide } from 'svelte/transition';
   import Icon, { type IconName } from '../components/Icon.svelte';
   import ProgressRing from '../components/ProgressRing.svelte';
   import Skeleton from '../components/Skeleton.svelte';
@@ -11,7 +11,7 @@
   import { articleTitle } from '../lib/reading/store';
   import { i18n, locale, t, tn } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
-  import { dur } from '../lib/motion';
+  import { dur, enter } from '../lib/motion';
   import { settings } from '../lib/settings.svelte';
   import { newForSession } from '../lib/study/smart';
   import { newStudiedToday, smartCounts, type SmartId } from '../lib/study/sources';
@@ -156,7 +156,7 @@
   {#if !counts}
     <div class="card"><Skeleton lines={4} /></div>
   {:else if firstLaunch}
-    <div class="welcome" in:fly|global={{ y: 12, duration: dur(260) }}>
+    <div class="welcome" in:enter|global={{ y: 12, duration: dur(260) }}>
       <p class="lead">{t('home.welcome')}</p>
       <button class="choice" onclick={() => go('/levels')}>
         <span class="choice-icon tone-accent"><Icon name="sparkle" size={26} /></span>
@@ -181,7 +181,7 @@
   {:else}
     <div class="stack">
       {#if total}
-        <section class="hero" in:fly|global={{ y: 12, duration: dur(260) }}>
+        <section class="hero" in:enter|global={{ y: 12, duration: dur(260) }}>
           <div class="hero-top">
             <span class="hero-label">{t('home.session')}</span>
             <span class="hero-time">≈ {tn('common.minutes', minutes)}</span>
@@ -199,7 +199,7 @@
           </button>
         </section>
       {:else}
-        <section class="hero done" in:fly|global={{ y: 12, duration: dur(260) }}>
+        <section class="hero done" in:enter|global={{ y: 12, duration: dur(260) }}>
           <span class="done-icon"><Icon name="check" size={30} /></span>
           <div class="hero-count">{t('home.allDone')}</div>
           {#if limitReached}
@@ -218,7 +218,7 @@
         <button
           class="continue"
           onclick={() => go(`/learn/${settings.focus}`)}
-          in:fly|global={{ y: 12, duration: dur(260), delay: stagger(1) }}
+          in:enter|global={{ y: 12, duration: dur(260), delay: stagger(1) }}
         >
           <ProgressRing ratio={info.progress.ratio} size={56} stroke={6}>
             <span class="pct">{Math.round(info.progress.ratio * 100)}%</span>
@@ -236,7 +236,7 @@
         <button
           class="continue reading"
           onclick={() => go(articlePath(article))}
-          in:fly|global={{ y: 12, duration: dur(260), delay: stagger(2) }}
+          in:enter|global={{ y: 12, duration: dur(260), delay: stagger(2) }}
         >
           <span class="continue-text">
             <span class="eyebrow">{t('home.continueReading')}</span>
@@ -261,7 +261,7 @@
         <button
           class="continue hard"
           onclick={() => go('/hard')}
-          in:fly|global={{ y: 12, duration: dur(260), delay: stagger(3) }}
+          in:enter|global={{ y: 12, duration: dur(260), delay: stagger(3) }}
         >
           <span class="hard-icon"><Icon name="flame" size={26} filled /></span>
           <span class="continue-text">
@@ -273,7 +273,7 @@
         </button>
       {/if}
 
-      <section class="shortcuts" in:fly|global={{ y: 12, duration: dur(260), delay: stagger(3) }}>
+      <section class="shortcuts" in:enter|global={{ y: 12, duration: dur(260), delay: stagger(3) }}>
         {#each SHORTCUTS as s}
           {@const n = counts[s.id]}
           <button class="shortcut tone-{s.tone}" disabled={!n} onclick={() => go(`/learn/smart/${s.id}`)}>
@@ -294,7 +294,7 @@
       <button
         class="btn btn-block add-word"
         onclick={quickAddWord}
-        in:fly|global={{ y: 12, duration: dur(260), delay: stagger(4) }}
+        in:enter|global={{ y: 12, duration: dur(260), delay: stagger(4) }}
       >
         <Icon name="plus" size={20} /> {t('library.addAWord')}
       </button>

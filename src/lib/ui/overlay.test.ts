@@ -40,6 +40,11 @@ function fakeHistory() {
       history.go(-1);
       this.flush();
     },
+    /** The user swipes forward. */
+    forward() {
+      history.go(1);
+      this.flush();
+    },
     connect(stack: OverlayStack) {
       onPop = stack.onPopstate;
     },
@@ -155,6 +160,45 @@ describe('overlay stack', () => {
     expect(stack.isPending()).toBe(false);
     h.flush();
     expect(h.index).toBe(2);
+  });
+
+  it('forward onto a closed overlay steps back off it', () => {
+    const { h, stack } = setup();
+    stack.open(() => {}).release();
+    h.flush();
+    expect(h.entries).toHaveLength(2); // the closed overlay's entry can't be removed
+    h.forward();
+    expect(h.index).toBe(0);
+    expect(stack.isPending()).toBe(false);
+  });
+
+  it('forward onto an overlay closed by back steps back off it', () => {
+    const { h, stack } = setup();
+    const handle = stack.open(() => handle.release());
+    h.back();
+    h.forward();
+    expect(h.index).toBe(0);
+  });
+
+  it('back from a page onto a closed overlay carries on to the page below', () => {
+    const { h, stack } = setup();
+    const handle = stack.open(() => {});
+    // A link pushed a new page on top of the overlay entry, which is left behind.
+    h.history.pushState({ idx: 1 }, '', '/#/card/2');
+    handle.release();
+    h.back();
+    expect(h.index).toBe(0);
+  });
+
+  it('stays on the entry of an overlay that is still open', () => {
+    const { h, stack } = setup();
+    let closed = 0;
+    stack.open(() => closed++);
+    const top = stack.open(() => top.release());
+    h.back();
+    expect(h.index).toBe(1);
+    expect(closed).toBe(0);
+    expect(stack.hasOpen()).toBe(true);
   });
 
   it('settles after a timeout if the popstate never arrives', () => {

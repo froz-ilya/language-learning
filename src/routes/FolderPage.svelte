@@ -1,6 +1,6 @@
 <script lang="ts">
   import { flip } from 'svelte/animate';
-  import { fly, slide } from 'svelte/transition';
+  import { slide } from 'svelte/transition';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import ProgressBar from '../components/ProgressBar.svelte';
@@ -11,7 +11,7 @@
   import { go, replace, route } from '../lib/router.svelte';
   import { live } from '../lib/live.svelte';
   import { systemName, t, tn } from '../lib/i18n.svelte';
-  import { dur } from '../lib/motion';
+  import { dur, enter } from '../lib/motion';
   import { db } from '../lib/db/schema';
   import { deleteFolder, renameFolder, setsInFolder, updateSet } from '../lib/db/repo';
   import { progressBySet } from '../lib/progress';
@@ -131,7 +131,7 @@
           <div
             class="item"
             animate:flip={{ duration: dur(250) }}
-            in:fly|global={{ y: 10, duration: dur(220), delay: stagger(i) }}
+            in:enter|global={{ y: 10, duration: dur(220), delay: stagger(i) }}
             out:slide={{ duration: dur(200) }}
           >
             <ProgressRow

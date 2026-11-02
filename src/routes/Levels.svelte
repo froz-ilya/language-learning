@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { fly } from 'svelte/transition';
   import { t, tn } from '../lib/i18n.svelte';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import ProgressRing from '../components/ProgressRing.svelte';
   import { levelIndex, levelProgress, stagger } from '../components/library/actions';
   import { live } from '../lib/live.svelte';
-  import { dur } from '../lib/motion';
+  import { dur, enter } from '../lib/motion';
   import { LEVELS, type LevelIndex } from '../lib/levels/types';
 
   let index = $state<LevelIndex | null>(null);
@@ -35,7 +34,7 @@
         class="level tier-{code[0].toLowerCase()}"
         class:started={!!p}
         href="#/level/{code}"
-        in:fly|global={{ y: 12, duration: dur(240), delay: stagger(i, 40) }}
+        in:enter|global={{ y: 12, duration: dur(240), delay: stagger(i, 40) }}
       >
         <ProgressRing ratio={p?.ratio ?? 0} size={60} stroke={6}>
           <span class="code">{code}</span>

@@ -46,7 +46,10 @@ migration that is tested.
 ## Conventions
 
 - UI: shared tokens/classes in src/styles/app.css (light + dark themes via `html[data-theme]`).
-  Motion goes through `dur()` (src/lib/motion.ts) so Reduce Motion is respected.
+  Motion goes through `dur()` (src/lib/motion.ts) so Reduce Motion is respected. Blocks on a page
+  enter with `in:enter|global`, not `fly`: they stay still while the page itself is moving.
+- Swipes between pages are iOS's own and can't be changed. Don't add a custom edge swipe, and don't
+  animate a move the system already animated (src/lib/ui/systemSwipe.ts).
 - No native `prompt/confirm/alert`: use src/lib/ui/dialogs.svelte.ts.
 - Online sources go through the fallback chains in src/lib/sources; don't work around a source
   that rate-limits or blocks — back off.

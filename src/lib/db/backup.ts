@@ -1,28 +1,32 @@
 import { db } from './schema';
 import { t } from '../i18n.svelte';
 import type { Card, Folder, Review, Settings, WordSet } from '../types';
+import type { GrammarProgress } from '../grammar/types';
 
 interface BackupFile {
   app: 'deutsch';
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   exportedAt: string;
   folders: Folder[];
   sets: WordSet[];
   cards: Card[];
   reviews: Review[];
   settings: Settings[];
+  /** Since version 3. */
+  grammar?: GrammarProgress[];
 }
 
 export async function exportBackup(): Promise<Blob> {
   const data: BackupFile = {
     app: 'deutsch',
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     folders: await db.folders.toArray(),
     sets: await db.sets.toArray(),
     cards: await db.cards.toArray(),
     reviews: await db.reviews.toArray(),
     settings: await db.settings.toArray(),
+    grammar: await db.grammar.toArray(),
   };
   return new Blob([JSON.stringify(data)], { type: 'application/json' });
 }
@@ -76,8 +80,22 @@ function normalizeCard(c: Card): Card {
 }
 
 /**
- * replace: wipe everything and restore the backup as-is.
- * merge: add the backup's folders/sets/cards next to existing ones (new ids).
+ * Grammar rows of a backup, without any that lack an id or schedule. Undefined when the file has
+ * none: it was made before grammar existed and knows nothing about it.
+ */
+function grammarRows(rows: unknown): GrammarProgress[] | undefined {
+  if (!Array.isArray(rows)) return undefined;
+  const num = (v: unknown) => (typeof v === 'number' ? v : 0);
+  return rows
+    .filter((g) => g && typeof g.id === 'string' && g.id && Number.isFinite(g.box) && Number.isFinite(g.due))
+    .map((g) => ({ id: g.id, box: g.box, due: g.due, lastAt: num(g.lastAt), right: num(g.right), wrong: num(g.wrong) }));
+}
+
+/**
+ * replace: wipe everything and restore the backup as-is. Like settings, grammar progress stays
+ * when the file has none.
+ * merge: add the backup's folders/sets/cards next to existing ones (new ids); of grammar progress
+ * in both, the row with the higher box wins.
  */
 export async function importBackup(text: string, mode: 'replace' | 'merge'): Promise<{ cards: number }> {
   const data = JSON.parse(text) as BackupFile;
@@ -87,8 +105,9 @@ export async function importBackup(text: string, mode: 'replace' | 'merge'): Pro
   data.sets = data.sets.map((s) => ({ ...s, level: s.level ?? '', topic: s.topic ?? '' }));
   data.cards = data.cards.map(normalizeCard);
   const reviews = (data.reviews ?? []).map(reviveDates);
+  const grammar = grammarRows(data.grammar);
 
-  await db.transaction('rw', [db.folders, db.sets, db.cards, db.reviews, db.settings], async () => {
+  await db.transaction('rw', [db.folders, db.sets, db.cards, db.reviews, db.settings, db.grammar], async () => {
     if (mode === 'replace') {
       await Promise.all([db.folders.clear(), db.sets.clear(), db.cards.clear(), db.reviews.clear()]);
       await db.folders.bulkPut(data.folders);
@@ -96,6 +115,10 @@ export async function importBackup(text: string, mode: 'replace' | 'merge'): Pro
       await db.cards.bulkPut(data.cards);
       await db.reviews.bulkPut(reviews);
       if (data.settings?.length) await db.settings.bulkPut(data.settings);
+      if (grammar) {
+        await db.grammar.clear();
+        await db.grammar.bulkPut(grammar);
+      }
       return;
     }
 
@@ -112,6 +135,10 @@ export async function importBackup(text: string, mode: 'replace' | 'merge'): Pro
       const newId = (await db.cards.add({ ...c, setId })) as number;
       const review = reviewByCard.get(id!);
       if (review) await db.reviews.put({ ...review, cardId: newId });
+    }
+    for (const row of grammar ?? []) {
+      const existing = await db.grammar.get(row.id);
+      if (!existing || row.box > existing.box) await db.grammar.put(row);
     }
   });
   return { cards: data.cards.length };

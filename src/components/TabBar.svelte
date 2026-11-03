@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { route, switchTab } from '../lib/router.svelte';
-  import { reducedMotion } from '../lib/motion';
+  import { db } from '../lib/db/schema';
   import { t } from '../lib/i18n.svelte';
+  import { live } from '../lib/live.svelte';
+  import { reducedMotion } from '../lib/motion';
+  import { route, switchTab } from '../lib/router.svelte';
 
   /** iOS-style bottom tab bar, shown on the five tab roots (App.svelte decides). */
   const TABS = [
@@ -24,17 +26,24 @@
       icon: 'M4 20v-5M10 20v-9M16 20V8M22 20V4',
     },
     {
+      path: '/grammar',
+      label: 'shell.tab.grammar',
+      // words either side of the verb
+      icon: 'M3 9h7v6H3zM14 9h7v6h-7zM12 5v14',
+    },
+    {
       path: '/read',
       label: 'shell.tab.read',
       // open book
       icon: 'M2 5.5A1.5 1.5 0 013.5 4H9a3 3 0 013 3v13a2.5 2.5 0 00-2.5-2.5H3.5A1.5 1.5 0 012 16zM22 5.5A1.5 1.5 0 0020.5 4H15a3 3 0 00-3 3v13a2.5 2.5 0 012.5-2.5h6a1.5 1.5 0 001.5-1.5z',
     },
-    {
-      path: '/settings',
-      label: 'shell.tab.settings',
-      icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z',
-    },
   ] as const;
+
+  /** The only signal of due grammar outside its tab: Today stays words only. */
+  const grammarDue = live(() => {
+    void route.path; // read synchronously: sentences fall due with time, so re-check on each move
+    return db.grammar.where('due').belowOrEqual(Date.now()).count();
+  });
 
   function select(path: string) {
     if (route.path === path) {
@@ -71,7 +80,7 @@
         aria-hidden="true"
       >
         <path d={tab.icon} />
-      </svg></span>
+      </svg>{#if tab.path === '/grammar' && grammarDue.value}<span class="due-dot" role="img" aria-label={t('grammar.dueDot')}></span>{/if}</span>
       <span>{t(tab.label)}</span>
     </a>
   {/each}
@@ -120,12 +129,22 @@
     transform: scale(0.92);
   }
   .pill {
+    position: relative;
     display: grid;
     place-items: center;
     width: 54px;
     height: 30px;
     border-radius: 999px;
     transition: background-color var(--dur) var(--ease);
+  }
+  .due-dot {
+    position: absolute;
+    top: 3px;
+    right: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-bar);
   }
   .tab.active {
     color: var(--accent);

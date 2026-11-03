@@ -131,11 +131,12 @@
       <h1>{greeting}</h1>
       {#if i18n.lang !== 'de'}<div class="gruss" lang="de">{gruss}!</div>{/if}
     </div>
-    <div class="top-actions" class:two={counts && !firstLaunch}>
+    <div class="top-actions">
       <button class="add-btn" aria-label={t('library.searchWord')} onclick={openSearch}><Icon name="search" size={22} /></button>
       {#if counts && !firstLaunch}
         <button class="add-btn" aria-label={t('library.addAWord')} onclick={quickAddWord}><Icon name="plus" size={24} /></button>
       {/if}
+      <button class="add-btn gear" aria-label={t('settings.title')} onclick={() => go('/settings')}><Icon name="gear" size={22} /></button>
     </div>
   </header>
 
@@ -337,17 +338,19 @@
   .ib-close {
     color: var(--muted);
   }
+  /* Date and buttons share the first row, so three buttons don't squeeze the greeting. */
   .top {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
     padding: 14px 0 20px;
   }
   .titles {
-    flex: 1;
-    min-width: 0;
+    display: contents;
   }
   .date {
+    grid-area: 1 / 1;
+    align-self: center;
     font-family: var(--font-display);
     font-size: 12.5px;
     font-weight: 800;
@@ -356,11 +359,13 @@
     color: var(--muted);
   }
   h1 {
+    grid-column: 1 / -1;
     font-size: 32px;
     font-weight: 900;
     margin-top: 4px;
   }
   .gruss {
+    grid-column: 1 / -1;
     font-family: var(--font-display);
     font-size: 18px;
     font-weight: 700;
@@ -368,25 +373,18 @@
     margin-top: 2px;
   }
   .top-actions {
+    grid-area: 1 / 2;
     display: flex;
     gap: 8px;
-    flex-shrink: 0;
-  }
-  /* Search + add side by side: a little smaller, so the date line keeps its width. */
-  .top-actions.two .add-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
   }
   .add-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 46px;
-    height: 46px;
-    margin-top: 10px;
+    width: 42px;
+    height: 42px;
     border: 0;
-    border-radius: 16px;
+    border-radius: 14px;
     background: var(--surface);
     box-shadow: var(--shadow);
     color: var(--accent);
@@ -397,6 +395,9 @@
   .add-btn:active {
     background: var(--surface-2);
     transform: scale(0.94);
+  }
+  .add-btn.gear {
+    color: var(--muted);
   }
 
   /* ---------- Hero ---------- */

@@ -31,9 +31,14 @@
   import HardWords from './routes/HardWords.svelte';
   import Share from './routes/Share.svelte';
   import Search from './routes/Search.svelte';
+  import Grammar from './routes/Grammar.svelte';
+  import GrammarTopic from './routes/GrammarTopic.svelte';
+  import GrammarPractice from './routes/GrammarPractice.svelte';
+  import GrammarStage from './routes/GrammarStage.svelte';
+  import GrammarCheat from './routes/GrammarCheat.svelte';
 
   /*
-   * Routes (hash based). Tab roots (show the bottom tab bar): /, /library, /levels, /settings.
+   * Routes (hash based). Tab roots (show the bottom tab bar): /, /library, /levels, /grammar, /read.
    *   /                         Today: one big "Start" (smart session over smart/today), shortcuts
    *   /library                  Library: user folders + unfiled sets, progress bars
    *   /levels                   Levels: A1…C2 cards with progress rings
@@ -47,7 +52,16 @@
    *   /study/:kind/:id/:mode    Single-mode session
    *   /placement/:code          Placement check for a level
    *   /import?set=:id|folder=:id  Quizlet / bulk paste import
-   *   /settings                 Settings + backup
+   *   /settings                 Settings + backup (from the gear on Today)
+   *   /grammar                  Grammar: cheat sheet link, review hero, the path, the rules
+   *   /grammar/cheat            Cheat sheet: where the verb goes after each word
+   *   /grammar/stage/:id        Stage of the path: its words and contrast
+   *   /grammar/stage/:id/practice  Practice of one stage
+   *   /grammar/word/:word/practice  Practice of one word (encoded: außerdem)
+   *   /grammar/review/practice  Everything due
+   *   /grammar/anyway/practice  Practice with nothing due
+   *   /grammar/:topic           Topic: the rule, examples, its words
+   *   /grammar/:topic/practice  Practice of one topic (or /grammar/all/practice: everything)
    *   /read                     Read: articles by level, saved, paste your own
    *   /article/:source/:id      Reader (tap words → add to the article's set)
    *   /paste                    Paste your own text into the reader
@@ -90,7 +104,14 @@
     if (online.value) void translateArticleExamples(settings.lang);
   });
 
-  const Page = $derived(ROUTES[route.parts[0] as keyof typeof ROUTES] ?? Home);
+  // Grammar's pages share parts[0]. Anything unknown lands on the topic page, which sends it home.
+  function grammarPage(parts: string[]) {
+    if (parts.length === 1) return Grammar;
+    if (parts.length === 2 && parts[1] === 'cheat') return GrammarCheat;
+    if (parts.length === 3 && parts[1] === 'stage') return GrammarStage;
+    return parts.length >= 3 && parts.at(-1) === 'practice' ? GrammarPractice : GrammarTopic;
+  }
+  const Page = $derived(route.parts[0] === 'grammar' ? grammarPage(route.parts) : (ROUTES[route.parts[0] as keyof typeof ROUTES] ?? Home));
   const onTabRoot = $derived(isTabRoot(route.path));
 </script>
 

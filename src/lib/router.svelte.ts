@@ -32,7 +32,7 @@ export type NavDirection = 'forward' | 'back' | 'tab' | 'replace' | 'none';
 export const nav = $state({ direction: 'none' as NavDirection });
 
 /** Routes that show the bottom tab bar. */
-export const TAB_ROOTS = ['/', '/library', '/levels', '/read', '/settings'] as const;
+export const TAB_ROOTS = ['/', '/library', '/levels', '/grammar', '/read'] as const;
 
 export function isTabRoot(path: string): boolean {
   return (TAB_ROOTS as readonly string[]).includes(path);
@@ -40,9 +40,15 @@ export function isTabRoot(path: string): boolean {
 
 /** Best guess at a page's parent, for back() when there is no history (e.g. a deep link). */
 export function parentOf(path: string): string {
-  const head = path.split('/').filter(Boolean)[0];
+  const parts = path.split('/').filter(Boolean);
+  const head = parts[0];
   if (head === 'level' || head === 'placement') return '/levels';
   if (head === 'article' || head === 'paste') return '/read';
+  if (head === 'grammar') {
+    if (parts[1] === 'stage' && parts[3] === 'practice') return `/grammar/stage/${parts[2]}`;
+    const topicPractice = parts[2] === 'practice' && !['all', 'review', 'anyway'].includes(parts[1]);
+    return topicPractice ? `/grammar/${parts[1]}` : '/grammar';
+  }
   if (head === 'set' || head === 'folder' || head === 'card' || head === 'import') return '/library';
   return '/';
 }

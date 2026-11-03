@@ -6,8 +6,8 @@ export const en = {
   'shell.tab.today': 'Today',
   'shell.tab.library': 'Library',
   'shell.tab.levels': 'Levels',
+  'shell.tab.grammar': 'Grammar',
   'shell.tab.read': 'Read',
-  'shell.tab.settings': 'Settings',
 
   'shell.offline': 'Offline — studying works, dictionary auto-fill is paused',
   'shell.levelsUpdated': 'Levels updated to the new word lists. Your progress is kept.',
@@ -25,8 +25,8 @@ export const de: Translation<typeof en> = {
   'shell.tab.today': 'Heute',
   'shell.tab.library': 'Bibliothek',
   'shell.tab.levels': 'Niveaus',
+  'shell.tab.grammar': 'Grammatik',
   'shell.tab.read': 'Lesen',
-  'shell.tab.settings': 'Einstellungen',
 
   'shell.offline': 'Offline – Lernen geht weiter, automatisches Ausfüllen pausiert',
   'shell.levelsUpdated': 'Niveaus auf die neuen Wortlisten aktualisiert. Dein Fortschritt bleibt erhalten.',

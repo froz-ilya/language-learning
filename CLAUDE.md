@@ -65,6 +65,27 @@ migration that is tested.
   estimates (scripts/levels/lib/graded.mjs): compounds of listed words are B2 (`notCompound` holds
   the hand-checked exceptions), then DAFlex (CC BY-NC-SA: keep the credit), then frequency.
 
+## Grammar
+
+Word-order lessons, separate from word cards: authored data in src/lib/grammar/content, logic in
+practice.ts and path.ts (pure), progress per exercise in `db.grammar` (included in backups).
+
+- Three word-order groups (topics), each with small steps (`GRAMMAR_STAGES`). A stage stays inside
+  one group, so one rule covers all its words; words that get confused across groups meet through
+  `partners`. Stages are lists of words: changing them needs no migration.
+- A right answer raises an exercise's box only when it is due, so "learned" means right on two
+  different days.
+- The cheat sheet (/grammar/cheat) is for lookups during homework: everything visible, no tapping
+  to open anything, jumps are instant.
+
+- Exercise ids (`weil-3`) never change or get reused: progress is tied to them.
+- A `build` exercise lists every order a German speaker would accept in `answers`, with the same
+  words in each. A correct order marked wrong is the worst bug here. src/lib/grammar/content.test.ts
+  checks the data.
+- Sentences are invented for this app. Rule text is `RuleText` in the content, not an i18n key, and
+  follows the interface language (`x[i18n.lang]`); its `ru` isn't shown, as the interface has no
+  Russian. Sentence translations and word meanings follow `settings.lang`, like word cards.
+
 ## Interface language
 
 The interface is in English and German (`settings.uiLang`: auto, en, de; auto follows the phone).

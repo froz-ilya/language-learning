@@ -241,7 +241,7 @@
 </script>
 
 <div class="page">
-  <Header title={t('settings.title')} />
+  <Header title={t('settings.title')} backTo="/" />
 
   <section class="section">
     <h2 class="section-title">{t('settings.appearance.title')}</h2>

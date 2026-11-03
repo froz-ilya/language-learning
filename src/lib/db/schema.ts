@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { Card, Folder, LookupResult, Review, Settings, WordSet } from '../types';
 import type { SavedArticle } from '../reading/types';
+import type { GrammarProgress } from '../grammar/types';
 
 export interface LookupCacheEntry {
   /** `${lang}:${word}` */
@@ -17,6 +18,7 @@ export class AppDB extends Dexie {
   lookupCache!: EntityTable<LookupCacheEntry, 'key'>;
   settings!: EntityTable<Settings, 'id'>;
   articles!: EntityTable<SavedArticle, 'id'>;
+  grammar!: EntityTable<GrammarProgress, 'id'>;
 
   constructor() {
     super('deutsch');
@@ -68,6 +70,11 @@ export class AppDB extends Dexie {
     this.version(6)
       .stores({})
       .upgrade((tx) => tx.table('lookupCache').clear());
+    // v7: grammar — spaced practice per exercise. A new table, so older data needs no upgrade;
+    // an exercise never practised has no row.
+    this.version(7).stores({
+      grammar: 'id, due',
+    });
   }
 }
 

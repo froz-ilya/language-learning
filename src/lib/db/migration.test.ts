@@ -24,6 +24,8 @@ const V3 = { ...V2, articles: 'id, source, savedAt, readAt' };
 const V4 = V3;
 /** v5 changed no tables either (it cleared lookupCache again). */
 const V5 = V4;
+/** v6 changed no tables either (it cleared lookupCache again). */
+const V6 = V5;
 
 function oldDb(version: number, stores: Record<string, string>) {
   const d = new Dexie('deutsch');
@@ -110,7 +112,7 @@ describe('upgrading the database', () => {
     // Tables added later exist; the stale lookup cache is cleared.
     expect(await db.articles.count()).toBe(0);
     expect(await db.lookupCache.count()).toBe(0);
-    expect(db.verno).toBe(6);
+    expect(db.verno).toBe(7);
   });
 
   it('keeps v1 settings and adds defaults for settings added later', async () => {
@@ -204,7 +206,7 @@ describe('upgrading the database', () => {
     d.close();
 
     const { db } = await import('./schema');
-    expect(db.verno).toBe(6);
+    expect(db.verno).toBe(7);
     expect(await db.lookupCache.count()).toBe(0);
     expect(await db.cards.get(1)).toMatchObject({ ...v1Card, known: 0, presetId: 'A1:Tisch' });
     expect(await db.sets.get(1)).toMatchObject({ name: 'Essen', level: 'A1' });
@@ -240,7 +242,7 @@ describe('upgrading the database', () => {
     d.close();
 
     const { db } = await import('./schema');
-    expect(db.verno).toBe(6);
+    expect(db.verno).toBe(7);
     expect(await db.lookupCache.count()).toBe(0);
     const [a, b] = [(await db.cards.get(1))!, (await db.cards.get(2))!];
     expect(a).toEqual(tisch);
@@ -253,6 +255,33 @@ describe('upgrading the database', () => {
     expect(filled).toEqual({ ...b, examples: result.examples, preps: 'auf + Akk; über + Akk', needsFill: 0 });
     await db.cards.put(filled);
     expect((await db.cards.get(2))?.preps).toBe('auf + Akk; über + Akk');
+  });
+
+  it('opens a v6 database: keeps everything and adds an empty grammar table', async () => {
+    const d = oldDb(6, V6);
+    await d.table('folders').add({ name: 'School', level: '', createdAt: 1 });
+    await d.table('sets').add({ name: 'Möbel', folderId: 1, level: '', topic: '', createdAt: 1 });
+    const card = { ...v1Card, id: 1, known: 1, presetId: '', preps: 'auf + Akk' };
+    await d.table('cards').add(card);
+    await d.table('reviews').put({ cardId: 1, due: fsrs.due.getTime(), fsrs, mistakes: 3, lastWrong: 2 });
+    await d.table('settings').put(v1Settings);
+    await d.table('lookupCache').put({ key: 'v5:ru:Tisch', result: null, fetchedAt: 1 });
+    d.close();
+
+    const { db } = await import('./schema');
+    expect(db.verno).toBe(7);
+    expect(await db.cards.get(1)).toEqual(card);
+    const review = await db.reviews.get(1);
+    expect(review).toMatchObject({ mistakes: 3, lastWrong: 2 });
+    expect(review?.fsrs.due).toBeInstanceOf(Date);
+    expect(await db.settings.get('main')).toEqual(v1Settings);
+    expect(await db.lookupCache.count()).toBe(1); // v7 leaves this cache alone
+    expect(await db.grammar.count()).toBe(0);
+    // The new table works on an upgraded database.
+    const { recordGrammar, loadProgress } = await import('../grammar/store');
+    await recordGrammar('weil-1', true, 1000);
+    expect((await loadProgress()).get('weil-1')).toMatchObject({ box: 1, right: 1, wrong: 0, lastAt: 1000 });
+    expect(await db.grammar.where('due').above(1000).count()).toBe(1);
   });
 
   it('upgraded words still work with today’s logic', async () => {
@@ -538,5 +567,88 @@ describe('restoring old backups', () => {
       ['sich freuen', 'auf + Akk'],
       ['warten', undefined],
     ]);
+  });
+
+  describe('grammar progress', () => {
+    const row = (id: string, box: number, extra = {}) => ({ id, box, due: 5000, lastAt: 4000, right: box, wrong: 1, ...extra });
+    const file = (version: number, extra = {}) => ({
+      app: 'deutsch',
+      version,
+      exportedAt: '2026-11-01T10:00:00Z',
+      folders: [],
+      sets: [],
+      cards: [],
+      reviews: [],
+      settings: [],
+      ...extra,
+    });
+
+    it('a v2 file knows nothing of grammar: replace keeps the progress there is', async () => {
+      const { db } = await import('./schema');
+      const { importBackup } = await import('./backup');
+      await db.grammar.put(row('weil-1', 3));
+      await importBackup(JSON.stringify(file(2)), 'replace');
+      expect(await db.grammar.get('weil-1')).toEqual(row('weil-1', 3));
+    });
+
+    it('a v3 file replaces grammar progress, also with none', async () => {
+      const { db } = await import('./schema');
+      const { importBackup } = await import('./backup');
+      await db.grammar.put(row('weil-1', 3));
+      await importBackup(JSON.stringify(file(3, { grammar: [row('dass-2', 1)] })), 'replace');
+      expect(await db.grammar.toArray()).toEqual([row('dass-2', 1)]);
+      await importBackup(JSON.stringify(file(3, { grammar: [] })), 'replace');
+      expect(await db.grammar.count()).toBe(0);
+    });
+
+    it('round-trips through a v3 backup', async () => {
+      const { db } = await import('./schema');
+      const { exportBackup, importBackup } = await import('./backup');
+      const rows = [row('dass-2', 1), row('weil-1', 3)];
+      await db.grammar.bulkPut(rows);
+      const text = await (await exportBackup()).text();
+      expect(JSON.parse(text)).toMatchObject({ version: 3, grammar: rows });
+      await db.grammar.clear();
+      await importBackup(text, 'replace');
+      expect(await db.grammar.toArray()).toEqual(rows);
+    });
+
+    it('merge keeps the higher box and adds what is missing', async () => {
+      const { db } = await import('./schema');
+      const { importBackup } = await import('./backup');
+      await db.grammar.bulkPut([row('a', 3), row('b', 1), row('c', 2), row('d', 4)]);
+      const grammar = [row('a', 1, { due: 1 }), row('b', 4, { due: 2 }), row('c', 2, { due: 3 }), row('e', 2, { due: 4 })];
+      await importBackup(JSON.stringify(file(3, { grammar })), 'merge');
+      expect(await db.grammar.toArray()).toEqual([row('a', 3), row('b', 4, { due: 2 }), row('c', 2), row('d', 4), row('e', 2, { due: 4 })]);
+    });
+
+    it('merge with a file without grammar changes nothing', async () => {
+      const { db } = await import('./schema');
+      const { importBackup } = await import('./backup');
+      await db.grammar.put(row('a', 3));
+      await importBackup(JSON.stringify(file(2)), 'merge');
+      expect(await db.grammar.toArray()).toEqual([row('a', 3)]);
+    });
+
+    it('drops rows without a string id or numeric box and due, in both modes', async () => {
+      const { db } = await import('./schema');
+      const { importBackup } = await import('./backup');
+      const { id: _id, ...noId } = row('x', 1);
+      const { box: _box, ...noBox } = row('x', 1);
+      const { due: _due, ...noDue } = row('x', 1);
+      const grammar = [row('good', 2), noId, noBox, noDue, { ...row('x', 1), id: 7 }, { ...row('x', 1), box: '2' }, { ...row('x', 1), due: null }, null, 'junk'];
+      await importBackup(JSON.stringify(file(3, { grammar })), 'replace');
+      expect(await db.grammar.toArray()).toEqual([row('good', 2)]);
+      await db.grammar.clear();
+      await importBackup(JSON.stringify(file(3, { grammar })), 'merge');
+      expect(await db.grammar.toArray()).toEqual([row('good', 2)]);
+    });
+
+    it('reads a row that lost its counters with zeros', async () => {
+      const { db } = await import('./schema');
+      const { importBackup } = await import('./backup');
+      await importBackup(JSON.stringify(file(3, { grammar: [{ id: 'a', box: 2, due: 9 }] })), 'replace');
+      expect(await db.grammar.get('a')).toEqual({ id: 'a', box: 2, due: 9, lastAt: 0, right: 0, wrong: 0 });
+    });
   });
 });

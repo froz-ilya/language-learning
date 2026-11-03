@@ -17,6 +17,8 @@
     missed,
     celebrate = true,
     becameHard = [],
+    missedCount,
+    missedList,
     actions,
   }: {
     correct: number;
@@ -25,10 +27,14 @@
     celebrate?: boolean;
     /** Words that just became hard words (missed 5+ times): nudge to add a memory hook. */
     becameHard?: Card[];
+    /** Mistakes that aren't words (grammar): their number, and the list shown instead of `missed`. */
+    missedCount?: number;
+    missedList?: Snippet;
     actions: Snippet;
   } = $props();
 
   let shown = $state(0);
+  const mistakes = $derived(missedCount ?? missed.length);
 
   $effect(() => {
     const target = correct;
@@ -84,20 +90,24 @@
     </a>
   {/if}
 
-  {#if missed.length}
+  {#if mistakes}
     <div>
-      <div class="section-title">{t('study.results.toReview', { n: missed.length })}</div>
-      <div class="list">
-        {#each missed as c, i (c.id ?? i)}
-          <div class="list-item">
-            <div class="missed-text">
-              <div class="title"><Term card={c} /></div>
-              <div class="sub">{c.translation}</div>
+      <div class="section-title">{t('study.results.toReview', { n: mistakes })}</div>
+      {#if missedList}
+        {@render missedList()}
+      {:else}
+        <div class="list">
+          {#each missed as c, i (c.id ?? i)}
+            <div class="list-item">
+              <div class="missed-text">
+                <div class="title"><Term card={c} /></div>
+                <div class="sub">{c.translation}</div>
+              </div>
+              <SpeakButton text={speakableTerm(c)} />
             </div>
-            <SpeakButton text={speakableTerm(c)} />
-          </div>
-        {/each}
-      </div>
+          {/each}
+        </div>
+      {/if}
     </div>
   {:else if total > 0}
     <div class="center muted">{t('study.results.noMistakes')}</div>

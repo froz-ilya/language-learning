@@ -1,6 +1,6 @@
 import type { Rng } from '../study/session';
-import { endingOptions } from './endings';
-import type { BuildExercise, EndingExercise, GrammarExercise, GrammarProgress } from './types';
+import { endingOptions, relativePronoun } from './endings';
+import type { BuildExercise, EndingExercise, GrammarExercise, GrammarProgress, PickExercise } from './types';
 
 /**
  * Pure grammar-practice logic (no DB, no DOM) so it can be unit tested. Imports only types and the
@@ -118,6 +118,20 @@ export function fullSentence(ex: GrammarExercise): string {
     .filter(Boolean)
     .join(' ')
     .replace(/\s+([,.!?;:])/g, '$1');
+}
+
+/**
+ * What Highlighted marks in a build's or pick's sentence: the connector and verbs, the word a pick
+ * asked for, and in a relative clause its pronoun and the noun it stands for.
+ */
+export function marksOf(ex: BuildExercise | PickExercise): { connector: string; verbs: string[]; answer: string; noun: string } {
+  const rel = ex.relative;
+  return {
+    connector: rel ? '' : ex.connector,
+    verbs: ex.verbs ?? [],
+    answer: ex.kind === 'pick' ? ex.answer : rel ? relativePronoun(rel.case, rel.gender) : '',
+    noun: rel?.noun ?? '',
+  };
 }
 
 /**

@@ -1,15 +1,19 @@
 <script lang="ts">
   import { highlightSegments } from './highlight';
 
-  /** A German sentence with its verb filled and its connector tinted. The caller sets lang="de". */
+  /**
+   * A German sentence with its verb filled and its connector tinted; for a relative clause, the
+   * noun its pronoun stands for underlined. The caller sets lang="de".
+   */
   let {
     text,
     connector = '',
     verbs = [],
     answer = '',
-  }: { text: string; connector?: string; verbs?: string[]; answer?: string } = $props();
+    noun = '',
+  }: { text: string; connector?: string; verbs?: string[]; answer?: string; noun?: string } = $props();
 
-  const segments = $derived(highlightSegments(text, connector, verbs, answer));
+  const segments = $derived(highlightSegments(text, connector, verbs, answer, noun));
 </script>
 
 {#each segments as s}{#if s.kind}<span class={s.kind}>{s.text}</span>{:else}{s.text}{/if}{/each}
@@ -28,5 +32,10 @@
   .c {
     color: var(--tier-b);
     font-weight: 800;
+  }
+  /* Where the pronoun's gender comes from: tied to it by colour, but lighter than a mark. */
+  .n {
+    text-decoration: underline 2px var(--tier-b);
+    text-underline-offset: 3px;
   }
 </style>

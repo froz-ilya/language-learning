@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { connectorOf, patternOf, wordTitle } from '../components/grammar/connectors';
+  import { connectorOf, patternOf, relativePatternOf, wordTitle } from '../components/grammar/connectors';
   import EndingText from '../components/grammar/EndingText.svelte';
   import Formula from '../components/grammar/Formula.svelte';
   import Highlighted from '../components/grammar/Highlighted.svelte';
@@ -45,7 +45,7 @@
     <p class="small contrast" in:enter|global={{ y: 12, duration: dur(240) }}>{stage.contrast[i18n.lang]}</p>
 
     <section class="section" in:enter|global={{ y: 12, duration: dur(240) }}>
-      <div class="section-title">{topic.area === 'endings' ? t('grammar.cases') : t('grammar.words')}</div>
+      <div class="section-title">{topic.area !== 'order' ? t('grammar.cases') : t('grammar.words')}</div>
       <div class="list">
         {#each stage.words as word (word)}
           {@const s = stats.value?.words.find((w) => w.word === word)?.stats}
@@ -58,6 +58,15 @@
                 {#if pattern}
                   <span class="sub">{pattern.rule[i18n.lang]}</span>
                   <span class="small example" lang="de"><EndingText text={pattern.example.de} marks={pattern.example.marks} /></span>
+                {/if}
+              </span>
+            {:else if topic.area === 'relative'}
+              {@const pattern = relativePatternOf(word)}
+              <span class="text">
+                <span class="title word" lang="de">{wordTitle(word)}</span>
+                {#if pattern}
+                  <span class="sub">{pattern.rule[i18n.lang]}</span>
+                  <span class="small example" lang="de"><Highlighted text={pattern.example.de} connector={pattern.example.pronoun} noun={pattern.example.noun} verbs={pattern.example.verbs} /></span>
                 {/if}
               </span>
             {:else}

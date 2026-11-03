@@ -3,14 +3,16 @@
   import EndingTable from '../components/grammar/EndingTable.svelte';
   import Formula from '../components/grammar/Formula.svelte';
   import Highlighted from '../components/grammar/Highlighted.svelte';
+  import RelativeTable from '../components/grammar/RelativeTable.svelte';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import { areaShort } from '../components/grammar/connectors';
-  import { AREA_IDS, areaById, ENDING_TOPICS, ORDER_TOPICS, topicById } from '../lib/grammar/content';
+  import { AREA_IDS, areaById, ENDING_TOPICS, ORDER_TOPICS, RELATIVE_TOPICS, topicById } from '../lib/grammar/content';
   import type { AreaId } from '../lib/grammar/types';
   import { i18n, t } from '../lib/i18n.svelte';
   import { dur, enter } from '../lib/motion';
   import { replace, route } from '../lib/router.svelte';
+  import { CASE_NAMES } from '../lib/grammar/endings';
   import { settings } from '../lib/settings.svelte';
 
   /** The area last looked at, so /grammar/cheat opens where homework left off. */
@@ -133,7 +135,7 @@
           {/each}
         </ul>
       </section>
-    {:else}
+    {:else if area === 'endings'}
       <!-- Only the tables: the rule for each case is a tap away on the topic page. -->
       <nav class="card index" aria-label={t('grammar.cheatIndex')}>
         <div class="chips">
@@ -152,6 +154,42 @@
             <EndingTable declension={topic.declension} />
             {#if topic.declension === 'ein'}<p class="foot">{t('grammar.einPlural')}</p>{/if}
           </div>
+          <a class="more" href="#/grammar/{topic.id}">{t('grammar.fullRule')} <Icon name="chevron" size={14} /></a>
+        </section>
+      {/each}
+    {:else if area === 'relative'}
+      <!-- One topic and few cases: the table and every case's rule fit on the page, no index needed. -->
+      {#each RELATIVE_TOPICS as topic (topic.id)}
+        <section class="pattern relative">
+          <div class="formula"><Formula text={topic.formula[i18n.lang]} /></div>
+          <div class="card entry table">
+            <RelativeTable />
+            <p class="foot">{t('grammar.relativeDiffers')}</p>
+          </div>
+        </section>
+
+        <section class="pattern">
+          <h2>{t('grammar.cases')}</h2>
+          <div class="list">
+            {#each topic.patterns as pattern (pattern.id)}
+              <div class="entry">
+                <div class="head"><span class="word" lang="de">{CASE_NAMES[pattern.case]}</span></div>
+                <div class="rule">{pattern.rule[i18n.lang]}</div>
+                <p class="sentence" lang="de"><Highlighted text={pattern.example.de} connector={pattern.example.pronoun} noun={pattern.example.noun} verbs={pattern.example.verbs} /></p>
+                <div class="tr">{pattern.example.tr[settings.lang]}</div>
+                {#if pattern.note}<div class="note">{pattern.note[i18n.lang]}</div>{/if}
+              </div>
+            {/each}
+          </div>
+        </section>
+
+        <section class="pattern">
+          <h2>{topic.title[i18n.lang]}</h2>
+          <ul class="points">
+            {#each topic.points as point}
+              <li>{point[i18n.lang]}</li>
+            {/each}
+          </ul>
           <a class="more" href="#/grammar/{topic.id}">{t('grammar.fullRule')} <Icon name="chevron" size={14} /></a>
         </section>
       {/each}
@@ -180,6 +218,16 @@
   }
   .areas {
     margin-bottom: 12px;
+  }
+  /* Three areas side by side: each name on one line ("Порядок слов"), the longest one wider. */
+  .areas button {
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+  @media (max-width: 359px) {
+    .areas button {
+      font-size: 13.5px;
+    }
   }
   .index {
     padding: 12px;
@@ -274,6 +322,13 @@
   }
   .rule {
     color: var(--text-2);
+  }
+  .entry > .rule {
+    margin-top: 2px;
+    font-size: 14.5px;
+  }
+  .relative {
+    margin-top: 0;
   }
   .start-formula {
     margin-top: 4px;

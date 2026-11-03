@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { flip } from 'svelte/animate';
-  import { fullSentence, checkBuild, modelAnswer, shuffledTiles, tilesOf } from '../../lib/grammar/practice';
+  import { fullSentence, checkBuild, marksOf, modelAnswer, shuffledTiles, tilesOf } from '../../lib/grammar/practice';
   import type { BuildExercise } from '../../lib/grammar/types';
   import { t } from '../../lib/i18n.svelte';
   import { dur } from '../../lib/motion';
@@ -111,13 +111,13 @@
     <div class="card feedback" class:ok={correct} class:no={!correct} role="status">
       <div class="head row"><ResultIcon ok={!!correct} />{correct ? t('study.correct') : t('grammar.notQuite')}</div>
       <div class="row result-row">
-        <p class="full" lang="de"><Highlighted text={sentence} connector={exercise.connector} verbs={exercise.verbs} /></p>
+        <p class="full" lang="de"><Highlighted text={sentence} {...marksOf(exercise)} /></p>
         <SpeakButton text={sentence} size={18} />
       </div>
       {#if correct && sentence !== model}
         <div class="muted small">{t('grammar.alsoPossible')}</div>
         <div class="row result-row">
-          <p class="full" lang="de"><Highlighted text={model} connector={exercise.connector} verbs={exercise.verbs} /></p>
+          <p class="full" lang="de"><Highlighted text={model} {...marksOf(exercise)} /></p>
           <SpeakButton text={model} size={18} />
         </div>
       {/if}

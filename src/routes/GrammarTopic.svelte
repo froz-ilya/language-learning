@@ -5,6 +5,7 @@
   import NounSheet from '../components/grammar/NounSheet.svelte';
   import Formula from '../components/grammar/Formula.svelte';
   import Highlighted from '../components/grammar/Highlighted.svelte';
+  import RelativeTable from '../components/grammar/RelativeTable.svelte';
   import Header from '../components/Header.svelte';
   import { stagger } from '../components/library/actions';
   import { topicById } from '../lib/grammar/content';
@@ -38,6 +39,11 @@
         <EndingTable declension={topic.declension} />
         {#if topic.declension === 'ein'}<p class="small muted foot">{t('grammar.einPlural')}</p>{/if}
       </section>
+    {:else if topic.area === 'relative'}
+      <section class="card table" in:enter|global={{ y: 12, duration: dur(240), delay: stagger(1, 40) }}>
+        <RelativeTable />
+        <p class="small muted foot">{t('grammar.relativeDiffers')}</p>
+      </section>
     {/if}
 
     <ul class="small points" in:enter|global={{ y: 12, duration: dur(240), delay: stagger(1, 40) }}>
@@ -56,6 +62,13 @@
               <div class="sub">{example.tr[settings.lang]}</div>
             </div>
           {/each}
+        {:else if topic.area === 'relative'}
+          {#each topic.examples as example}
+            <div class="list-item example">
+              <p lang="de"><Highlighted text={example.de} connector={example.pronoun} noun={example.noun} verbs={example.verbs} /></p>
+              <div class="sub">{example.tr[settings.lang]}</div>
+            </div>
+          {/each}
         {:else}
           {#each topic.examples as example}
             <div class="list-item example">
@@ -68,7 +81,7 @@
     </section>
 
     <section class="section" in:enter|global={{ y: 12, duration: dur(240), delay: stagger(3, 40) }}>
-      {#if topic.area === 'endings'}
+      {#if topic.area === 'endings' || topic.area === 'relative'}
         <div class="section-title">{t('grammar.cases')}</div>
         <div class="card words">
           {#each topic.patterns as pattern (pattern.id)}

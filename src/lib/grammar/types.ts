@@ -7,7 +7,8 @@ import type { Lang } from '../types';
 
 export type OrderTopicId = 'verb-second' | 'verb-end' | 'verb-after';
 export type EndingTopicId = 'adj-der' | 'adj-ein' | 'adj-none';
-export type TopicId = OrderTopicId | EndingTopicId;
+export type RelativeTopicId = 'relative';
+export type TopicId = OrderTopicId | EndingTopicId | RelativeTopicId;
 
 /** A translation of German text, in the language words are translated into. */
 export type Tr = Record<Lang, string>;
@@ -79,6 +80,19 @@ interface ExerciseBase {
   tr: Tr;
   /** Verb forms to highlight in the finished sentence, exactly as written ("muss", "arbeiten"). */
   verbs?: string[];
+  /** A relative clause: the pronoun it starts with is the one RELATIVE_PRONOUNS gives for these. */
+  relative?: RelativeOf;
+}
+
+/**
+ * What decides a relative pronoun: the noun it stands for (its gender, or 'pl') and the case it
+ * has in its own clause, after a preposition the preposition's case.
+ */
+export interface RelativeOf {
+  /** The noun as written in the sentence, before the pronoun: "Mann", "Kinder". */
+  noun: string;
+  gender: Gender;
+  case: Case;
 }
 
 /** Tap the shuffled words into the right order. */
@@ -187,9 +201,43 @@ export interface EndingTopic extends TopicBase {
   examples: EndingExample[];
 }
 
-export type GrammarTopic = OrderTopic | EndingTopic;
+/** A sentence with a relative clause: the pronoun, the noun it stands for and the verbs marked. */
+export interface RelativeExample {
+  de: string;
+  tr: Tr;
+  /** As written in `de`; the pronoun is looked for after the noun. */
+  noun: string;
+  pronoun: string;
+  verbs: string[];
+}
 
-/** A part of the tab with its own page, path and cheat sheet: word order, endings… */
+/** One case of the relative pronoun, the unit the path's stages are made of. */
+export interface RelativePattern {
+  /** `rel-${case}`: what its exercises carry as `connector`. */
+  id: string;
+  case: Case;
+  /** One short line: the pronouns in this case and the one to watch. */
+  rule: RuleText;
+  example: RelativeExample;
+  /** A trap worth a line. */
+  note?: RuleText;
+}
+
+/**
+ * Relative clauses: which der the clause starts with. The pronoun table is not authored: it comes
+ * from lib/grammar/endings.ts, which the content test also checks every answer with.
+ */
+export interface RelativeTopic extends TopicBase {
+  area: 'relative';
+  id: RelativeTopicId;
+  /** Its cases, in the order nom, akk, dat, gen. */
+  patterns: RelativePattern[];
+  examples: RelativeExample[];
+}
+
+export type GrammarTopic = OrderTopic | EndingTopic | RelativeTopic;
+
+/** A part of the tab with its own page, path and cheat sheet: word order, endings, relative clauses. */
 export type AreaId = GrammarTopic['area'];
 
 /** Stored per exercise in db.grammar; an exercise never practised has no row. */

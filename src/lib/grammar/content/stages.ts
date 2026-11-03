@@ -3,7 +3,7 @@ import type { GrammarStage } from '../types';
 /**
  * The learning path. Every stage belongs to one topic, so one rule covers all its words; each is a
  * few words that get confused, and the earlier words it mixes in. For the ending topics (9–14) the
- * "words" are cases ("der-akk"), the patterns of the topic.
+ * "words" are cases ("der-akk"), the patterns of the topic; for relative clauses (15–17) too ("rel-akk").
  */
 export const GRAMMAR_STAGES: GrammarStage[] = [
   {
@@ -158,6 +158,39 @@ export const GRAMMAR_STAGES: GrammarStage[] = [
       ru: 'В дательном падеже без артикля прилагательное получает окончание dem или der: mit heißem Wasser, mit großer Freude. После артикля было бы -en: mit dem heißen Wasser.',
       en: 'In the dative with no article the adjective takes the ending of dem or der: mit heißem Wasser, mit großer Freude. After an article it would be -en: mit dem heißen Wasser.',
       de: 'Im Dativ ohne Artikel bekommt das Adjektiv die Endung von dem oder der: mit heißem Wasser, mit großer Freude. Nach einem Artikel wäre es -en: mit dem heißen Wasser.',
+    },
+  },
+  {
+    id: 15,
+    topic: 'relative',
+    words: ['rel-nom', 'rel-akk'],
+    partners: [],
+    contrast: {
+      ru: 'Если «который» — подлежащее, это der, die, das. Если дополнение, меняется только мужской род: der Mann, der kommt → der Mann, den ich sehe.',
+      en: 'As the subject it is der, die, das. As the object only the masculine changes: der Mann, der kommt → der Mann, den ich sehe.',
+      de: 'Als Subjekt heißt es der, die, das. Als Objekt ändert sich nur maskulin: der Mann, der kommt → der Mann, den ich sehe.',
+    },
+  },
+  {
+    id: 16,
+    topic: 'relative',
+    words: ['rel-dat'],
+    partners: ['rel-akk', 'rel-nom'],
+    contrast: {
+      ru: 'После helfen, danken, gefallen и после mit, bei, von, zu нужен дательный: dem, der, dem, denen. den — это винительный: der Mann, den ich sehe, но der Mann, dem ich helfe.',
+      en: 'After helfen, danken, gefallen and after mit, bei, von, zu it is the dative: dem, der, dem, denen. den is the accusative: der Mann, den ich sehe, but der Mann, dem ich helfe.',
+      de: 'Nach helfen, danken, gefallen und nach mit, bei, von, zu steht der Dativ: dem, der, dem, denen. den ist Akkusativ: der Mann, den ich sehe, aber der Mann, dem ich helfe.',
+    },
+  },
+  {
+    id: 17,
+    topic: 'relative',
+    words: ['rel-gen'],
+    partners: ['rel-dat'],
+    contrast: {
+      ru: 'dessen и deren — «чей»: dessen после der и das, deren после die и множественного. Не путай с дательным: der Mann, dessen Auto hier steht, но der Mann, dem das Auto gehört.',
+      en: 'dessen and deren mean "whose": dessen after der and das, deren after die and the plural. Not the dative: der Mann, dessen Auto hier steht, but der Mann, dem das Auto gehört.',
+      de: 'dessen nach der und das, deren nach die und im Plural. Nicht mit dem Dativ verwechseln: der Mann, dessen Auto hier steht, aber der Mann, dem das Auto gehört.',
     },
   },
 ];

@@ -1,6 +1,6 @@
-import { ENDING_TOPICS, ORDER_TOPICS } from '../../lib/grammar/content';
+import { ENDING_TOPICS, ORDER_TOPICS, RELATIVE_TOPICS } from '../../lib/grammar/content';
 import { CASE_NAMES } from '../../lib/grammar/endings';
-import type { AreaId, Case, Connector, EndingPattern, GrammarStage } from '../../lib/grammar/types';
+import type { AreaId, Case, Connector, EndingPattern, GrammarStage, RelativePattern } from '../../lib/grammar/types';
 import { t } from '../../lib/i18n.svelte';
 
 /** A connector by the word as it is written in the topics. */
@@ -13,6 +13,11 @@ export function patternOf(id: string): EndingPattern | undefined {
   return ENDING_TOPICS.flatMap((topic) => topic.patterns).find((p) => p.id === id);
 }
 
+/** A case of the relative pronoun by its id ("rel-akk"). */
+export function relativePatternOf(id: string): RelativePattern | undefined {
+  return RELATIVE_TOPICS.flatMap((topic) => topic.patterns).find((p) => p.id === id);
+}
+
 /** The case of a pattern id, read from the id itself, so it works before the content has it. */
 export function caseOf(id: string): Case | undefined {
   const c = id.slice(id.lastIndexOf('-') + 1);
@@ -21,16 +26,16 @@ export function caseOf(id: string): Case | undefined {
 
 /** How a stage word is shown: a connector as written, a pattern as its German case name. */
 export function wordTitle(word: string): string {
-  const c = patternOf(word)?.case ?? caseOf(word);
+  const c = (patternOf(word) ?? relativePatternOf(word))?.case ?? caseOf(word);
   return c ? CASE_NAMES[c] : word;
 }
 
 /** How the determiner of a declension is named, German: taught terms, not interface text. */
-const DECLENSION_NAMES: Record<string, string> = { der: 'der', ein: 'ein', none: 'ohne Artikel' };
+const DECLENSION_NAMES: Record<string, string> = { der: 'der', ein: 'ein', none: 'ohne Artikel', rel: 'Relativpronomen' };
 
 /** A word's own title where its stage isn't in sight: "weil", or for a pattern "ein · Dativ". */
 export function wordFullTitle(word: string): string {
-  const c = patternOf(word)?.case ?? caseOf(word);
+  const c = (patternOf(word) ?? relativePatternOf(word))?.case ?? caseOf(word);
   const name = DECLENSION_NAMES[word.slice(0, word.indexOf('-'))];
   return c && name ? `${name} · ${CASE_NAMES[c]}` : word;
 }
@@ -42,14 +47,17 @@ export function stageTitle(stage: GrammarStage): string {
 
 /** An area's name and one-line description, in the interface language. */
 export function areaTitle(id: AreaId): string {
-  return id === 'order' ? t('grammar.areaOrder') : t('grammar.areaEndings');
+  if (id === 'order') return t('grammar.areaOrder');
+  return id === 'endings' ? t('grammar.areaEndings') : t('grammar.areaRelative');
 }
 
 /** For a switch between areas, where the full name doesn't fit. */
 export function areaShort(id: AreaId): string {
-  return id === 'order' ? t('grammar.areaOrder') : t('grammar.areaEndingsShort');
+  if (id === 'order') return t('grammar.areaOrder');
+  return id === 'endings' ? t('grammar.areaEndingsShort') : t('grammar.areaRelativeShort');
 }
 
 export function areaSub(id: AreaId): string {
-  return id === 'order' ? t('grammar.areaOrderSub') : t('grammar.areaEndingsSub');
+  if (id === 'order') return t('grammar.areaOrderSub');
+  return id === 'endings' ? t('grammar.areaEndingsSub') : t('grammar.areaRelativeSub');
 }

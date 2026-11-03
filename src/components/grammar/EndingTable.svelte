@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CASE_NAMES, CASES, endingTable, GENDERS } from '../../lib/grammar/endings';
+  import { CASE_NAMES, CASES, endingTable, GENDER_NAMES, GENDERS } from '../../lib/grammar/endings';
   import type { Case, Declension, Gender } from '../../lib/grammar/types';
 
   /**
@@ -11,9 +11,6 @@
 
   /** One adjective for every cell, so only the endings change. */
   const ADJECTIVE = 'rot';
-
-  /** Column heads: the textbook abbreviations, short enough for four columns at phone width. */
-  const GENDER_LABELS: Record<Gender, string> = { m: 'mask.', f: 'fem.', n: 'neutr.', pl: 'Plural' };
 
   function stemOf(g: Gender): string | undefined {
     if (declension === 'der') return 'd';
@@ -38,7 +35,7 @@
   <thead>
     <tr>
       <td></td>
-      {#each GENDERS as g}<th scope="col">{GENDER_LABELS[g]}</th>{/each}
+      {#each GENDERS as g}<th scope="col">{GENDER_NAMES[g]}</th>{/each}
     </tr>
   </thead>
   <tbody>

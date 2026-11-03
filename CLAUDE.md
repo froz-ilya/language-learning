@@ -82,6 +82,10 @@ practice.ts and path.ts (pure), progress per exercise in `db.grammar` (included 
   a stage's words are patterns (`ein-akk`), carried by exercises as `connector`. The ending tables
   live only in src/lib/grammar/endings.ts: the cheat sheet draws them from there and the content
   test checks every authored answer against them, so never type a table or an answer by hand.
+- Relative clauses are the third area (topic `relative`, stages 15–17, patterns `rel-nom`…`rel-gen`):
+  picks and builds carry `relative: { noun, gender, case }`, and the content test checks every pronoun
+  against `RELATIVE_PRONOUNS` in endings.ts. After a preposition the case is the preposition's.
+
 - Each area (`GRAMMAR_AREAS` in content/index.ts) has its own page (/grammar/area/:id) and its own
   cheat sheet (/grammar/cheat/:id); the Grammar home shows only the review and one card per area.
   A new area adds an `AreaId`, its topics and stages, not more sections on the home page. Stages

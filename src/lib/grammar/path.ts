@@ -47,14 +47,17 @@ function byState<T extends GrammarExercise>(list: T[], progress: Progress, now: 
 }
 
 const isBuild = (ex: GrammarExercise) => ex.kind === 'build';
+/** What a word is practised with on its own: builds, endings, and for a relative case its picks too. */
+const isOwn = (ex: GrammarExercise) => ex.kind !== 'pick' || ex.relative !== undefined;
 /** The short exercises of the contrast part: picks, and ending exercises. */
 const isShort = (ex: GrammarExercise) => !isBuild(ex);
 
-/** A word's builds; an ending pattern, which has none, its ending exercises. */
+/**
+ * A connector's builds (its picks are about the contrast, which needs other words); an ending
+ * pattern its ending exercises; a relative case its picks and builds.
+ */
 export function wordSession(word: string, all: GrammarExercise[], progress: Progress, now: number, rng: Rng = Math.random): GrammarExercise[] {
-  const exercises = wordExercises(word, all);
-  const builds: GrammarExercise[] = exercises.filter(isBuild);
-  const { due, fresh, later } = byState(builds.length ? builds : exercises.filter((ex) => ex.kind === 'ending'), progress, now, rng);
+  const { due, fresh, later } = byState(wordExercises(word, all).filter(isOwn), progress, now, rng);
   return [...due, ...fresh, ...later].slice(0, WORD_SESSION);
 }
 

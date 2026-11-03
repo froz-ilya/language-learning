@@ -12,7 +12,7 @@
   import SessionResults from '../components/study/SessionResults.svelte';
   import { allExercises, areaById, areaExercises, GRAMMAR_STAGES, stageById, stageNumber, topicById } from '../lib/grammar/content';
   import { anywaySession, reviewSession, stageSession, wordExercises, wordSession } from '../lib/grammar/path';
-  import { endingMarks, fullSentence, GrammarSession, pickExercises } from '../lib/grammar/practice';
+  import { endingMarks, fullSentence, GrammarSession, marksOf, pickExercises } from '../lib/grammar/practice';
   import { loadProgress, recordGrammar } from '../lib/grammar/store';
   import type { GrammarExercise, GrammarProgress, TopicId } from '../lib/grammar/types';
   import { fmtNumber, i18n, t } from '../lib/i18n.svelte';
@@ -210,12 +210,7 @@
           {#each results?.missed ?? [] as ex (ex.id)}
             <div class="list-item missed">
               <p class="sentence" lang="de">
-                {#if ex.kind === 'ending'}<EndingText text={fullSentence(ex)} marks={endingMarks(ex)} />{:else}<Highlighted
-                    text={fullSentence(ex)}
-                    connector={ex.connector}
-                    verbs={ex.verbs}
-                    answer={ex.kind === 'pick' ? ex.answer : ''}
-                  />{/if}
+                {#if ex.kind === 'ending'}<EndingText text={fullSentence(ex)} marks={endingMarks(ex)} />{:else}<Highlighted text={fullSentence(ex)} {...marksOf(ex)} />{/if}
               </p>
               <div class="sub">{ex.tr[settings.lang]}</div>
             </div>

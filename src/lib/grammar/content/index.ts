@@ -1,7 +1,8 @@
-import type { AreaId, EndingTopic, GrammarExercise, GrammarStage, GrammarTopic, OrderTopic } from '../types';
+import type { AreaId, EndingTopic, GrammarExercise, GrammarStage, GrammarTopic, OrderTopic, RelativeTopic } from '../types';
 import { adjDer } from './adjDer';
 import { adjEin } from './adjEin';
 import { adjNone } from './adjNone';
+import { relative } from './relative';
 import { verbAfter } from './verbAfter';
 import { verbEnd } from './verbEnd';
 import { GRAMMAR_STAGES } from './stages';
@@ -11,7 +12,8 @@ export { GRAMMAR_STAGES, stageById } from './stages';
 
 export const ORDER_TOPICS: OrderTopic[] = [verbSecond, verbEnd, verbAfter];
 export const ENDING_TOPICS: EndingTopic[] = [adjDer, adjEin, adjNone];
-export const GRAMMAR_TOPICS: GrammarTopic[] = [...ORDER_TOPICS, ...ENDING_TOPICS];
+export const RELATIVE_TOPICS: RelativeTopic[] = [relative];
+export const GRAMMAR_TOPICS: GrammarTopic[] = [...ORDER_TOPICS, ...ENDING_TOPICS, ...RELATIVE_TOPICS];
 
 export function topicById(id: string): GrammarTopic | undefined {
   return GRAMMAR_TOPICS.find((t) => t.id === id);
@@ -32,7 +34,7 @@ export interface GrammarArea {
   stages: GrammarStage[];
 }
 
-export const AREA_IDS: AreaId[] = ['order', 'endings'];
+export const AREA_IDS: AreaId[] = ['order', 'endings', 'relative'];
 
 export const GRAMMAR_AREAS: GrammarArea[] = AREA_IDS.map((id) => {
   const topics = GRAMMAR_TOPICS.filter((t) => t.area === id);

@@ -1,10 +1,10 @@
 // Checks the authored topics; each test lists every problem it finds, not just the first.
 import { describe, expect, it } from 'vitest';
-import { allExercises, areaById, areaOf, ENDING_TOPICS, GRAMMAR_AREAS, GRAMMAR_STAGES, GRAMMAR_TOPICS, ORDER_TOPICS, stageById, stageNumber, topicById } from './content';
-import { CASES, DETERMINERS, endingOptions, expectedEnding } from './endings';
+import { allExercises, areaById, areaOf, ENDING_TOPICS, GRAMMAR_AREAS, GRAMMAR_STAGES, GRAMMAR_TOPICS, ORDER_TOPICS, RELATIVE_TOPICS, stageById, stageNumber, topicById } from './content';
+import { CASES, DETERMINERS, endingOptions, expectedEnding, RELATIVE_PRONOUNS, relativePronoun } from './endings';
 import { stageExercises, stageSession } from './path';
 import { checkBuild, shuffledTiles, tilesOf } from './practice';
-import type { BuildExercise, EndingExercise, RuleText, Tr } from './types';
+import type { BuildExercise, EndingExercise, PickExercise, RuleText, Tr } from './types';
 
 const allOf = () => GRAMMAR_TOPICS.flatMap((t) => t.exercises);
 const filled = (s: string | undefined) => typeof s === 'string' && s.trim() !== '';
@@ -22,8 +22,8 @@ const builds = () => allOf().filter((e): e is BuildExercise => e.kind === 'build
 const picks = () => allOf().flatMap((e) => (e.kind === 'pick' ? [e] : []));
 
 describe('grammar content', () => {
-  it('has the six topics, reachable by id', () => {
-    expect(GRAMMAR_TOPICS.map((t) => t.id).sort()).toEqual(['adj-der', 'adj-ein', 'adj-none', 'verb-after', 'verb-end', 'verb-second']);
+  it('has the seven topics, reachable by id', () => {
+    expect(GRAMMAR_TOPICS.map((t) => t.id).sort()).toEqual(['adj-der', 'adj-ein', 'adj-none', 'relative', 'verb-after', 'verb-end', 'verb-second']);
     for (const t of GRAMMAR_TOPICS) expect(topicById(t.id)).toBe(t);
   });
 
@@ -187,10 +187,10 @@ describe('grammar stages', () => {
   const orderStages = () => GRAMMAR_STAGES.filter((s) => topicById(s.topic)?.area === 'order');
   const stagePicks = (words: string[]) => allOf().filter((e) => e.kind === 'pick' && words.includes(e.connector)).length;
 
-  it('are numbered 1 to 14, in order, and reachable by id', () => {
-    expect(GRAMMAR_STAGES.map((s) => s.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+  it('are numbered 1 to 17, in order, and reachable by id', () => {
+    expect(GRAMMAR_STAGES.map((s) => s.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
     for (const s of GRAMMAR_STAGES) expect(stageById(s.id)).toBe(s);
-    expect(stageById(15)).toBeUndefined();
+    expect(stageById(18)).toBeUndefined();
   });
 
   it('hold only connectors and patterns of the topics', () => {
@@ -199,8 +199,8 @@ describe('grammar stages', () => {
     for (const s of GRAMMAR_STAGES) expect(s.words.length, `stage ${s.id}`).toBeGreaterThan(0);
   });
 
-  it('hold each of the 19 connectors and 12 patterns exactly once', () => {
-    expect(new Set(keys()).size).toBe(31);
+  it('hold each of the 19 connectors and 16 patterns exactly once', () => {
+    expect(new Set(keys()).size).toBe(35);
     expect(GRAMMAR_STAGES.flatMap((s) => s.words).sort()).toEqual(keys().slice().sort());
   });
 
@@ -332,6 +332,96 @@ describe('ending content', () => {
       ...t.examples.flatMap((x) => marked(t.id, x)),
       ...t.patterns.flatMap((p) => (p.example ? marked(p.id, p.example) : [`${p.id}: no example`])),
     ]);
+    expect(bad).toEqual([]);
+  });
+});
+
+describe('relative content', () => {
+  const own = () => RELATIVE_TOPICS.flatMap((t) => t.exercises);
+  const pronouns = new Set(Object.values(RELATIVE_PRONOUNS).flatMap((row) => Object.values(row)));
+  const lower = (s: string) => s.toLocaleLowerCase('de');
+
+  it('the relative topic has its four cases, in order, with the right ids', () => {
+    for (const t of RELATIVE_TOPICS) {
+      expect(t.patterns.map((p) => p.id)).toEqual(CASES.map((c) => `rel-${c}`));
+      expect(t.patterns.map((p) => p.case)).toEqual(CASES);
+    }
+  });
+
+  it('relative exercises are only in the relative topic, and it holds only them', () => {
+    const bad = GRAMMAR_TOPICS.flatMap((t) =>
+      t.exercises.filter((e) => (e.relative !== undefined) !== (t.area === 'relative')).map((e) => `${t.id}/${e.id}`),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it('exercise ids are <pattern>-<n>, and the pattern is the case of the pronoun', () => {
+    const bad = own().flatMap((e) => {
+      const problems: string[] = [];
+      if (!new RegExp(`^${e.connector}-\\d+$`).test(e.id)) problems.push(`${e.id}: id doesn't match ${e.connector}`);
+      if (e.kind !== 'ending' && `rel-${e.relative?.case}` !== e.connector) problems.push(`${e.id}: case ${e.relative?.case} in ${e.connector}`);
+      return problems;
+    });
+    expect(bad).toEqual([]);
+  });
+
+  it('every pick answer is the pronoun the table gives, among pronouns only', () => {
+    const bad = own()
+      .filter((e): e is PickExercise => e.kind === 'pick')
+      .flatMap((e) => {
+        const r = e.relative!;
+        const want = relativePronoun(r.case, r.gender);
+        return [
+          ...(e.answer === want ? [] : [`${e.id}: "${e.answer}", the table gives "${want}" (${r.case} ${r.gender})`]),
+          ...e.options.filter((o) => !pronouns.has(o)).map((o) => `${e.id}: option "${o}" is no relative pronoun`),
+          ...(hasWord(e.before, r.noun) ? [] : [`${e.id}: "${r.noun}" isn't before the blank`]),
+          ...(/,\s*(\p{L}+\s*)?$/u.test(e.before) ? [] : [`${e.id}: the blank doesn't follow a comma or a preposition after one`]),
+        ];
+      });
+    expect(bad).toEqual([]);
+  });
+
+  it('every build starts its clause with the pronoun the table gives, after the noun', () => {
+    const bad = own()
+      .filter((e): e is BuildExercise => e.kind === 'build')
+      .flatMap((e) => {
+        const r = e.relative!;
+        const want = relativePronoun(r.case, r.gender);
+        return [
+          ...(e.given && hasWord(e.given, r.noun) ? [] : [`${e.id}: "${r.noun}" isn't in the given part`]),
+          ...e.answers
+            .filter((a) => !new RegExp(`^(\\p{L}+ )?${want}(?!\\p{L})`, 'u').test(lower(a)))
+            .map((a) => `${e.id}: "${a}" doesn't start with ${want} (${r.case} ${r.gender})`),
+        ];
+      });
+    expect(bad).toEqual([]);
+  });
+
+  it('every pattern has at least 8 picks and 3 builds, both levels', () => {
+    const bad = RELATIVE_TOPICS.flatMap((t) =>
+      t.patterns.flatMap((p) => {
+        const list = t.exercises.filter((e) => e.connector === p.id);
+        const nPick = list.filter((e) => e.kind === 'pick').length;
+        const nBuild = list.filter((e) => e.kind === 'build').length;
+        const levels = new Set(list.map((e) => e.level));
+        return nPick >= 8 && nBuild >= 3 && levels.size === 2 ? [] : [`${p.id}: ${nPick} picks, ${nBuild} builds, levels ${[...levels].join(',')}`];
+      }),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it('every example shows its noun, then its pronoun, and its verbs', () => {
+    const bad = RELATIVE_TOPICS.flatMap((t) =>
+      [...t.examples, ...t.patterns.map((p) => p.example)].flatMap((x) => {
+        const at = x.de.indexOf(x.noun);
+        return [
+          ...(at >= 0 && hasWord(x.de.slice(at + x.noun.length), x.pronoun) ? [] : [`"${x.de}": no "${x.pronoun}" after "${x.noun}"`]),
+          ...(pronouns.has(x.pronoun) ? [] : [`"${x.de}": "${x.pronoun}" is no relative pronoun`]),
+          ...(x.verbs.length ? [] : [`"${x.de}": no verbs`]),
+          ...x.verbs.filter((w) => !hasWord(x.de, w)).map((w) => `"${x.de}" lacks "${w}"`),
+        ];
+      }),
+    );
     expect(bad).toEqual([]);
   });
 });

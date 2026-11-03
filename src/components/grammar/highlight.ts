@@ -1,13 +1,16 @@
-/** A piece of a sentence: plain text, the verb ('v') or the connector ('c'); an ending ('e'). */
+/**
+ * A piece of a sentence: plain text, the verb ('v') or the connector ('c'); an ending ('e'); the
+ * noun a relative pronoun stands for ('n').
+ */
 export interface Segment {
   text: string;
-  kind?: 'v' | 'c' | 'e';
+  kind?: 'v' | 'c' | 'e' | 'n';
 }
 
 interface Range {
   start: number;
   end: number;
-  kind: 'v' | 'c';
+  kind: 'v' | 'c' | 'n';
 }
 
 /** Every place `word` stands as a whole word of `text`, not as part of a longer one. */
@@ -22,19 +25,24 @@ function occurrences(text: string, word: string, flags: string): { start: number
  * verb is written as in the sentence and looked for from the connector onward, so the same word
  * in the clause before it stays plain; when it stands only before the connector, or the sentence
  * has no connector, that place is the one meant. `answer`, the word a pick exercise asked for, is
- * marked like the connector: it isn't always the connector ("Wenn …, dann …").
+ * marked like the connector: it isn't always the connector ("Wenn …, dann …"). With `noun`, the
+ * noun a relative pronoun stands for, that noun is marked and the connector and answer are looked
+ * for after it: in "Die Frau, die …" the pronoun is the second die.
  */
-export function highlightSegments(text: string, connector = '', verbs: string[] = [], answer = ''): Segment[] {
+export function highlightSegments(text: string, connector = '', verbs: string[] = [], answer = '', noun = ''): Segment[] {
   if (!text) return [];
   const ranges: Range[] = [];
-  const c = connector.trim() ? occurrences(text, connector.trim(), 'i')[0] : undefined;
+  const n = noun.trim() ? occurrences(text, noun.trim(), '')[0] : undefined;
+  if (n) ranges.push({ ...n, kind: 'n' });
+  const after = (r: { start: number }) => r.start >= (n?.end ?? 0);
+  const c = connector.trim() ? occurrences(text, connector.trim(), 'i').find(after) : undefined;
   if (c) ranges.push({ ...c, kind: 'c' });
   const from = c?.end ?? 0;
   const free = (r: { start: number; end: number }) => ranges.every((o) => r.end <= o.start || r.start >= o.end);
 
   // Usually the connector itself, already marked: a second "weil" further on isn't the answer.
   const sameWord = answer.trim().toLocaleLowerCase('de') === connector.trim().toLocaleLowerCase('de');
-  const asked = answer.trim() && !(c && sameWord) ? occurrences(text, answer.trim(), 'i').find(free) : undefined;
+  const asked = answer.trim() && !(c && sameWord) ? occurrences(text, answer.trim(), 'i').find((r) => after(r) && free(r)) : undefined;
   if (asked) ranges.push({ ...asked, kind: 'c' });
 
   for (const verb of verbs) {

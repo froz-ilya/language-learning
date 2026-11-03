@@ -1,7 +1,7 @@
 import type { Case, Declension, EndingGap, Gender } from './types';
 
 /**
- * German determiner and adjective endings, by case and gender. Pure data and lookups (no i18n):
+ * German determiner and adjective endings, and the relative pronouns, by case and gender. Pure data and lookups (no i18n):
  * the cheat sheet's tables come from here, and the content test checks every authored answer
  * against it, so a table and an exercise can't disagree.
  */
@@ -11,6 +11,9 @@ export const GENDERS: Gender[] = ['m', 'f', 'n', 'pl'];
 
 /** The German name of a case, as textbooks use it. Taught terms, not interface text. */
 export const CASE_NAMES: Record<Case, string> = { nom: 'Nominativ', akk: 'Akkusativ', dat: 'Dativ', gen: 'Genitiv' };
+
+/** Column heads: the textbook abbreviations, short enough for four columns at phone width. */
+export const GENDER_NAMES: Record<Gender, string> = { m: 'mask.', f: 'fem.', n: 'neutr.', pl: 'Plural' };
 
 type Table = Record<Case, Record<Gender, string>>;
 const row = (m: string, f: string, n: string, pl: string): Record<Gender, string> => ({ m, f, n, pl });
@@ -119,4 +122,21 @@ export function endingTable(declension: Declension): { det?: Table; adj: Table }
     det: declension === 'der' ? DEFINITE : declension === 'ein' ? EIN_WORD : undefined,
     adj: ADJECTIVE[declension],
   };
+}
+
+/** der, die, das as relative pronouns: the article, except dative plural and the genitive. */
+export const RELATIVE_PRONOUNS: Table = {
+  nom: row('der', 'die', 'das', 'die'),
+  akk: row('den', 'die', 'das', 'die'),
+  dat: row('dem', 'der', 'dem', 'denen'),
+  gen: row('dessen', 'deren', 'dessen', 'deren'),
+};
+
+export function relativePronoun(c: Case, g: Gender): string {
+  return RELATIVE_PRONOUNS[c][g];
+}
+
+/** The definite article itself: der, den, dem, des… (what most relative pronouns look like). */
+export function definiteArticle(c: Case, g: Gender): string {
+  return 'd' + DEFINITE[c][g];
 }

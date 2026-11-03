@@ -1,7 +1,8 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { ORDER_TOPICS } from '../../lib/grammar/content';
-  import { fullSentence } from '../../lib/grammar/practice';
+  import { CASE_NAMES, GENDER_NAMES } from '../../lib/grammar/endings';
+  import { fullSentence, marksOf } from '../../lib/grammar/practice';
   import type { PickExercise } from '../../lib/grammar/types';
   import { i18n, t } from '../../lib/i18n.svelte';
   import { settings } from '../../lib/settings.svelte';
@@ -95,9 +96,14 @@
     <div class="card feedback" class:ok={correct} class:no={!correct} role="status">
       <div class="head row"><ResultIcon ok={correct} />{correct ? t('study.correct') : t('grammar.notQuite')}</div>
       <div class="row result-row">
-        <p class="full" lang="de"><Highlighted text={sentence} connector={exercise.connector} verbs={exercise.verbs} answer={exercise.answer} /></p>
+        <p class="full" lang="de"><Highlighted text={sentence} {...marksOf(exercise)} /></p>
         <SpeakButton text={sentence} size={18} />
       </div>
+      {#if exercise.relative}
+        {@const rel = exercise.relative}
+        <!-- Why this pronoun: the noun's gender and the case in the clause. Taught terms, German. -->
+        <div class="small why" lang="de">{rel.noun} → {GENDER_NAMES[rel.gender]} · {CASE_NAMES[rel.case]}</div>
+      {/if}
       {#if !correct && note}<NoteHint notes={note} />{/if}
     </div>
     <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>{t('common.continue')}</button>
@@ -217,6 +223,9 @@
     font-family: var(--font-display);
     font-weight: 800;
     color: var(--tone);
+  }
+  .why {
+    color: var(--text-2);
   }
   .result-row {
     justify-content: space-between;

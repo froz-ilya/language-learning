@@ -1,7 +1,7 @@
-/** A piece of a sentence: plain text, the verb ('v') or the connector ('c'). */
+/** A piece of a sentence: plain text, the verb ('v') or the connector ('c'); an ending ('e'). */
 export interface Segment {
   text: string;
-  kind?: 'v' | 'c';
+  kind?: 'v' | 'c' | 'e';
 }
 
 interface Range {
@@ -44,6 +44,37 @@ export function highlightSegments(text: string, connector = '', verbs: string[] 
     if (hit) ranges.push({ ...hit, kind: 'v' });
   }
 
+  const segments: Segment[] = [];
+  let at = 0;
+  for (const r of ranges.sort((a, b) => a.start - b.start)) {
+    if (r.start > at) segments.push({ text: text.slice(at, r.start) });
+    segments.push({ text: text.slice(r.start, r.end), kind: r.kind });
+    at = r.end;
+  }
+  if (at < text.length) segments.push({ text: text.slice(at) });
+  return segments;
+}
+
+/**
+ * Splits a sentence around the endings of its marked words. A mark is a word with its ending split
+ * off by "|" ("d|en", "rot|en"): the ending is marked 'e'. A word with no ending ("ein|") is marked
+ * 'c' as a whole, so the missing ending shows too. Each mark takes the next place it stands, so two
+ * equal words ("den … den") are marked in order.
+ */
+export function endingSegments(text: string, marks: string[] = []): Segment[] {
+  if (!text) return [];
+  const ranges: { start: number; end: number; kind: 'c' | 'e' }[] = [];
+  let from = 0;
+  for (const mark of marks) {
+    const bar = mark.indexOf('|');
+    if (bar < 0) continue;
+    const stem = mark.slice(0, bar);
+    const ending = mark.slice(bar + 1);
+    const hit = occurrences(text, stem + ending, '').find((r) => r.start >= from && ranges.every((o) => r.end <= o.start || r.start >= o.end));
+    if (!hit) continue;
+    from = hit.end;
+    ranges.push(ending ? { start: hit.start + stem.length, end: hit.end, kind: 'e' } : { ...hit, kind: 'c' });
+  }
   const segments: Segment[] = [];
   let at = 0;
   for (const r of ranges.sort((a, b) => a.start - b.start)) {

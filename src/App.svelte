@@ -35,6 +35,7 @@
   import GrammarTopic from './routes/GrammarTopic.svelte';
   import GrammarPractice from './routes/GrammarPractice.svelte';
   import GrammarStage from './routes/GrammarStage.svelte';
+  import GrammarArea from './routes/GrammarArea.svelte';
   import GrammarCheat from './routes/GrammarCheat.svelte';
 
   /*
@@ -53,14 +54,17 @@
    *   /placement/:code          Placement check for a level
    *   /import?set=:id|folder=:id  Quizlet / bulk paste import
    *   /settings                 Settings + backup (from the gear on Today)
-   *   /grammar                  Grammar: cheat sheet link, review hero, the path, the rules
-   *   /grammar/cheat            Cheat sheet: where the verb goes after each word
-   *   /grammar/stage/:id        Stage of the path: its words and contrast
+   *   /grammar                  Grammar: cheat sheet link, review hero, one card per area (word order, adjective endings)
+   *   /grammar/area/:area       Area: its topics and their stages, Continue
+   *   /grammar/area/:area/practice  Practice of one area
+   *   /grammar/cheat            Cheat sheet of the area last looked at
+   *   /grammar/cheat/:area      Cheat sheet of one area: where the verb goes after each word, or the ending tables
+   *   /grammar/stage/:id        Stage of the path: its words (or cases) and contrast
    *   /grammar/stage/:id/practice  Practice of one stage
-   *   /grammar/word/:word/practice  Practice of one word (encoded: außerdem)
+   *   /grammar/word/:word/practice  Practice of one word (encoded: außerdem) or ending pattern (ein-akk)
    *   /grammar/review/practice  Everything due
    *   /grammar/anyway/practice  Practice with nothing due
-   *   /grammar/:topic           Topic: the rule, examples, its words
+   *   /grammar/:topic           Topic: the rule, examples, its words (an ending topic: its table and cases)
    *   /grammar/:topic/practice  Practice of one topic (or /grammar/all/practice: everything)
    *   /read                     Read: articles by level, saved, paste your own
    *   /article/:source/:id      Reader (tap words → add to the article's set)
@@ -107,7 +111,8 @@
   // Grammar's pages share parts[0]. Anything unknown lands on the topic page, which sends it home.
   function grammarPage(parts: string[]) {
     if (parts.length === 1) return Grammar;
-    if (parts.length === 2 && parts[1] === 'cheat') return GrammarCheat;
+    if ((parts.length === 2 || parts.length === 3) && parts[1] === 'cheat') return GrammarCheat;
+    if (parts.length === 3 && parts[1] === 'area') return GrammarArea;
     if (parts.length === 3 && parts[1] === 'stage') return GrammarStage;
     return parts.length >= 3 && parts.at(-1) === 'practice' ? GrammarPractice : GrammarTopic;
   }

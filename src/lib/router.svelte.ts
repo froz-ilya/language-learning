@@ -46,6 +46,7 @@ export function parentOf(path: string): string {
   if (head === 'article' || head === 'paste') return '/read';
   if (head === 'grammar') {
     if (parts[1] === 'stage' && parts[3] === 'practice') return `/grammar/stage/${parts[2]}`;
+    if (parts[1] === 'area' && parts[3] === 'practice') return `/grammar/area/${parts[2]}`;
     const topicPractice = parts[2] === 'practice' && !['all', 'review', 'anyway'].includes(parts[1]);
     return topicPractice ? `/grammar/${parts[1]}` : '/grammar';
   }

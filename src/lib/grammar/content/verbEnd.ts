@@ -1,7 +1,8 @@
-import type { GrammarTopic } from '../types';
+import type { OrderTopic } from '../types';
 
 /** weil, obwohl, wenn, dass, ob, als, bevor, nachdem: the verb goes to the end of the clause. */
-export const verbEnd: GrammarTopic = {
+export const verbEnd: OrderTopic = {
+  area: 'order',
   id: 'verb-end',
   title: {
     ru: 'Глагол уходит в конец',

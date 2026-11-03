@@ -1,14 +1,14 @@
 <script lang="ts">
-  import Formula from '../components/grammar/Formula.svelte';
+  import { areaSub, areaTitle, stageTitle } from '../components/grammar/connectors';
   import StatRing from '../components/grammar/StatRing.svelte';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import { stagger } from '../components/library/actions';
-  import { allExercises, GRAMMAR_STAGES, GRAMMAR_TOPICS } from '../lib/grammar/content';
-  import { currentStage, stageStats, wordStats } from '../lib/grammar/path';
+  import { allExercises, areaExercises, GRAMMAR_AREAS, stageNumber } from '../lib/grammar/content';
+  import { currentStage, wordStats } from '../lib/grammar/path';
   import { loadProgress } from '../lib/grammar/store';
-  import { i18n, t, tn } from '../lib/i18n.svelte';
+  import { t, tn } from '../lib/i18n.svelte';
   import { live } from '../lib/live.svelte';
   import { dur, enter } from '../lib/motion';
   import { go } from '../lib/router.svelte';
@@ -20,17 +20,25 @@
     const progress = await loadProgress();
     const now = Date.now();
     const all = allExercises();
+    const areas = GRAMMAR_AREAS.map((area) => {
+      const exercises = areaExercises(area);
+      const current = currentStage(area.stages, all, progress, now);
+      const lastAt = Math.max(0, ...exercises.map((ex) => progress.get(ex.id)?.lastAt ?? 0));
+      return { area, current, lastAt, stats: wordStats(exercises, progress, now) };
+    });
+    // Nothing due: carry on where the user last practised, else in any area that isn't finished.
+    const open = areas.filter((a) => a.current);
+    const next = open.length ? open.reduce((a, b) => (b.lastAt > a.lastAt ? b : a)) : undefined;
     return {
       practised: progress.size > 0,
       due: wordStats(all, progress, now).due,
-      current: currentStage(GRAMMAR_STAGES, all, progress, now),
-      stages: GRAMMAR_STAGES.map((stage) => ({ stage, stats: stageStats(stage, all, progress, now) })),
+      areas,
+      next: next && { area: next.area, stage: next.current! },
     };
   });
 
   const due = $derived(data.value?.due ?? 0);
   const minutes = $derived(Math.max(1, Math.round((due * SECONDS_PER_SENTENCE) / 60)));
-  const current = $derived(data.value?.current);
 </script>
 
 <div class="page">
@@ -48,12 +56,7 @@
   {#if !data.value}
     <div class="card"><Skeleton lines={4} /></div>
   {:else}
-    {#if !data.value.practised}
-      <section class="hero" in:enter|global={{ y: 12, duration: dur(260) }}>
-        <div class="hero-count">{t('grammar.firstTitle')}</div>
-        <button class="btn btn-lg btn-block start" onclick={() => go(`/grammar/stage/${(current ?? GRAMMAR_STAGES[0]).id}`)}>{t('common.start')}</button>
-      </section>
-    {:else if due}
+    {#if due}
       <section class="hero" in:enter|global={{ y: 12, duration: dur(260) }}>
         <div class="hero-top">
           <span class="hero-label">{t('grammar.review')}</span>
@@ -64,45 +67,43 @@
           <Icon name="play" filled size={18} /> {t('common.start')}
         </button>
       </section>
-    {:else}
+    {:else if data.value.practised && data.value.next}
+      {@const next = data.value.next}
+      <!-- Nothing due is not "done": the next step is the stage the user is on. -->
+      <section class="hero" in:enter|global={{ y: 12, duration: dur(260) }}>
+        <div class="hero-top">
+          <span class="hero-label">{areaTitle(next.area.id)}</span>
+          <span class="hero-time">{t('grammar.stageOf', { n: stageNumber(next.stage), total: next.area.stages.length })}</span>
+        </div>
+        <div class="hero-count" lang="de">{stageTitle(next.stage)}</div>
+        <button class="btn btn-lg btn-block start" onclick={() => go(`/grammar/stage/${next.stage.id}`)}>
+          <Icon name="play" filled size={18} /> {t('grammar.continue')}
+        </button>
+      </section>
+    {:else if data.value.practised}
       <section class="hero done" in:enter|global={{ y: 12, duration: dur(260) }}>
         <span class="done-icon"><Icon name="check" size={30} /></span>
         <div class="hero-count">{t('grammar.allDone')}</div>
-        {#if current}
-          <button class="btn btn-lg btn-block start" onclick={() => go(`/grammar/stage/${current.id}`)}>{t('grammar.continue')}</button>
-        {:else}
-          <button class="btn btn-lg btn-block start" onclick={() => go('/grammar/anyway/practice')}>{t('grammar.anyway')}</button>
-        {/if}
+        <button class="btn btn-lg btn-block start" onclick={() => go('/grammar/anyway/practice')}>{t('grammar.anyway')}</button>
       </section>
     {/if}
 
-    {#each GRAMMAR_TOPICS as topic, g (topic.id)}
-      <section class="section" in:enter|global={{ y: 12, duration: dur(240), delay: stagger(g, 30) }}>
-        <h2 class="group">
-          <a href="#/grammar/{topic.id}">
-            <span class="group-title">{topic.title[i18n.lang]}</span>
-            <span class="chev"><Icon name="chevron" size={18} /></span>
-          </a>
-        </h2>
-        <div class="formula"><Formula text={topic.formula[i18n.lang]} /></div>
-        <div class="stages">
-          {#each data.value.stages.filter(({ stage }) => stage.topic === topic.id) as { stage, stats } (stage.id)}
-            <a class="stage" href="#/grammar/stage/{stage.id}">
-              <StatRing ratio={stats.ratio} done={stats.done} />
-              <span class="text">
-                <span class="line">
-                  <span class="n">{t('grammar.stage', { n: stage.id })}</span>
-                  {#if stage.id === current?.id}<span class="status active">{t('grammar.continue')}</span>{/if}
-                  {#if stats.due}<span class="status" class:active={stage.id !== current?.id}>{t('grammar.due', { n: stats.due })}</span>{/if}
-                </span>
-                <span class="title" lang="de">{stage.words.join(' · ')}</span>
-              </span>
-              <span class="chev"><Icon name="chevron" size={18} /></span>
-            </a>
-          {/each}
-        </div>
-      </section>
-    {/each}
+    <div class="areas">
+      {#each data.value.areas as { area, current, stats }, a (area.id)}
+        <a class="area" href="#/grammar/area/{area.id}" in:enter|global={{ y: 12, duration: dur(240), delay: stagger(a + 1, 30) }}>
+          <StatRing ratio={stats.ratio} done={!current} size={48} />
+          <span class="text">
+            <span class="title">{areaTitle(area.id)}</span>
+            <span class="sub">{areaSub(area.id)}</span>
+            <span class="line">
+              {#if current}<span class="n">{t('grammar.stageOf', { n: stageNumber(current), total: area.stages.length })}</span>{/if}
+              {#if stats.due}<span class="status">{t('grammar.due', { n: stats.due })}</span>{/if}
+            </span>
+          </span>
+          <span class="chev"><Icon name="chevron" size={18} /></span>
+        </a>
+      {/each}
+    </div>
 
     <div class="list all">
       <a class="list-item" href="#/grammar/all/practice">
@@ -167,6 +168,8 @@
     color: var(--accent);
   }
   .hero-time {
+    flex-shrink: 0;
+    white-space: nowrap;
     padding: 3px 10px;
     border-radius: 999px;
     background: var(--hairline);
@@ -243,46 +246,22 @@
     color: var(--muted);
   }
 
-  /* ---------- Word-order groups: the rule, then its stages (the rows of Levels, tighter) ---------- */
-  .group {
-    margin: 0 4px;
-    font-size: 19px;
-    line-height: 1.25;
-  }
-  .group a {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-height: 44px;
-    color: inherit;
-    text-decoration: none;
-  }
-  .group-title {
-    min-width: 0;
-  }
-  .formula {
-    margin: 0 4px 12px;
-  }
-  .all {
-    margin-top: 28px;
-  }
-  .stages {
+  /* ---------- Areas: one card each, their path is a page of its own ---------- */
+  .areas {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+    margin-top: 22px;
   }
-  .stage {
-    position: relative;
-    overflow: hidden;
+  .area {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 66px;
-    padding: 10px 12px;
-    border-radius: var(--radius);
+    gap: 14px;
+    min-height: 88px;
+    padding: 14px;
+    border-radius: var(--radius-lg);
     background:
-      radial-gradient(90px 70px at 34px 50%, color-mix(in srgb, var(--tier-b) 12%, transparent), transparent 100%),
+      radial-gradient(110px 90px at 40px 50%, color-mix(in srgb, var(--tier-b) 12%, transparent), transparent 100%),
       var(--surface);
     box-shadow: var(--shadow);
     color: inherit;
@@ -291,7 +270,7 @@
       transform var(--dur-fast) var(--ease),
       background-color var(--dur-fast) var(--ease);
   }
-  .stage:active {
+  .area:active {
     transform: scale(0.98);
     background-color: var(--surface-2);
   }
@@ -300,37 +279,42 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
+    gap: 2px;
+  }
+  .area .title {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 800;
+    line-height: 1.25;
+  }
+  .area .sub {
+    font-size: 14px;
+    color: var(--muted);
   }
   .line {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 2px 6px;
+    margin-top: 4px;
   }
   .n {
     font-size: 13px;
     font-weight: 600;
     color: var(--muted);
   }
-  .stage .title {
-    font-family: var(--font-display);
-    font-size: 17px;
-    font-weight: 800;
-    line-height: 1.25;
-  }
   .status {
     display: inline-flex;
     align-items: center;
     padding: 1px 8px;
     border-radius: 999px;
-    background: var(--surface-2);
+    background: var(--accent-soft);
     font-size: 12.5px;
     font-weight: 700;
-    color: var(--muted);
-  }
-  .status.active {
     color: var(--accent);
-    background: var(--accent-soft);
+  }
+  .all {
+    margin-top: 28px;
   }
   .chev {
     display: inline-flex;

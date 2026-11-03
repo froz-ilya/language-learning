@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   checkBuild,
+  checkEnding,
+  endingMarks,
+  fillGaps,
   fullSentence,
+  gapOptions,
   GrammarSession,
   INTERVALS_DAYS,
   isDue,
@@ -13,7 +17,7 @@ import {
   tilesOf,
   topicStats,
 } from './practice';
-import type { BuildExercise, GrammarExercise, GrammarProgress, PickExercise } from './types';
+import type { BuildExercise, EndingExercise, GrammarExercise, GrammarProgress, PickExercise } from './types';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = 1_000 * DAY;
@@ -35,6 +39,23 @@ function seeded(seed = 1) {
   return () => {
     seed = (seed * 16807) % 2147483647;
     return seed / 2147483647;
+  };
+}
+
+function ending(id: string, extra: Partial<EndingExercise> = {}): EndingExercise {
+  return {
+    kind: 'ending',
+    id,
+    connector: 'ein-akk',
+    level: 1,
+    tr,
+    text: 'Ich kaufe {0} {1} Tisch.',
+    gaps: [
+      { stem: 'ein', answer: 'en', role: 'det' },
+      { stem: 'neu', answer: 'en', role: 'adj' },
+    ],
+    phrase: { det: 'ein', case: 'akk', gender: 'm' },
+    ...extra,
   };
 }
 
@@ -127,6 +148,66 @@ describe('sentences', () => {
     expect(fullSentence(pick('p', { before: '', after: 'ich komme.', answer: 'übermorgen' }))).toBe('Übermorgen ich komme.');
     expect(fullSentence(pick('p', { before: 'Ich komme ', after: ' .', answer: 'heute' }))).toBe('Ich komme heute.');
     expect(fullSentence(pick('p', { before: 'Ich sehe', after: ', dass es regnet.', answer: 'dich' }))).toBe('Ich sehe dich, dass es regnet.');
+  });
+});
+
+describe('ending exercises', () => {
+  const noEnding = ending('n', {
+    connector: 'ein-nom',
+    text: '{0} {1} Hund bellt, und {2} Kind lacht.',
+    gaps: [
+      { stem: 'Ein', answer: '', role: 'det' },
+      { stem: 'groß', answer: 'er', role: 'adj' },
+      { stem: 'ein', answer: '', role: 'det' },
+    ],
+    phrase: { det: 'ein', case: 'nom', gender: 'm' },
+  });
+
+  it('fullSentence fills every gap with stem and ending', () => {
+    expect(fullSentence(ending('a'))).toBe('Ich kaufe einen neuen Tisch.');
+    expect(fullSentence(noEnding)).toBe('Ein großer Hund bellt, und ein Kind lacht.');
+    expect(fullSentence(ending('s', { text: '{0} Kaffee ist heiß.', gaps: [{ stem: 'Heiß', answer: 'er', role: 'adj' }], phrase: { det: '', case: 'nom', gender: 'm' } }))).toBe('Heißer Kaffee ist heiß.');
+  });
+
+  it('fillGaps leaves a placeholder without a gap alone', () => {
+    expect(fillGaps(ending('a'), (i) => `[${i}]`)).toBe('Ich kaufe [0] [1] Tisch.');
+    expect(fillGaps(ending('a', { text: '{0} {5}' }), () => 'x')).toBe('x {5}');
+  });
+
+  it('endingMarks splits each gap off its stem, in gap order', () => {
+    expect(endingMarks(ending('a'))).toEqual(['ein|en', 'neu|en']);
+    expect(endingMarks(noEnding)).toEqual(['Ein|', 'groß|er', 'ein|']);
+  });
+
+  it('checkEnding wants every gap right, and "" means no ending', () => {
+    expect(checkEnding(ending('a'), ['en', 'en'])).toBe(true);
+    expect(checkEnding(ending('a'), ['en', 'es'])).toBe(false);
+    expect(checkEnding(ending('a'), ['', 'en'])).toBe(false);
+    expect(checkEnding(ending('a'), ['en'])).toBe(false);
+    expect(checkEnding(ending('a'), ['en', null])).toBe(false);
+    expect(checkEnding(noEnding, ['', 'er', ''])).toBe(true);
+    expect(checkEnding(noEnding, ['', 'er', 'e'])).toBe(false);
+  });
+
+  it('gapOptions offers what the word could take, the answer always among them', () => {
+    const ex = ending('a');
+    expect(gapOptions(ex, 0)).toEqual(['', 'e', 'en', 'er', 'es', 'em']);
+    expect(gapOptions(ex, 1)).toEqual(['e', 'en', 'er', 'es', 'em']);
+    expect(gapOptions(ex, 2)).toEqual([]);
+    const der = ending('d', { gaps: [{ stem: 'd', answer: 'en', role: 'det' }], phrase: { det: 'der', case: 'akk', gender: 'm' } });
+    expect(gapOptions(der, 0)).toContain('en');
+    expect(gapOptions(der, 0)).toContain('ie');
+    // An answer the table doesn't offer still gets its chip, so the exercise can be solved.
+    const odd = ending('o', { gaps: [{ stem: 'neu', answer: 'ere', role: 'adj' }] });
+    expect(gapOptions(odd, 0)).toContain('ere');
+  });
+
+  it('a session takes ending exercises like the others', () => {
+    const s = new GrammarSession([ending('a'), pick('p')]);
+    s.answer(false);
+    s.answer(true);
+    expect(s.current?.id).toBe('a');
+    expect(ids(s.missed)).toEqual(['a']);
   });
 });
 

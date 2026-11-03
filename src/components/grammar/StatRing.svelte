@@ -4,6 +4,9 @@
 
   /** A small ring for a row of the path: the percent learned, a check once it is done. */
   let { ratio, done = false, size = 44, stroke = 5 }: { ratio: number; done?: boolean; size?: number; stroke?: number } = $props();
+
+  /** Begun shows at least 1%, so the number never says 0 next to the start of the arc. */
+  const percent = $derived(ratio > 0 ? Math.max(1, Math.round(ratio * 100)) : 0);
 </script>
 
 <span class="wrap">
@@ -11,7 +14,7 @@
     {#if done}
       <span class="ok"><Icon name="check" size={Math.round(size * 0.45)} /></span>
     {:else}
-      <span class="pct">{Math.round(ratio * 100)}%</span>
+      <span class="pct">{percent}%</span>
     {/if}
   </ProgressRing>
 </span>

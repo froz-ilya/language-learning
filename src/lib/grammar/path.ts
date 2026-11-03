@@ -1,6 +1,6 @@
 import type { Rng } from '../study/session';
 import { isDue, shuffle, topicStats } from './practice';
-import type { BuildExercise, GrammarExercise, GrammarProgress, GrammarStage } from './types';
+import type { GrammarExercise, GrammarProgress, GrammarStage } from './types';
 
 /**
  * The staged learning path: which exercises a session holds and when a word or stage is done. Pure
@@ -46,9 +46,15 @@ function byState<T extends GrammarExercise>(list: T[], progress: Progress, now: 
   };
 }
 
-export function wordSession(word: string, all: GrammarExercise[], progress: Progress, now: number, rng: Rng = Math.random): BuildExercise[] {
-  const builds = wordExercises(word, all).filter((ex): ex is BuildExercise => ex.kind === 'build');
-  const { due, fresh, later } = byState(builds, progress, now, rng);
+const isBuild = (ex: GrammarExercise) => ex.kind === 'build';
+/** The short exercises of the contrast part: picks, and ending exercises. */
+const isShort = (ex: GrammarExercise) => !isBuild(ex);
+
+/** A word's builds; an ending pattern, which has none, its ending exercises. */
+export function wordSession(word: string, all: GrammarExercise[], progress: Progress, now: number, rng: Rng = Math.random): GrammarExercise[] {
+  const exercises = wordExercises(word, all);
+  const builds: GrammarExercise[] = exercises.filter(isBuild);
+  const { due, fresh, later } = byState(builds.length ? builds : exercises.filter((ex) => ex.kind === 'ending'), progress, now, rng);
   return [...due, ...fresh, ...later].slice(0, WORD_SESSION);
 }
 
@@ -58,9 +64,7 @@ function inTurn<T>(lists: T[][]): T[] {
   return Array.from({ length: longest }, (_, i) => lists.flatMap((l) => (i < l.length ? [l[i]] : []))).flat();
 }
 
-const isPick = (ex: GrammarExercise) => ex.kind === 'pick';
-
-/** Exercises of the earlier words a stage mixes in: picks first, each partner getting its turn. */
+/** Exercises of the earlier words a stage mixes in: short ones first, each partner getting its turn. */
 function partnerExercises(stage: GrammarStage, all: GrammarExercise[], progress: Progress, now: number, rng: Rng): GrammarExercise[] {
   const lists = stage.partners
     .filter((word) => !stage.words.includes(word))
@@ -68,7 +72,7 @@ function partnerExercises(stage: GrammarStage, all: GrammarExercise[], progress:
       const { seen, fresh } = byState(wordExercises(word, all), progress, now, rng);
       return [...seen, ...fresh];
     });
-  return [...inTurn(lists.map((l) => l.filter(isPick))), ...inTurn(lists.map((l) => l.filter((ex) => !isPick(ex))))].slice(0, PARTNER_PLACES);
+  return [...inTurn(lists.map((l) => l.filter(isShort))), ...inTurn(lists.map((l) => l.filter(isBuild)))].slice(0, PARTNER_PLACES);
 }
 
 interface Queue {
@@ -125,7 +129,7 @@ function mixed(own: GrammarExercise[], partners: GrammarExercise[], before: Gram
 
 /**
  * Up to n exercises of a stage: what is due, then new builds word by word, then the contrast part,
- * where new picks, not yet due exercises and the partners' exercises are mixed.
+ * where new short exercises (picks, endings), not yet due exercises and the partners' are mixed.
  */
 export function stageSession(
   stage: GrammarStage,
@@ -141,14 +145,14 @@ export function stageSession(
   const byWord = (list: GrammarExercise[]) => stage.words.map((word) => list.filter((ex) => ex.connector === word));
 
   const dueNow = due.slice(0, n);
-  const newBuilds = fresh.filter((ex) => !isPick(ex));
+  const newBuilds = fresh.filter(isBuild);
   // Half of a short session stays free, so that it still reaches the contrast picks.
   const firstBuilds = inTurn(byWord(newBuilds)).slice(0, Math.min(NEW_BUILDS, Math.ceil(n / 2), n - dueNow.length));
   const opening = [...dueNow, ...byWord(firstBuilds).flat()];
 
   const room = n - opening.length;
   const partners = partnerExercises(stage, all, progress, now, rng);
-  const restOfStage = [...inTurn(byWord(fresh.filter(isPick))), ...later, ...newBuilds.filter((ex) => !firstBuilds.includes(ex))];
+  const restOfStage = [...inTurn(byWord(fresh.filter(isShort))), ...later, ...newBuilds.filter((ex) => !firstBuilds.includes(ex))];
   // The partners take at most half of the room, or what the stage can't fill.
   const own = restOfStage.slice(0, room - Math.min(partners.length, Math.floor(room / 2)));
   return [...opening, ...mixed(own, partners.slice(0, room - own.length), opening, rng)];

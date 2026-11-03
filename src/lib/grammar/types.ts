@@ -5,7 +5,9 @@ import type { Lang } from '../types';
  * content/, one per word-order pattern; sentences are invented for this app.
  */
 
-export type TopicId = 'verb-second' | 'verb-end' | 'verb-after';
+export type OrderTopicId = 'verb-second' | 'verb-end' | 'verb-after';
+export type EndingTopicId = 'adj-der' | 'adj-ein' | 'adj-none';
+export type TopicId = OrderTopicId | EndingTopicId;
 
 /** A translation of German text, in the language words are translated into. */
 export type Tr = Record<Lang, string>;
@@ -51,11 +53,11 @@ export interface SentenceStart {
  * (stored per exercise) needs no change when stages do.
  */
 export interface GrammarStage {
-  /** 1…8, the position on the path. */
+  /** 1…14, the position on the path. */
   id: number;
-  /** The word-order group: every word of a stage follows this one rule. */
+  /** The topic: every word of a stage follows this one rule. */
   topic: TopicId;
-  /** Its connectors, as written in the topics. */
+  /** Its connectors as written in the topics, or for an ending topic its pattern ids ("der-akk"). */
   words: string[];
   /** Earlier words a stage session mixes in, because they get confused with this stage's. */
   partners: string[];
@@ -64,9 +66,12 @@ export interface GrammarStage {
 }
 
 interface ExerciseBase {
-  /** Stable: progress is tied to it. Never change or reuse an id ("weil-3"). */
+  /** Stable: progress is tied to it. Never change or reuse an id ("weil-3", "adj-ein-akk-2"). */
   id: string;
-  /** The word this practises, one of the topic's connectors. */
+  /**
+   * What this practises, the key the path groups by: one of the topic's connectors, or for an
+   * ending topic one of its patterns ("ein-akk").
+   */
   connector: string;
   /** 1: one simple verb. 2: modal, Perfekt, separable verb, or the clause comes first. */
   level: 1 | 2;
@@ -102,21 +107,90 @@ export interface PickExercise extends ExerciseBase {
   options: string[];
 }
 
-export type GrammarExercise = BuildExercise | PickExercise;
+/** Grammatical case and gender of a noun phrase; 'pl' is the plural of any gender. */
+export type Case = 'nom' | 'akk' | 'dat' | 'gen';
+export type Gender = 'm' | 'f' | 'n' | 'pl';
+/** How an adjective is declined: after a der-word (weak), an ein-word (mixed), or no article (strong). */
+export type Declension = 'der' | 'ein' | 'none';
 
-export interface GrammarTopic {
-  id: TopicId;
+/** One gap of an ending exercise: a word whose ending is missing. */
+export interface EndingGap {
+  /** The word without its ending, as written in the sentence: "d", "dies", "ein", "unser", "neu", "teur". */
+  stem: string;
+  /** The ending; '' when there is none ("ein Tisch", "mein Bruder"). */
+  answer: string;
+  /** The determiner (der, dieser, ein, mein…) or an adjective; the content test checks the answer by it. */
+  role: 'det' | 'adj';
+}
+
+/** Tap the endings into the gaps of one noun phrase: "Ich kaufe ein__ neu__ Tisch." */
+export interface EndingExercise extends ExerciseBase {
+  kind: 'ending';
+  /** The sentence with each gap as {0}, {1}… in order: "Ich kaufe {0} {1} Tisch." */
+  text: string;
+  gaps: EndingGap[];
+  /** The noun phrase the gaps are in. `det` is the determiner's dictionary form (DETERMINERS), '' for none. */
+  phrase: { det: string; case: Case; gender: Gender };
+}
+
+export type GrammarExercise = BuildExercise | PickExercise | EndingExercise;
+
+/** A sentence with endings to mark: each mark is a word of `de` with its ending split off by "|". */
+export interface EndingExample {
+  de: string;
+  tr: Tr;
+  /** "d|en", "rot|en", "ein|"; written exactly as the word stands in `de`. */
+  marks: string[];
+}
+
+/** One case of an ending topic: the unit the path's stages are made of, like a connector. */
+export interface EndingPattern {
+  /** `${declension}-${case}`, e.g. "ein-akk": what its exercises carry as `connector`. */
+  id: string;
+  case: Case;
+  /** One short line: the endings in this case and the one to watch. */
+  rule: RuleText;
+  example: EndingExample;
+  /** A trap worth a line. */
+  note?: RuleText;
+}
+
+interface TopicBase {
   title: RuleText;
-  /** One sentence: what happens to the verb. */
+  /** One sentence: what happens to the verb, or to the ending. */
   summary: RuleText;
   /** The pattern at a glance, e.g. "…, weil + subject + … + VERB". */
   formula: RuleText;
   /** Short explanation, one point per entry. */
   points: RuleText[];
-  connectors: Connector[];
-  examples: RuleExample[];
   exercises: GrammarExercise[];
 }
+
+/** A word-order group: where the verb goes after its connectors. */
+export interface OrderTopic extends TopicBase {
+  area: 'order';
+  id: OrderTopicId;
+  connectors: Connector[];
+  examples: RuleExample[];
+}
+
+/**
+ * Adjective endings after one kind of determiner. The ending tables themselves are not authored:
+ * they come from lib/grammar/endings.ts, which the content test also checks every answer with.
+ */
+export interface EndingTopic extends TopicBase {
+  area: 'endings';
+  id: EndingTopicId;
+  declension: Declension;
+  /** Its cases, in the order nom, akk, dat, gen. */
+  patterns: EndingPattern[];
+  examples: EndingExample[];
+}
+
+export type GrammarTopic = OrderTopic | EndingTopic;
+
+/** A part of the tab with its own page, path and cheat sheet: word order, endings… */
+export type AreaId = GrammarTopic['area'];
 
 /** Stored per exercise in db.grammar; an exercise never practised has no row. */
 export interface GrammarProgress {

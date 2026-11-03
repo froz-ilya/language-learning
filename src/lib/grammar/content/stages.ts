@@ -1,8 +1,9 @@
 import type { GrammarStage } from '../types';
 
 /**
- * The learning path. Every stage belongs to one word-order group, so one rule covers all its words;
- * each is a few words that get confused, and the earlier words it mixes in.
+ * The learning path. Every stage belongs to one topic, so one rule covers all its words; each is a
+ * few words that get confused, and the earlier words it mixes in. For the ending topics (9–14) the
+ * "words" are cases ("der-akk"), the patterns of the topic.
  */
 export const GRAMMAR_STAGES: GrammarStage[] = [
   {
@@ -91,6 +92,72 @@ export const GRAMMAR_STAGES: GrammarStage[] = [
       ru: 'trotzdem передаёт ту же мысль, что obwohl, но глагол идёт сразу за ним. sonst показывает, что будет, если этого не сделать. außerdem добавляет что-то ещё.',
       en: "trotzdem is the same idea as obwohl, but the verb comes right after it. sonst says what happens if you don't do it. außerdem adds one more point.",
       de: 'trotzdem ist der gleiche Gedanke wie obwohl, aber das Verb kommt direkt danach. sonst sagt, was passiert, wenn du es nicht machst. außerdem fügt noch etwas hinzu.',
+    },
+  },
+  {
+    id: 9,
+    topic: 'adj-der',
+    words: ['der-nom', 'der-akk'],
+    partners: [],
+    contrast: {
+      ru: 'После der, die, das прилагательное получает -e. Только в мужском роде в винительном падеже меняется всё: der rote Hund → den roten Hund.',
+      en: 'After der, die, das the adjective takes -e. Only the masculine accusative changes: der rote Hund → den roten Hund.',
+      de: 'Nach der, die, das bekommt das Adjektiv -e. Nur im Akkusativ maskulin ändert sich alles: der rote Hund → den roten Hund.',
+    },
+  },
+  {
+    id: 10,
+    topic: 'adj-der',
+    words: ['der-dat', 'der-gen'],
+    partners: ['der-akk'],
+    contrast: {
+      ru: 'В дательном и родительном падеже после der всегда -en: mit dem roten Auto, wegen des kalten Wetters. Во множественном числе тоже: die roten Autos.',
+      en: 'In the dative and genitive, after der it is always -en: mit dem roten Auto, wegen des kalten Wetters. The plural too: die roten Autos.',
+      de: 'Im Dativ und Genitiv steht nach der immer -en: mit dem roten Auto, wegen des kalten Wetters. Im Plural auch: die roten Autos.',
+    },
+  },
+  {
+    id: 11,
+    topic: 'adj-ein',
+    words: ['ein-nom', 'ein-akk'],
+    partners: ['der-nom', 'der-akk'],
+    contrast: {
+      ru: 'У ein нет окончания в трёх местах, и тогда род показывает прилагательное: ein roter Hund, ein rotes Auto. Сравни: der rote Hund, das rote Auto.',
+      en: 'ein has no ending in three places, so the adjective shows the gender: ein roter Hund, ein rotes Auto. Compare der rote Hund, das rote Auto.',
+      de: 'ein hat an drei Stellen keine Endung, darum zeigt das Adjektiv das Genus: ein roter Hund, ein rotes Auto. Vergleiche: der rote Hund, das rote Auto.',
+    },
+  },
+  {
+    id: 12,
+    topic: 'adj-ein',
+    words: ['ein-dat', 'ein-gen'],
+    partners: ['der-dat'],
+    contrast: {
+      ru: 'В дательном и родительном падеже ein ведёт себя как der, и прилагательное снова получает -en: mit einem roten Auto, mit dem roten Auto.',
+      en: 'In the dative and genitive ein behaves like der, and the adjective takes -en again: mit einem roten Auto, mit dem roten Auto.',
+      de: 'Im Dativ und Genitiv verhält sich ein wie der, und das Adjektiv bekommt wieder -en: mit einem roten Auto, mit dem roten Auto.',
+    },
+  },
+  {
+    id: 13,
+    topic: 'adj-none',
+    words: ['none-nom', 'none-akk'],
+    partners: ['ein-nom', 'ein-akk'],
+    contrast: {
+      ru: 'Без артикля окончание артикля берёт прилагательное: der Kaffee → heißer Kaffee, das Wasser → kaltes Wasser, den Saft → frischen Saft.',
+      en: 'With no article the adjective takes the article’s ending: der Kaffee → heißer Kaffee, das Wasser → kaltes Wasser, den Saft → frischen Saft.',
+      de: 'Ohne Artikel übernimmt das Adjektiv die Endung des Artikels: der Kaffee → heißer Kaffee, das Wasser → kaltes Wasser, den Saft → frischen Saft.',
+    },
+  },
+  {
+    id: 14,
+    topic: 'adj-none',
+    words: ['none-dat', 'none-gen'],
+    partners: ['ein-dat', 'der-dat'],
+    contrast: {
+      ru: 'В дательном падеже без артикля прилагательное получает окончание dem или der: mit heißem Wasser, mit großer Freude. После артикля было бы -en: mit dem heißen Wasser.',
+      en: 'In the dative with no article the adjective takes the ending of dem or der: mit heißem Wasser, mit großer Freude. After an article it would be -en: mit dem heißen Wasser.',
+      de: 'Im Dativ ohne Artikel bekommt das Adjektiv die Endung von dem oder der: mit heißem Wasser, mit großer Freude. Nach einem Artikel wäre es -en: mit dem heißen Wasser.',
     },
   },
 ];

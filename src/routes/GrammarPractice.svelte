@@ -1,14 +1,18 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import BuildTiles from '../components/grammar/BuildTiles.svelte';
+  import EndingGaps from '../components/grammar/EndingGaps.svelte';
+  import EndingText from '../components/grammar/EndingText.svelte';
   import Highlighted from '../components/grammar/Highlighted.svelte';
+  import NounSheet from '../components/grammar/NounSheet.svelte';
   import PickBlank from '../components/grammar/PickBlank.svelte';
+  import { areaTitle, wordFullTitle } from '../components/grammar/connectors';
   import Icon from '../components/Icon.svelte';
   import SessionBar from '../components/study/SessionBar.svelte';
   import SessionResults from '../components/study/SessionResults.svelte';
-  import { allExercises, GRAMMAR_STAGES, stageById, topicById } from '../lib/grammar/content';
+  import { allExercises, areaById, areaExercises, GRAMMAR_STAGES, stageById, stageNumber, topicById } from '../lib/grammar/content';
   import { anywaySession, reviewSession, stageSession, wordExercises, wordSession } from '../lib/grammar/path';
-  import { fullSentence, GrammarSession, pickExercises } from '../lib/grammar/practice';
+  import { endingMarks, fullSentence, GrammarSession, pickExercises } from '../lib/grammar/practice';
   import { loadProgress, recordGrammar } from '../lib/grammar/store';
   import type { GrammarExercise, GrammarProgress, TopicId } from '../lib/grammar/types';
   import { fmtNumber, i18n, t } from '../lib/i18n.svelte';
@@ -35,9 +39,19 @@
       const stage = stageById(Number(id));
       return (
         stage && {
-          title: () => t('grammar.stage', { n: stage.id }),
+          title: () => t('grammar.stage', { n: stageNumber(stage) }),
           backTo: `/grammar/stage/${stage.id}`,
           pick: (progress, now) => stageSession(stage, pool, progress, now),
+        }
+      );
+    }
+    if (kind === 'area' && last === 'practice' && parts.length === 4) {
+      const area = areaById(id);
+      return (
+        area && {
+          title: () => areaTitle(area.id),
+          backTo: `/grammar/area/${area.id}`,
+          pick: (progress, now) => pickExercises(areaExercises(area), progress, now, SESSION_SIZE),
         }
       );
     }
@@ -45,7 +59,7 @@
       if (!wordExercises(id, pool).length) return undefined;
       const stage = GRAMMAR_STAGES.find((s) => s.words.includes(id));
       return {
-        title: () => id,
+        title: () => wordFullTitle(id),
         backTo: stage ? `/grammar/stage/${stage.id}` : '/grammar',
         pick: (progress, now) => wordSession(id, pool, progress, now),
       };
@@ -180,6 +194,8 @@
           <div class="slide" in:slideIn out:slideOut>
             {#if item.exercise.kind === 'build'}
               <BuildTiles exercise={item.exercise} {onanswer} {onnext} />
+            {:else if item.exercise.kind === 'ending'}
+              <EndingGaps exercise={item.exercise} {onanswer} {onnext} />
             {:else}
               <PickBlank exercise={item.exercise} {onanswer} {onnext} />
             {/if}
@@ -193,7 +209,14 @@
         <div class="list">
           {#each results?.missed ?? [] as ex (ex.id)}
             <div class="list-item missed">
-              <p class="sentence" lang="de"><Highlighted text={fullSentence(ex)} connector={ex.connector} verbs={ex.verbs} answer={ex.kind === 'pick' ? ex.answer : ''} /></p>
+              <p class="sentence" lang="de">
+                {#if ex.kind === 'ending'}<EndingText text={fullSentence(ex)} marks={endingMarks(ex)} />{:else}<Highlighted
+                    text={fullSentence(ex)}
+                    connector={ex.connector}
+                    verbs={ex.verbs}
+                    answer={ex.kind === 'pick' ? ex.answer : ''}
+                  />{/if}
+              </p>
               <div class="sub">{ex.tr[settings.lang]}</div>
             </div>
           {/each}
@@ -212,6 +235,7 @@
     </SessionResults>
   {/if}
 </div>
+<NounSheet />
 {/if}
 
 <style>

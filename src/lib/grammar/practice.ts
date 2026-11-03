@@ -1,9 +1,10 @@
 import type { Rng } from '../study/session';
-import type { BuildExercise, GrammarExercise, GrammarProgress } from './types';
+import { endingOptions } from './endings';
+import type { BuildExercise, EndingExercise, GrammarExercise, GrammarProgress } from './types';
 
 /**
- * Pure grammar-practice logic (no DB, no DOM) so it can be unit tested. Imports only types:
- * study/session.ts loads i18n.svelte, hence the small shuffle of its own below.
+ * Pure grammar-practice logic (no DB, no DOM) so it can be unit tested. Imports only types and the
+ * pure ending tables: study/session.ts loads i18n.svelte, hence the small shuffle of its own below.
  */
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -84,9 +85,33 @@ export function modelAnswer(ex: BuildExercise, picked?: string[]): string {
   return ex.given ? `${ex.given.trim()} ${answer}` : answer;
 }
 
+/** The text of an ending exercise with each gap {i} replaced by `fill(i)`. */
+export function fillGaps(ex: EndingExercise, fill: (i: number) => string): string {
+  return ex.text.replace(/\{(\d+)\}/g, (whole, n: string) => (ex.gaps[Number(n)] ? fill(Number(n)) : whole));
+}
+
+/** The marks for EndingText ("ein|en", "neu|en", "ein|"), in gap order. */
+export function endingMarks(ex: EndingExercise): string[] {
+  return ex.gaps.map((gap) => `${gap.stem}|${gap.answer}`);
+}
+
+/** Right when every gap got its ending; '' is the answer "no ending". */
+export function checkEnding(ex: EndingExercise, picked: (string | null | undefined)[]): boolean {
+  return picked.length === ex.gaps.length && ex.gaps.every((gap, i) => picked[i] === gap.answer);
+}
+
+/** The chips for gap i: every ending that word could take, in a fixed order, always with the answer. */
+export function gapOptions(ex: EndingExercise, i: number): string[] {
+  const gap = ex.gaps[i];
+  if (!gap) return [];
+  const options = endingOptions(gap, ex.phrase.det);
+  return options.includes(gap.answer) ? options : [...options, gap.answer];
+}
+
 /** Full text of an exercise, for speech and feedback. */
 export function fullSentence(ex: GrammarExercise): string {
   if (ex.kind === 'build') return modelAnswer(ex);
+  if (ex.kind === 'ending') return fillGaps(ex, (i) => ex.gaps[i].stem + ex.gaps[i].answer);
   const before = ex.before.trim();
   const answer = before ? ex.answer : ex.answer.charAt(0).toLocaleUpperCase('de') + ex.answer.slice(1);
   return [before, answer, ex.after.trim()]

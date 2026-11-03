@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { connectorOf } from '../components/grammar/connectors';
+  import { connectorOf, patternOf, wordTitle } from '../components/grammar/connectors';
+  import EndingText from '../components/grammar/EndingText.svelte';
   import Formula from '../components/grammar/Formula.svelte';
   import Highlighted from '../components/grammar/Highlighted.svelte';
   import StatRing from '../components/grammar/StatRing.svelte';
   import Header from '../components/Header.svelte';
   import Icon from '../components/Icon.svelte';
-  import { allExercises, stageById, topicById } from '../lib/grammar/content';
+  import { allExercises, stageById, stageNumber, topicById } from '../lib/grammar/content';
   import { stageStats } from '../lib/grammar/path';
   import { loadProgress } from '../lib/grammar/store';
   import { i18n, t } from '../lib/i18n.svelte';
@@ -33,7 +34,7 @@
 {#if stage && topic}
   <div class="page">
     <div class="head">
-      <Header title={topic.title[i18n.lang]} subtitle={t('grammar.stage', { n: stage.id })} backTo="/grammar" actions={stats.value?.done ? doneMark : undefined} />
+      <Header title={topic.title[i18n.lang]} subtitle={t('grammar.stage', { n: stageNumber(stage) })} backTo="/grammar/area/{topic.area}" actions={stats.value?.done ? doneMark : undefined} />
     </div>
 
     <section class="card rule" in:enter|global={{ y: 12, duration: dur(240) }}>
@@ -44,20 +45,31 @@
     <p class="small contrast" in:enter|global={{ y: 12, duration: dur(240) }}>{stage.contrast[i18n.lang]}</p>
 
     <section class="section" in:enter|global={{ y: 12, duration: dur(240) }}>
-      <div class="section-title">{t('grammar.words')}</div>
+      <div class="section-title">{topic.area === 'endings' ? t('grammar.cases') : t('grammar.words')}</div>
       <div class="list">
         {#each stage.words as word (word)}
           {@const s = stats.value?.words.find((w) => w.word === word)?.stats}
-          {@const connector = connectorOf(word)}
           <a class="list-item" href="#/grammar/word/{encodeURIComponent(word)}/practice">
             <StatRing ratio={s?.ratio ?? 0} done={s?.done} size={40} />
-            <span class="text">
-              <span class="title word" lang="de">{word}</span>
-              <span class="sub">{connector?.meaning[settings.lang]}</span>
-              {#if connector}
-                <span class="small example" lang="de"><Highlighted text={connector.example.de} connector={connector.example.connector} verbs={connector.example.verbs} /></span>
-              {/if}
-            </span>
+            {#if topic.area === 'endings'}
+              {@const pattern = patternOf(word)}
+              <span class="text">
+                <span class="title word" lang="de">{wordTitle(word)}</span>
+                {#if pattern}
+                  <span class="sub">{pattern.rule[i18n.lang]}</span>
+                  <span class="small example" lang="de"><EndingText text={pattern.example.de} marks={pattern.example.marks} /></span>
+                {/if}
+              </span>
+            {:else}
+              {@const connector = connectorOf(word)}
+              <span class="text">
+                <span class="title word" lang="de">{word}</span>
+                <span class="sub">{connector?.meaning[settings.lang]}</span>
+                {#if connector}
+                  <span class="small example" lang="de"><Highlighted text={connector.example.de} connector={connector.example.connector} verbs={connector.example.verbs} /></span>
+                {/if}
+              </span>
+            {/if}
             <span class="chev"><Icon name="chevron" size={18} /></span>
           </a>
         {/each}

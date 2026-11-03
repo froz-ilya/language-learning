@@ -78,7 +78,16 @@ practice.ts and path.ts (pure), progress per exercise in `db.grammar` (included 
 - The cheat sheet (/grammar/cheat) is for lookups during homework: everything visible, no tapping
   to open anything, jumps are instant.
 
-- Exercise ids (`weil-3`) never change or get reused: progress is tied to them.
+- Adjective endings are the second area (topics `adj-der`, `adj-ein`, `adj-none`, stages 9–14):
+  a stage's words are patterns (`ein-akk`), carried by exercises as `connector`. The ending tables
+  live only in src/lib/grammar/endings.ts: the cheat sheet draws them from there and the content
+  test checks every authored answer against them, so never type a table or an answer by hand.
+- Each area (`GRAMMAR_AREAS` in content/index.ts) has its own page (/grammar/area/:id) and its own
+  cheat sheet (/grammar/cheat/:id); the Grammar home shows only the review and one card per area.
+  A new area adds an `AreaId`, its topics and stages, not more sections on the home page. Stages
+  keep their global ids but are numbered within their area (`stageNumber()`).
+
+- Exercise ids (`weil-3`, `adj-ein-akk-2`) never change or get reused: progress is tied to them.
 - A `build` exercise lists every order a German speaker would accept in `answers`, with the same
   words in each. A correct order marked wrong is the worst bug here. src/lib/grammar/content.test.ts
   checks the data.

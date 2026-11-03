@@ -1,9 +1,10 @@
 // Checks the authored topics; each test lists every problem it finds, not just the first.
 import { describe, expect, it } from 'vitest';
-import { allExercises, GRAMMAR_STAGES, GRAMMAR_TOPICS, stageById, topicById } from './content';
+import { allExercises, areaById, areaOf, ENDING_TOPICS, GRAMMAR_AREAS, GRAMMAR_STAGES, GRAMMAR_TOPICS, ORDER_TOPICS, stageById, stageNumber, topicById } from './content';
+import { CASES, DETERMINERS, endingOptions, expectedEnding } from './endings';
 import { stageExercises, stageSession } from './path';
 import { checkBuild, shuffledTiles, tilesOf } from './practice';
-import type { BuildExercise, RuleText, Tr } from './types';
+import type { BuildExercise, EndingExercise, RuleText, Tr } from './types';
 
 const allOf = () => GRAMMAR_TOPICS.flatMap((t) => t.exercises);
 const filled = (s: string | undefined) => typeof s === 'string' && s.trim() !== '';
@@ -21,8 +22,8 @@ const builds = () => allOf().filter((e): e is BuildExercise => e.kind === 'build
 const picks = () => allOf().flatMap((e) => (e.kind === 'pick' ? [e] : []));
 
 describe('grammar content', () => {
-  it('has the three topics, reachable by id', () => {
-    expect(GRAMMAR_TOPICS.map((t) => t.id).sort()).toEqual(['verb-after', 'verb-end', 'verb-second']);
+  it('has the six topics, reachable by id', () => {
+    expect(GRAMMAR_TOPICS.map((t) => t.id).sort()).toEqual(['adj-der', 'adj-ein', 'adj-none', 'verb-after', 'verb-end', 'verb-second']);
     for (const t of GRAMMAR_TOPICS) expect(topicById(t.id)).toBe(t);
   });
 
@@ -36,9 +37,9 @@ describe('grammar content', () => {
     expect(dupes).toEqual([]);
   });
 
-  it('every exercise practises a connector of its topic', () => {
+  it('every exercise practises a connector or pattern of its topic', () => {
     const bad = GRAMMAR_TOPICS.flatMap((t) => {
-      const words = new Set(t.connectors.map((c) => c.word));
+      const words = new Set(t.area === 'order' ? t.connectors.map((c) => c.word) : t.patterns.map((p) => p.id));
       return t.exercises.filter((e) => !words.has(e.connector)).map((e) => `${t.id}/${e.id}: ${e.connector}`);
     });
     expect(bad).toEqual([]);
@@ -83,7 +84,9 @@ describe('grammar content', () => {
     const bad = GRAMMAR_TOPICS.flatMap((t) => [
       ...t.exercises.flatMap((e) => missing(e.id, e.tr)),
       ...t.examples.flatMap((x) => missing(`${t.id} example "${x.de}"`, x.tr)),
-      ...t.connectors.flatMap((c) => missing(`${t.id} connector ${c.word}`, c.meaning)),
+      ...(t.area === 'order'
+        ? t.connectors.flatMap((c) => missing(`${t.id} connector ${c.word}`, c.meaning))
+        : t.patterns.flatMap((p) => missing(`${t.id} example of ${p.id}`, p.example?.tr))),
     ]);
     expect(bad).toEqual([]);
   });
@@ -95,14 +98,16 @@ describe('grammar content', () => {
       ...missing(`${t.id} summary`, t.summary),
       ...missing(`${t.id} formula`, t.formula),
       ...t.points.flatMap((p, i) => missing(`${t.id} point ${i}`, p)),
-      ...t.connectors.flatMap((c) => (c.note ? missing(`${t.id} note of ${c.word}`, c.note) : [])),
+      ...(t.area === 'order'
+        ? t.connectors.flatMap((c) => (c.note ? missing(`${t.id} note of ${c.word}`, c.note) : []))
+        : t.patterns.flatMap((p) => [...missing(`${t.id} rule of ${p.id}`, p.rule), ...(p.note ? missing(`${t.id} note of ${p.id}`, p.note) : [])])),
     ]);
     expect(bad).toEqual([]);
     for (const t of GRAMMAR_TOPICS) expect(t.points.length, t.id).toBeGreaterThan(0);
   });
 
   it('every example shows its connector and verbs', () => {
-    const bad = GRAMMAR_TOPICS.flatMap((t) =>
+    const bad = ORDER_TOPICS.flatMap((t) =>
       t.examples.flatMap((x) =>
         [x.connector, ...x.verbs].filter((w) => !filled(w) || !hasWord(x.de, w)).map((w) => `"${x.de}" lacks "${w}"`),
       ),
@@ -111,7 +116,7 @@ describe('grammar content', () => {
   });
 
   it('each connector has at least 5 build and 2 pick exercises', () => {
-    const bad = GRAMMAR_TOPICS.flatMap((t) =>
+    const bad = ORDER_TOPICS.flatMap((t) =>
       t.connectors.flatMap((c) => {
         const own = t.exercises.filter((e) => e.connector === c.word);
         const nBuild = own.filter((e) => e.kind === 'build').length;
@@ -123,7 +128,7 @@ describe('grammar content', () => {
   });
 
   it('every connector has an example showing itself and its verbs', () => {
-    const bad = GRAMMAR_TOPICS.flatMap((t) =>
+    const bad = ORDER_TOPICS.flatMap((t) =>
       t.connectors.flatMap((c) => {
         const x = c.example;
         if (!x) return [`${t.id}/${c.word}: no example`];
@@ -141,7 +146,7 @@ describe('grammar content', () => {
   it('every connector says whether a sentence can start with it', () => {
     const langs = ['ru', 'en', 'de'] as const;
     const verbToken = /^\p{Lu}{3,}$/u;
-    const bad = GRAMMAR_TOPICS.flatMap((t) =>
+    const bad = ORDER_TOPICS.flatMap((t) =>
       t.connectors.flatMap((c) => {
         const where = `${t.id}/${c.word}`;
         const s = c.start;
@@ -173,29 +178,35 @@ describe('grammar content', () => {
 });
 
 describe('grammar stages', () => {
-  const connectors = () => GRAMMAR_TOPICS.flatMap((t) => t.connectors.map((c) => c.word));
+  /** What stages may hold: every connector and every ending pattern. */
+  const keys = () => GRAMMAR_TOPICS.flatMap((t) => (t.area === 'order' ? t.connectors.map((c) => c.word) : t.patterns.map((p) => p.id)));
+  const keysOf = (id: string) => {
+    const t = topicById(id);
+    return t ? (t.area === 'order' ? t.connectors.map((c) => c.word) : t.patterns.map((p) => p.id)) : [];
+  };
+  const orderStages = () => GRAMMAR_STAGES.filter((s) => topicById(s.topic)?.area === 'order');
   const stagePicks = (words: string[]) => allOf().filter((e) => e.kind === 'pick' && words.includes(e.connector)).length;
 
-  it('are numbered 1 to 8, in order, and reachable by id', () => {
-    expect(GRAMMAR_STAGES.map((s) => s.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  it('are numbered 1 to 14, in order, and reachable by id', () => {
+    expect(GRAMMAR_STAGES.map((s) => s.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
     for (const s of GRAMMAR_STAGES) expect(stageById(s.id)).toBe(s);
-    expect(stageById(9)).toBeUndefined();
+    expect(stageById(15)).toBeUndefined();
   });
 
-  it('hold only connectors of the topics', () => {
-    const known = new Set(connectors());
+  it('hold only connectors and patterns of the topics', () => {
+    const known = new Set(keys());
     expect(GRAMMAR_STAGES.flatMap((s) => s.words.filter((w) => !known.has(w)).map((w) => `${s.id}: ${w}`))).toEqual([]);
     for (const s of GRAMMAR_STAGES) expect(s.words.length, `stage ${s.id}`).toBeGreaterThan(0);
   });
 
-  it('hold each of the 19 connectors exactly once', () => {
-    expect(new Set(connectors()).size).toBe(19);
-    expect(GRAMMAR_STAGES.flatMap((s) => s.words).sort()).toEqual(connectors().slice().sort());
+  it('hold each of the 19 connectors and 12 patterns exactly once', () => {
+    expect(new Set(keys()).size).toBe(31);
+    expect(GRAMMAR_STAGES.flatMap((s) => s.words).sort()).toEqual(keys().slice().sort());
   });
 
-  it('belong to one word-order group, and every group’s stages follow each other', () => {
+  it('belong to one topic, and every topic’s stages follow each other', () => {
     const bad = GRAMMAR_STAGES.flatMap((s) => {
-      const own = new Set(topicById(s.topic)?.connectors.map((c) => c.word));
+      const own = new Set(keysOf(s.topic));
       return s.words.filter((w) => !own.has(w)).map((w) => `${s.id} (${s.topic}): ${w}`);
     });
     expect(bad).toEqual([]);
@@ -216,17 +227,123 @@ describe('grammar stages', () => {
     expect(bad).toEqual([]);
   });
 
-  it('have at least 2 picks, their own or their partners’', () => {
-    const bad = GRAMMAR_STAGES.filter((s) => stagePicks([...s.words, ...s.partners]) < 2).map((s) => s.id);
+  it('have at least 2 picks, their own or their partners’ (word order)', () => {
+    const bad = orderStages().filter((s) => stagePicks([...s.words, ...s.partners]) < 2).map((s) => s.id);
     expect(bad).toEqual([]);
   });
 
-  it('open with a full session that shows some picks', () => {
-    const bad = GRAMMAR_STAGES.flatMap((s) => {
+  it('open with a full session that shows some picks (word order)', () => {
+    const bad = orderStages().flatMap((s) => {
       const list = stageSession(s, allOf(), new Map(), 0, () => 0.5);
       const nPick = list.filter((e) => e.kind === 'pick').length;
       return stageExercises(s, allOf()).length && list.length && nPick >= 2 ? [] : [`${s.id}: ${list.length} exercises, ${nPick} picks`];
     });
     expect(bad).toEqual([]);
+  });
+});
+
+describe('ending content', () => {
+  const endings = () => allOf().filter((e): e is EndingExercise => e.kind === 'ending');
+  const gapsIn = (text: string) => [...text.matchAll(/\{(\d+)\}/g)].map((m) => Number(m[1]));
+
+  it('every ending topic has its four cases, in order, with the right ids', () => {
+    const bad = ENDING_TOPICS.flatMap((t) => {
+      const ids = t.patterns.map((p) => p.id).join(' ');
+      const want = CASES.map((c) => `${t.declension}-${c}`).join(' ');
+      const cases = t.patterns.map((p) => p.case).join(' ');
+      return [...(ids === want ? [] : [`${t.id}: ${ids}`]), ...(cases === CASES.join(' ') ? [] : [`${t.id} cases: ${cases}`])];
+    });
+    expect(bad).toEqual([]);
+    for (const t of ENDING_TOPICS) expect(t.id, t.declension).toBe(`adj-${t.declension}`);
+  });
+
+  it('exercise ids are adj-<pattern>-<n> and the pattern matches the phrase', () => {
+    const bad = endings().flatMap((e) => {
+      const problems: string[] = [];
+      if (!new RegExp(`^adj-${e.connector}-\\d+$`).test(e.id)) problems.push(`${e.id}: id doesn't match ${e.connector}`);
+      const decl = e.phrase.det === '' ? 'none' : DETERMINERS[e.phrase.det]?.declension;
+      if (`${decl}-${e.phrase.case}` !== e.connector) problems.push(`${e.id}: phrase is ${decl}-${e.phrase.case}`);
+      return problems;
+    });
+    expect(bad).toEqual([]);
+  });
+
+  it('ending exercises are only in ending topics, and ending topics hold only them', () => {
+    const bad = GRAMMAR_TOPICS.flatMap((t) =>
+      t.exercises.filter((e) => (e.kind === 'ending') !== (t.area === 'endings')).map((e) => `${t.id}/${e.id}: ${e.kind}`),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it('every gap stands once in the text, in order, and the text ends like a sentence', () => {
+    const bad = endings().flatMap((e) => {
+      const want = e.gaps.map((_, i) => i).join(',');
+      const got = gapsIn(e.text).join(',');
+      return [
+        ...(e.gaps.length ? [] : [`${e.id}: no gaps`]),
+        ...(got === want ? [] : [`${e.id}: gaps {${got}} for ${e.gaps.length}`]),
+        ...(/\S[.!?]$/.test(e.text.trim()) ? [] : [`${e.id}: "${e.text}"`]),
+      ];
+    });
+    expect(bad).toEqual([]);
+  });
+
+  it('every answer is the ending the rules give', () => {
+    const bad = endings().flatMap((e) =>
+      e.gaps.flatMap((g, i) => {
+        const want = expectedEnding(g, e.phrase);
+        if (want === undefined) return [`${e.id}: no such phrase ${JSON.stringify(e.phrase)}`];
+        return g.answer === want ? [] : [`${e.id} gap ${i} (${g.stem}): "${g.answer}", the rules give "${want}"`];
+      }),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it('determiner gaps belong to the phrase’s determiner, and each answer is among its options', () => {
+    const bad = endings().flatMap((e) =>
+      e.gaps.flatMap((g, i) => {
+        const problems: string[] = [];
+        if (g.role === 'det' && e.phrase.det === '') problems.push(`${e.id} gap ${i}: a determiner gap with no determiner`);
+        if (!endingOptions(g, e.phrase.det).includes(g.answer)) problems.push(`${e.id} gap ${i}: "${g.answer}" not offered`);
+        if (!filled(g.stem)) problems.push(`${e.id} gap ${i}: no stem`);
+        return problems;
+      }),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it('every pattern has at least 6 exercises, both levels', () => {
+    const bad = ENDING_TOPICS.flatMap((t) =>
+      t.patterns.flatMap((p) => {
+        const own = t.exercises.filter((e) => e.connector === p.id);
+        const levels = new Set(own.map((e) => e.level));
+        return own.length >= 6 && levels.size === 2 ? [] : [`${p.id}: ${own.length} exercises, levels ${[...levels].join(',')}`];
+      }),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it('every example and pattern example marks words that stand in it', () => {
+    const marked = (where: string, x: { de: string; marks: string[] }) =>
+      x.marks.length
+        ? x.marks.filter((m) => !m.includes('|') || !hasWord(x.de, m.replace('|', ''))).map((m) => `${where}: "${x.de}" lacks "${m}"`)
+        : [`${where}: no marks`];
+    const bad = ENDING_TOPICS.flatMap((t) => [
+      ...t.examples.flatMap((x) => marked(t.id, x)),
+      ...t.patterns.flatMap((p) => (p.example ? marked(p.id, p.example) : [`${p.id}: no example`])),
+    ]);
+    expect(bad).toEqual([]);
+  });
+});
+
+describe('grammar areas', () => {
+  it('hold every topic and stage once, stages numbered from 1 in each', () => {
+    expect(GRAMMAR_AREAS.flatMap((a) => a.topics.map((t) => t.id)).sort()).toEqual(GRAMMAR_TOPICS.map((t) => t.id).sort());
+    expect(GRAMMAR_AREAS.flatMap((a) => a.stages.map((s) => s.id)).sort((x, y) => x - y)).toEqual(GRAMMAR_STAGES.map((s) => s.id));
+    for (const a of GRAMMAR_AREAS) {
+      expect(a.stages.map((s) => stageNumber({ ...s })), a.id).toEqual(a.stages.map((_, i) => i + 1));
+      expect(areaById(a.id)).toBe(a);
+      for (const t of a.topics) expect(areaOf(t.id)).toBe(a);
+    }
   });
 });

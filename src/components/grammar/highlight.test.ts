@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { highlightSegments } from './highlight';
+import { endingSegments, highlightSegments } from './highlight';
 
 const marked = (text: string, connector?: string, verbs?: string[], answer?: string) =>
   highlightSegments(text, connector, verbs, answer)
@@ -64,5 +64,24 @@ describe('highlightSegments', () => {
   it('copes with letters and characters special in a pattern', () => {
     expect(marked('Wir gehen (zu Fuß), obwohl es weit ist.', '(zu Fuß)')).toBe('Wir gehen [c:(zu Fuß)], obwohl es weit ist.');
     expect(marked('Öl, über Öl.', 'über', ['Öl'])).toBe('Öl, [c:über] [v:Öl].');
+  });
+});
+
+describe('endingSegments', () => {
+  it('marks endings, in order, and a word with no ending as a whole', () => {
+    expect(endingSegments('Ich sehe den roten Hund.', ['d|en', 'rot|en'])).toEqual([
+      { text: 'Ich sehe d' },
+      { text: 'en', kind: 'e' },
+      { text: ' rot' },
+      { text: 'en', kind: 'e' },
+      { text: ' Hund.' },
+    ]);
+    expect(endingSegments('Das ist ein roter Hund.', ['ein|', 'rot|er'])).toEqual([
+      { text: 'Das ist ' },
+      { text: 'ein', kind: 'c' },
+      { text: ' rot' },
+      { text: 'er', kind: 'e' },
+      { text: ' Hund.' },
+    ]);
   });
 });

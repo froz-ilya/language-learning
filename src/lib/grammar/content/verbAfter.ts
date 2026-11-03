@@ -1,7 +1,8 @@
-import type { GrammarTopic } from '../types';
+import type { OrderTopic } from '../types';
 
 /** trotzdem, deshalb, deswegen, dann, sonst, außerdem: first place in the sentence, verb right after. */
-export const verbAfter: GrammarTopic = {
+export const verbAfter: OrderTopic = {
+  area: 'order',
   id: 'verb-after',
   title: {
     ru: 'Глагол сразу после слова',

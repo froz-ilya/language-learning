@@ -1,7 +1,8 @@
 <script lang="ts">
   /**
    * A pattern at a glance: its slots as chips, every verb filled ("…, weil + subject + … + VERB").
-   * A "," slot hangs on the slot before it, so a wrapped line never opens with a comma.
+   * An ending slot ("-e / -en") is filled like a verb. A "," slot hangs on the slot before it, so a
+   * wrapped line never opens with a comma.
    */
   let { text, compact = false }: { text: string; compact?: boolean } = $props();
 
@@ -19,7 +20,7 @@
 <div class="fslots" class:compact>
   {#each slots as slot}
     <span class="slot">
-      <span class="chip" class:verb={/^\p{Lu}{3,}$/u.test(slot.text)}>{slot.text}</span>{#if slot.comma}<span class="comma">,</span>{/if}
+      <span class="chip" class:verb={/^\p{Lu}{3,}$/u.test(slot.text) || slot.text.startsWith('-')}>{slot.text}</span>{#if slot.comma}<span class="comma">,</span>{/if}
     </span>
   {/each}
 </div>

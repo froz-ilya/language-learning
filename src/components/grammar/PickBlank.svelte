@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { GRAMMAR_TOPICS } from '../../lib/grammar/content';
+  import { ORDER_TOPICS } from '../../lib/grammar/content';
   import { fullSentence } from '../../lib/grammar/practice';
   import type { PickExercise } from '../../lib/grammar/types';
   import { i18n, t } from '../../lib/i18n.svelte';
@@ -37,7 +37,7 @@
     before ? exercise.answer : exercise.answer.charAt(0).toLocaleUpperCase('de') + exercise.answer.slice(1),
   );
   const note = $derived(
-    GRAMMAR_TOPICS.find((topic) => topic.exercises.some((ex) => ex.id === exercise.id))?.connectors.find(
+    ORDER_TOPICS.find((topic) => topic.exercises.some((ex) => ex.id === exercise.id))?.connectors.find(
       (c) => c.word === exercise.connector,
     )?.note?.[i18n.lang],
   );

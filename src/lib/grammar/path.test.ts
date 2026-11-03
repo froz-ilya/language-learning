@@ -13,7 +13,7 @@ import {
   wordSession,
   wordStats,
 } from './path';
-import type { BuildExercise, GrammarExercise, GrammarProgress, GrammarStage, PickExercise, RuleText } from './types';
+import type { BuildExercise, EndingExercise, GrammarExercise, GrammarProgress, GrammarStage, PickExercise, RuleText } from './types';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = 1_000 * DAY;
@@ -26,6 +26,25 @@ function build(connector: string, id: string, level: 1 | 2 = 1): BuildExercise {
 function pick(connector: string, id: string, level: 1 | 2 = 1): PickExercise {
   return { kind: 'pick', id, connector, level, tr, before: 'Ich bleibe,', after: 'es regnet.', answer: connector, options: [connector, 'und', 'oder'] };
 }
+/** An ending exercise of a pattern ("ein-akk"); the gaps don't matter to the path. */
+function ending(pattern: string, id: string, level: 1 | 2 = 1): EndingExercise {
+  return {
+    kind: 'ending',
+    id,
+    connector: pattern,
+    level,
+    tr,
+    text: 'Ich kaufe {0} {1} Tisch.',
+    gaps: [
+      { stem: 'ein', answer: 'en', role: 'det' },
+      { stem: 'neu', answer: 'en', role: 'adj' },
+    ],
+    phrase: { det: 'ein', case: 'akk', gender: 'm' },
+  };
+}
+/** `count` ending exercises of a pattern, every third one level 2: "ein-akk-0"… */
+const endingsOf = (pattern: string, count: number) =>
+  Array.from({ length: count }, (_, i) => ending(pattern, `${pattern}-${i}`, i % 3 === 2 ? 2 : 1));
 function row(id: string, box: number, due: number): GrammarProgress {
   return { id, box, due, lastAt: 0, right: 0, wrong: 0 };
 }
@@ -252,6 +271,99 @@ describe('stageSession', () => {
     const before = ids(all);
     session();
     expect(ids(all)).toEqual(before);
+  });
+});
+
+describe('ending stages', () => {
+  const s9 = { ...stage(9, ['der-nom', 'der-akk']), topic: 'adj-der' as const };
+  const s11 = { ...stage(11, ['ein-nom', 'ein-akk'], ['der-nom', 'der-akk']), topic: 'adj-ein' as const };
+  const patterns = ['der-nom', 'der-akk', 'der-dat', 'ein-nom', 'ein-akk'];
+  const all = patterns.flatMap((p) => endingsOf(p, 10));
+  const counts = (list: GrammarExercise[]) => Object.fromEntries(patterns.map((p) => [p, list.filter((e) => e.connector === p).length]));
+
+  it('a first stage session is full and mixes the stage’s two patterns', () => {
+    for (let seed = 1; seed < 60; seed++) {
+      const list = stageSession(s9, all, new Map(), NOW, seeded(seed));
+      expect(list).toHaveLength(STAGE_SESSION);
+      expect(new Set(ids(list)).size).toBe(STAGE_SESSION);
+      expect(list.every((e) => s9.words.includes(e.connector))).toBe(true);
+      const c = counts(list);
+      expect(c['der-nom']).toBe(6);
+      expect(c['der-akk']).toBe(6);
+      expect(longestRun(list), ids(list).join(' ')).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('brings in the partners, shared between them, mixed in and never more than two in a row', () => {
+    for (let seed = 1; seed < 60; seed++) {
+      const list = stageSession(s11, all, new Map(), NOW, seeded(seed));
+      expect(list).toHaveLength(STAGE_SESSION);
+      expect(new Set(ids(list)).size).toBe(STAGE_SESSION);
+      const fromPartners = list.filter((e) => s11.partners.includes(e.connector));
+      expect(fromPartners).toHaveLength(3);
+      expect(new Set(fromPartners.map((e) => e.connector)).size).toBe(2);
+      const c = counts(list);
+      expect(c['ein-nom']).toBeGreaterThanOrEqual(4);
+      expect(c['ein-akk']).toBeGreaterThanOrEqual(4);
+      expect(list.every((e) => e.kind === 'ending')).toBe(true);
+      expect(longestRun(list), ids(list).join(' ')).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('starts new exercises with level 1', () => {
+    const pool = [ending('der-nom', 'hard', 2), ending('der-nom', 'easy'), ending('der-akk', 'hard2', 2), ending('der-akk', 'easy2')];
+    const list = stageSession(s9, pool, new Map(), NOW, seeded());
+    expect(ids(list.slice(0, 2)).sort()).toEqual(['easy', 'easy2']);
+  });
+
+  it('a later session is full too: due first, then what is new, then not yet due, mixed', () => {
+    for (let seed = 1; seed < 30; seed++) {
+      const own = stageExercises(s11, all);
+      // Half of each pattern practised: two due, the rest later.
+      const progress = progressOf(
+        ...own
+          .filter((e) => Number(e.id.split('-').at(-1)) < 5)
+          .map((e, i) => row(e.id, 1, i < 2 ? NOW - (i + 1) * DAY : NOW + (i + 1) * DAY)),
+      );
+      const list = stageSession(s11, all, progress, NOW, seeded(seed));
+      expect(list).toHaveLength(STAGE_SESSION);
+      expect(new Set(ids(list)).size).toBe(STAGE_SESSION);
+      expect(ids(list.slice(0, 2))).toEqual(['ein-nom-1', 'ein-nom-0']);
+      expect(list.filter((e) => s11.partners.includes(e.connector))).toHaveLength(3);
+      expect(longestRun(list), ids(list).join(' ')).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('a small pool gives everything it has, still mixed', () => {
+    const pool = [...endingsOf('der-nom', 3), ...endingsOf('der-akk', 3)];
+    for (let seed = 1; seed < 30; seed++) {
+      const list = stageSession(s9, pool, new Map(), NOW, seeded(seed));
+      expect(list).toHaveLength(6);
+      expect(longestRun(list)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('a pattern practises its own ending exercises', () => {
+    const list = wordSession('ein-akk', all, new Map(), NOW, seeded());
+    expect(list).toHaveLength(WORD_SESSION);
+    expect(list.every((e) => e.kind === 'ending' && e.connector === 'ein-akk')).toBe(true);
+    expect(list.slice(0, 7).filter((e) => e.level === 1).length).toBe(7);
+  });
+
+  it('review and anyway sessions take ending exercises', () => {
+    const progress = progressOf(row('ein-akk-0', 1, NOW - DAY), row('der-nom-3', 2, NOW + DAY));
+    expect(ids(reviewSession(all, progress, NOW))).toEqual(['ein-akk-0']);
+    const anyway = anywaySession(all, [s9, s11], progress, NOW, seeded());
+    expect(anyway).toHaveLength(STAGE_SESSION);
+    expect(ids(anyway.slice(0, 2))).toEqual(['ein-akk-0', 'der-nom-3']);
+    expect(anyway.every((e) => [...s9.words, ...s11.words].includes(e.connector))).toBe(true);
+  });
+
+  it('mixed with word order, a word-order stage stays as it was', () => {
+    const mixedPool = [...exercisesOf('weil', 6, 3), ...exercisesOf('dass', 6, 3), ...all];
+    const wordOrder = [...exercisesOf('weil', 6, 3), ...exercisesOf('dass', 6, 3)];
+    const st = stage(3, ['weil', 'dass']);
+    expect(ids(stageSession(st, mixedPool, new Map(), NOW, seeded(4)))).toEqual(ids(stageSession(st, wordOrder, new Map(), NOW, seeded(4))));
   });
 });
 

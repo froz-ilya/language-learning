@@ -1,7 +1,8 @@
-import type { GrammarTopic } from '../types';
+import type { OrderTopic } from '../types';
 
 /** und, aber, oder, denn, sondern: they join two sentences and leave the word order alone. */
-export const verbSecond: GrammarTopic = {
+export const verbSecond: OrderTopic = {
+  area: 'order',
   id: 'verb-second',
   title: {
     ru: 'Глагол остаётся на втором месте',

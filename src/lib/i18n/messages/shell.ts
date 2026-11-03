@@ -1,4 +1,4 @@
-import type { Translation } from './translation';
+import type { RuTranslation, Translation } from './translation';
 
 /** App shell: tab bar, banners, dialogs, toasts, shared widgets. */
 export const en = {
@@ -37,4 +37,23 @@ export const de: Translation<typeof en> = {
   'shell.pronounce': 'Aussprechen',
   'shell.pronounceSlowly': 'Langsam aussprechen',
   'shell.progress': '{done} von {total} fertig',
+};
+
+export const ru: RuTranslation<typeof en> = {
+  'shell.tab.nav': 'Главное меню',
+  'shell.tab.today': 'Сегодня',
+  'shell.tab.library': 'Библиотека',
+  'shell.tab.levels': 'Уровни',
+  'shell.tab.grammar': 'Грамматика',
+  'shell.tab.read': 'Чтение',
+
+  'shell.offline': 'Офлайн — учиться можно, автозаполнение из словаря на паузе',
+  'shell.levelsUpdated': 'Уровни обновлены до новых списков слов. Твой прогресс сохранён.',
+
+  'shell.actions': 'Действия',
+  'shell.sheet': 'Панель',
+  'shell.loading': 'Загрузка',
+  'shell.pronounce': 'Произнести',
+  'shell.pronounceSlowly': 'Произнести медленно',
+  'shell.progress': 'Готово {done} из {total}',
 };

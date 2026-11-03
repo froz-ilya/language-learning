@@ -25,7 +25,7 @@ export const verbSecond: GrammarTopic = {
       de: 'Nach diesen Wörtern kommt ein ganz normaler Satz, als wären sie gar nicht da: „Ich bin müde. Ich gehe ins Bett.“ → „Ich bin müde und ich gehe ins Bett.“',
     },
     {
-      ru: 'Само соединительное слово места не занимает. Первое место — у подлежащего, второе — у глагола: denn ich bin krank.',
+      ru: 'Само соединительное слово не считается. Первое место — у подлежащего, второе — у глагола: denn ich bin krank.',
       en: 'The joining word itself takes no place in the count. The subject is first, the verb second: denn ich bin krank.',
       de: 'Das Verbindungswort selbst zählt nicht mit. Das Subjekt steht auf Platz 1, das Verb auf Platz 2: denn ich bin krank.',
     },
@@ -35,7 +35,7 @@ export const verbSecond: GrammarTopic = {
       de: 'Auch etwas anderes kann auf Platz 1 stehen, zum Beispiel eine Zeitangabe. Dann kommt das Subjekt nach dem Verb, aber das Verb bleibt auf Platz 2: denn morgen muss ich arbeiten.',
     },
     {
-      ru: 'Запятая: если aber, denn или sondern начинают вторую часть предложения, перед ними всегда ставится запятая. Перед und и oder между двумя предложениями её можно не ставить.',
+      ru: 'Запятая: если aber, denn или sondern начинают вторую часть, перед ними всегда стоит запятая. Перед und и oder между двумя предложениями её можно не ставить.',
       en: 'Commas: when aber, denn or sondern start the second part, a comma always goes in front. Before und and oder between two sentences you can leave it out.',
       de: 'Komma: Wenn aber, denn oder sondern den zweiten Teil beginnen, steht davor immer ein Komma. Vor und und oder kannst du es zwischen zwei Sätzen weglassen.',
     },
@@ -53,7 +53,7 @@ export const verbSecond: GrammarTopic = {
       start: {
         use: 'rare',
         rule: {
-          ru: 'Нормально в разговоре и в неформальных текстах. В официальном тексте соедини предложения в одно. Порядок слов не меняется.',
+          ru: 'Обычно в разговоре и в неформальных текстах. В официальном тексте лучше соедини оба предложения в одно. Порядок слов не меняется.',
           en: 'Common in speech and informal writing. In a formal text, join the two sentences. The word order stays the same.',
           de: 'Üblich beim Sprechen und in lockeren Texten. In einem offiziellen Text verbindest du lieber beide Sätze. Die Wortstellung bleibt gleich.',
         },
@@ -87,7 +87,7 @@ export const verbSecond: GrammarTopic = {
       start: {
         use: 'yes',
         rule: {
-          ru: 'Может начинать предложение, порядок слов не меняется. Часто стоит и после глагола.',
+          ru: 'Может начинать предложение, порядок слов при этом не меняется. Часто стоит и после глагола.',
           en: 'It can start a sentence, and the word order stays the same. It often goes after the verb too.',
           de: 'Es kann einen Satz beginnen, die Wortstellung bleibt gleich. Oft steht es auch nach dem Verb.',
         },
@@ -116,7 +116,7 @@ export const verbSecond: GrammarTopic = {
       start: {
         use: 'rare',
         rule: {
-          ru: 'Нормально в разговоре, когда предлагаешь другой вариант. В официальном тексте соедини предложения в одно. Порядок слов не меняется.',
+          ru: 'Обычно в разговоре, когда предлагаешь другой вариант. В официальном тексте лучше соедини оба предложения в одно. Порядок слов не меняется.',
           en: 'Common in speech, to offer another option. In a formal text, join the two sentences. The word order stays the same.',
           de: 'Üblich beim Sprechen, wenn du etwas anderes vorschlägst. In einem offiziellen Text verbindest du lieber beide Sätze. Die Wortstellung bleibt gleich.',
         },
@@ -150,7 +150,7 @@ export const verbSecond: GrammarTopic = {
       start: {
         use: 'rare',
         rule: {
-          ru: 'Встречается в газетах и книгах, после точки. Сам ставь запятую перед denn, а на Warum? отвечай Weil …',
+          ru: 'Встречается в газетах и книгах, после точки. В своих текстах ставь запятую перед denn, а на Warum? отвечай Weil …',
           en: 'You\'ll see it in newspapers and books, after a full stop. In your own German put a comma before denn, and answer Warum? with Weil …',
           de: 'Du siehst es in Zeitungen und Büchern, nach einem Punkt. Setz selbst lieber ein Komma vor denn, und auf Warum? antwortest du mit Weil …',
         },

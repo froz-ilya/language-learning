@@ -3,11 +3,11 @@ import type { LevelCode } from './levels/types';
 import type { UiLang, UiLangSetting } from './types';
 
 /**
- * Interface language. Text lives in src/lib/i18n/messages/<area>.ts, English and German side by
- * side; `t('settings.title')` picks the current language and re-renders when it changes.
+ * Interface language. Text lives in src/lib/i18n/messages/<area>.ts, English, German and Russian
+ * side by side; `t('settings.title')` picks the current language and re-renders when it changes.
  * The language the words are translated into is a separate setting (settings.lang).
  */
-const LOCALES: Record<UiLang, string> = { en: 'en-GB', de: 'de-DE' };
+const LOCALES: Record<UiLang, string> = { en: 'en-GB', de: 'de-DE', ru: 'ru-RU' };
 
 /** The current language; `lang={i18n.lang}` for interface text inside a `lang="de"` subtree. */
 export const i18n = $state({ lang: 'en' as UiLang });
@@ -16,10 +16,11 @@ export function setUiLang(lang: UiLang): void {
   i18n.lang = lang;
 }
 
-/** 'auto' follows the phone's language (German on a German phone, else English). */
+/** 'auto' follows the phone's language (German or Russian on such a phone, else English). */
 export function resolveUiLang(choice: UiLangSetting | undefined, deviceLang: string | undefined): UiLang {
-  if (choice === 'en' || choice === 'de') return choice;
-  return deviceLang?.toLowerCase().startsWith('de') ? 'de' : 'en';
+  if (choice === 'en' || choice === 'de' || choice === 'ru') return choice;
+  const device = deviceLang?.toLowerCase() ?? '';
+  return device.startsWith('de') ? 'de' : device.startsWith('ru') ? 'ru' : 'en';
 }
 
 /** BCP 47 locale for dates, times and numbers. */
@@ -63,7 +64,10 @@ export function t<K extends MsgKey>(key: K, ...[params]: ParamsOf<Messages[K]>):
 
 const pluralRules = new Map<UiLang, Intl.PluralRules>();
 
-/** `tn('common.words', 3)` → "3 words". `{n}` is filled in; other placeholders go in `params`. */
+/**
+ * `tn('common.words', 3)` → "3 words". `{n}` is filled in; other placeholders go in `params`.
+ * Russian also has `.few` and `.many` forms; a missing form falls back to `.other`.
+ */
 export function tn<B extends PluralKey>(key: B, n: number, ...[params]: PluralArgs<B>): string {
   const lang = i18n.lang;
   let rules = pluralRules.get(lang);

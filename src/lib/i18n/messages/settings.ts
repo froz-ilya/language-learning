@@ -1,4 +1,4 @@
-import type { Translation } from './translation';
+import type { RuTranslation, Translation } from './translation';
 
 /** Settings screen, backup, voices, online sources. */
 export const en = {
@@ -267,4 +267,146 @@ export const de: Translation<typeof en> = {
   'settings.credits.estimates': 'Niveau-Schätzungen B2–C2',
   'settings.credits.frequency': 'Worthäufigkeit',
   'settings.credits.fallback': 'Übersetzungen (Ausweichquelle)',
+};
+
+export const ru: RuTranslation<typeof en> = {
+  'settings.title': 'Настройки',
+  'settings.auto': 'Авто',
+
+  'settings.appearance.title': 'Оформление',
+  'settings.appearance.theme': 'Тема',
+  'settings.appearance.light': 'Светлая',
+  'settings.appearance.dark': 'Тёмная',
+  'settings.appearance.hint': '«Авто» следует светлой или тёмной теме телефона.',
+
+  'settings.language.title': 'Язык',
+  'settings.language.hint': '«Авто» следует языку телефона.',
+
+  'settings.learning.title': 'Обучение',
+  'settings.learning.newPerSession': 'Новых слов за занятие',
+  'settings.learning.newPerDay': 'Новых слов в день',
+  'settings.learning.noLimit': 'Без ограничений',
+  'settings.learning.hint': 'Сколько ещё не виденных слов занятие добавляет к повторению и сколько новых слов начинается за день. Меньше — спокойнее, больше — быстрее, но каждое новое слово приносит повторения в следующие дни.',
+
+  'settings.translations.title': 'Переводы',
+  'settings.translations.hint': 'Язык новых переводов и поиска в словаре.',
+
+  'settings.voice.title': 'Произношение',
+  'settings.voice.unsupported': 'Этот браузер не поддерживает озвучку.',
+  'settings.voice.voice': 'Голос',
+  'settings.voice.default': 'По умолчанию',
+  'settings.voice.rate': 'Скорость речи',
+  'settings.voice.autoplay': 'Озвучивать автоматически',
+  'settings.voice.test': 'Проверить голос',
+  'settings.voice.premium': 'Премиум',
+  'settings.voice.enhanced': 'Улучшенный',
+  'settings.voice.androidTip': 'Установи немецкий голос: Настройки Android → Синтез речи → Google → Установить голосовые данные → Deutsch',
+  'settings.voice.iosTip': 'Голоса получше: Настройки iOS → Универсальный доступ → Устный контент → Голоса → Немецкий.',
+  'settings.voice.iosNote':
+    'iOS открывает веб-приложениям только часть голосов. Когда загрузишь немецкий голос (Настройки → Универсальный доступ → Устный контент → Голоса), полностью закрой это приложение и открой снова. Если голоса здесь всё ещё нет, iOS не даёт веб-приложениям его использовать; голоса Siri не работают никогда.',
+
+  'settings.checking.title': 'Проверка ответов',
+  'settings.checking.lenient': 'Мягкая',
+  'settings.checking.strict': 'Строгая',
+  'settings.checking.lenientHint': 'Мелкие опечатки засчитываются.',
+  'settings.checking.strictHint': 'Ответ должен быть написан точно.',
+  'settings.checking.requireArticle': 'Требовать артикль у существительных',
+  'settings.checking.vibration': 'Вибрация при ответе',
+
+  'settings.app.title': 'Приложение',
+  'settings.app.install': 'Установить приложение',
+  'settings.app.worksOffline': 'Работает офлайн',
+  'settings.app.iosHint': 'Установка: Поделиться → На экран «Домой»',
+  'settings.app.installing': 'Устанавливаем Deutsch…',
+
+  'settings.direction.title': 'Направление по умолчанию',
+  'settings.direction.fromGerman': 'Немецкий →',
+  'settings.direction.toGerman': '→ Немецкий',
+  'settings.direction.mixed': 'Вперемешку',
+
+  'settings.backup.title': 'Резервная копия',
+  'settings.backup.now': 'Создать копию',
+  'settings.backup.last': 'Последняя копия: {when}',
+  'settings.backup.never': 'никогда',
+  'settings.backup.today': 'сегодня',
+  'settings.backup.yesterday': 'вчера',
+  'settings.backup.daysAgo.one': '{n} день назад',
+  'settings.backup.daysAgo.few': '{n} дня назад',
+  'settings.backup.daysAgo.many': '{n} дней назад',
+  'settings.backup.daysAgo.other': '{n} дня назад',
+  'settings.backup.saved': 'Копия сохранена',
+  'settings.backup.failed': 'Не удалось создать копию: {error}',
+  'settings.backup.failedRetry': 'Не удалось создать копию. Попробуй ещё раз.',
+  'settings.backup.reminder': 'Напоминание о копии',
+  'settings.backup.off': 'Выкл.',
+  'settings.backup.every': 'Каждые {n} дн.',
+  'settings.backup.hint': 'Сохрани файл копии в iCloud Drive или в «Файлы». Приложение напомнит, когда последняя копия устареет.',
+
+  'settings.backup.reminderTitle': 'Пора сделать резервную копию',
+  'settings.backup.reminderToday': 'Последняя копия была сегодня.',
+  'settings.backup.reminderYesterday': 'Последняя копия была вчера.',
+  'settings.backup.reminderDaysAgo.one': 'Последняя копия была {n} день назад.',
+  'settings.backup.reminderDaysAgo.few': 'Последняя копия была {n} дня назад.',
+  'settings.backup.reminderDaysAgo.many': 'Последняя копия была {n} дней назад.',
+  'settings.backup.reminderDaysAgo.other': 'Последняя копия была {n} дня назад.',
+  'settings.backup.reminderFirst': 'Резервной копии пока нет — сохрани свои слова в iCloud Drive или в «Файлы».',
+
+  'settings.restore.action': 'Восстановить из копии',
+  'settings.restore.file': 'Восстановить {file}:',
+  'settings.restore.merge': 'Объединить с текущими данными',
+  'settings.restore.replace': 'Заменить всё',
+  'settings.restore.confirmTitle': 'Заменить всё?',
+  'settings.restore.confirmMessage': 'Все текущие папки, наборы, слова и прогресс будут заменены данными из копии.',
+  'settings.restore.unreadable': 'Не удалось прочитать файл: {error}',
+  'settings.restore.restored.one': 'Восстановлено {n} слово.',
+  'settings.restore.restored.few': 'Восстановлено {n} слова.',
+  'settings.restore.restored.many': 'Восстановлено {n} слов.',
+  'settings.restore.restored.other': 'Восстановлено {n} слова.',
+  'settings.restore.merged.one': 'Добавлено {n} слово.',
+  'settings.restore.merged.few': 'Добавлено {n} слова.',
+  'settings.restore.merged.many': 'Добавлено {n} слов.',
+  'settings.restore.merged.other': 'Добавлено {n} слова.',
+  'settings.restore.done': 'Копия восстановлена',
+  'settings.restore.failed': 'Не удалось восстановить: {error}',
+  'settings.restore.notBackup': 'Это не файл резервной копии этого приложения.',
+
+  'settings.sources.title': 'Источники',
+  'settings.sources.working': 'Работает',
+  'settings.sources.paused': 'На паузе',
+  'settings.sources.pausedUntil': 'На паузе до {time}',
+  'settings.sources.retryAll': 'Повторить все',
+  'settings.sources.retrying': 'Все источники будут опрошены снова',
+  'settings.sources.none': 'Онлайн-источники пока не использовались.',
+  'settings.sources.hint':
+    'Источники для словаря, переводов и чтения. Если один не отвечает или перегружен, приложение само берёт следующий, а сбойный ставит на паузу.',
+  'settings.sources.local': 'Офлайн-словарь',
+  'settings.sources.redirected': '{source} перенаправил запрос',
+  'settings.sources.error': '{source}: ошибка {status}',
+  'settings.sources.timeout': '{source}: нет ответа за {ms} мс',
+
+  'settings.storage.title': 'Хранилище',
+  'settings.storage.device': 'Хранится на этом устройстве.',
+  'settings.storage.usage': 'Хранится на этом устройстве · занято {mb} МБ.',
+  'settings.storage.protected': 'Защищено от автоматической очистки.',
+  'settings.storage.notProtected': 'Не защищено — iOS может удалить данные, если место закончится. Иногда сохраняй резервную копию.',
+  'settings.storage.unknown': 'Иногда сохраняй резервную копию, чтобы не потерять слова.',
+
+  'settings.about.title': 'О приложении',
+  'settings.about.beta': 'Бета',
+  'settings.about.betaNote': 'Deutsch пока в бете, так что что-то может ещё не работать.',
+  'settings.about.deviceOnly': 'Твои слова хранятся только на этом устройстве: иногда сохраняй резервную копию.',
+  'settings.about.sources':
+    'Уровни A1–B1: списки слов Goethe-Zertifikat через DWDS · Уровни B2–C2: оценка по DAFlex (CC BY-NC-SA) · Частотность слов: FrequencyWords (OpenSubtitles, CC BY-SA) · Словарь: Wiktionary (CC BY-SA) · Переводы: Google Translate',
+  'settings.about.levels':
+    'A1–B1 — официальные списки слов Goethe-Zertifikat. Выше B1 таких списков нет, поэтому B2–C2 — оценка по учебным материалам и частотности слов.',
+
+  'settings.credits.publicDomain': 'Общественное достояние',
+  'settings.credits.encyclopedia': 'Чтение: детская энциклопедия',
+  'settings.credits.news': 'Чтение: новости',
+  'settings.credits.articles': 'Чтение: статьи',
+  'settings.credits.stories': 'Чтение: классические рассказы',
+  'settings.credits.wordLists': 'Списки слов A1–B1',
+  'settings.credits.estimates': 'Оценка уровней B2–C2',
+  'settings.credits.frequency': 'Частотность слов',
+  'settings.credits.fallback': 'Переводы (запасной источник)',
 };

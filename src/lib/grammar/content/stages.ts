@@ -33,7 +33,7 @@ export const GRAMMAR_STAGES: GrammarStage[] = [
     words: ['weil', 'obwohl'],
     partners: ['denn', 'aber'],
     contrast: {
-      ru: 'weil называет причину. denn значит то же, но глагол остаётся на втором месте. obwohl — «хотя»: Es regnet, aber ich komme = Ich komme, obwohl es regnet.',
+      ru: 'weil называет причину; denn значит то же, но глагол остаётся на втором месте. obwohl — «хотя»: Es regnet, aber ich komme = Ich komme, obwohl es regnet.',
       en: 'weil gives the reason; denn means the same but keeps the verb second. obwohl means "although": Es regnet, aber ich komme = Ich komme, obwohl es regnet.',
       de: 'weil nennt den Grund; denn bedeutet das Gleiche, aber das Verb bleibt auf Platz 2. Mit obwohl: Es regnet, aber ich komme = Ich komme, obwohl es regnet.',
     },
@@ -44,7 +44,7 @@ export const GRAMMAR_STAGES: GrammarStage[] = [
     words: ['dass', 'ob'],
     partners: ['weil'],
     contrast: {
-      ru: 'dass — это «что», ob — это «ли»: вопрос, на который отвечают «да» или «нет».',
+      ru: 'dass что-то утверждает («что»), ob передаёт вопрос «да или нет» («ли»).',
       en: 'dass states something; ob passes on a yes/no question.',
       de: 'dass sagt etwas aus, ob gibt eine Ja-Nein-Frage weiter.',
     },

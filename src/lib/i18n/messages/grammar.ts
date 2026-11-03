@@ -1,4 +1,4 @@
-import type { Translation } from './translation';
+import type { RuTranslation, Translation } from './translation';
 
 /** Grammar: the interface around the lessons. Rule text itself is data in lib/grammar/content. */
 export const en = {
@@ -53,4 +53,31 @@ export const de: Translation<typeof en> = {
   'grammar.pickPrompt': 'Welches Wort passt?',
   'grammar.blank': 'Lücke',
   'grammar.empty': 'Hier gibt es noch nichts zu üben',
+};
+
+export const ru: RuTranslation<typeof en> = {
+  'grammar.title': 'Грамматика',
+  'grammar.cheat': 'Шпаргалка',
+  'grammar.cheatSub': 'Где стоит глагол?',
+  'grammar.cheatIndex': 'Перейти к слову',
+  'grammar.continue': 'Продолжить',
+  'grammar.stage': 'Шаг {n}',
+  'grammar.practiseAll': 'Тренировать всё',
+  'grammar.fullRule': 'Правило целиком',
+  'grammar.allRules': 'Правила для всех предложений',
+  'grammar.review': 'Повторить',
+  'grammar.allDone': 'Всё повторено',
+  'grammar.anyway': 'Всё равно тренировать',
+  'grammar.firstTitle': 'Порядок слов за 8 маленьких шагов',
+  'grammar.due': '{n} к повторению',
+  'grammar.dueDot': 'Пора повторить грамматику',
+  'grammar.examples': 'Примеры',
+  'grammar.words': 'Слова',
+  'grammar.practise': 'Тренировать',
+  'grammar.notQuite': 'Не совсем',
+  'grammar.alsoPossible': 'Можно и так:',
+  'grammar.buildPrompt': 'Расставь слова по порядку',
+  'grammar.pickPrompt': 'Какое слово подходит?',
+  'grammar.blank': 'пропуск',
+  'grammar.empty': 'Здесь пока нечего тренировать',
 };

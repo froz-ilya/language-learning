@@ -186,7 +186,7 @@ export const verbEnd: GrammarTopic = {
       word: 'ob',
       meaning: { ru: 'ли', en: 'whether, if' },
       note: {
-        ru: 'В русском «ли» стоит после глагола, а в немецком ob открывает предложение: Ich weiß nicht, ob er kommt. («Не знаю, придёт ли он».)',
+        ru: 'ob вводит вопрос «да или нет» внутри предложения. Русское «ли» здесь — это ob, а не wenn («если»): Ich weiß nicht, ob er kommt. («Не знаю, придёт ли он».)',
         en: 'Use ob for a yes/no question inside a sentence. English "if" here is ob, not wenn: Ich weiß nicht, ob er kommt.',
         de: 'ob steht bei einer indirekten Ja-Nein-Frage: Ich weiß nicht, ob er kommt.',
       },
@@ -283,7 +283,7 @@ export const verbEnd: GrammarTopic = {
       word: 'nachdem',
       meaning: { ru: 'после того как', en: 'after' },
       note: {
-        ru: 'Действие с nachdem уже закончилось, поэтому время здесь на шаг дальше в прошлом: в главном предложении настоящее, после nachdem — Perfekt: Nachdem ich gegessen habe, gehe ich spazieren. Если главное предложение в прошлом, после nachdem нужен Plusquamperfekt: Nachdem ich gegessen hatte, ging ich spazieren.',
+        ru: 'Действие с nachdem уже закончилось, поэтому его время на шаг дальше в прошлом: в главном предложении настоящее, после nachdem — Perfekt: Nachdem ich gegessen habe, gehe ich spazieren. Если главное предложение в прошлом, после nachdem нужен Plusquamperfekt: Nachdem ich gegessen hatte, ging ich spazieren.',
         en: 'The nachdem action is already finished, so it goes one step further back in time: present tense in the main clause, Perfekt after nachdem: Nachdem ich gegessen habe, gehe ich spazieren. If the main clause is in the past, nachdem takes the Plusquamperfekt: Nachdem ich gegessen hatte, ging ich spazieren.',
         de: 'Die Handlung mit nachdem ist schon abgeschlossen, darum steht sie eine Zeitstufe früher: im Hauptsatz Präsens, nach nachdem Perfekt: Nachdem ich gegessen habe, gehe ich spazieren. Steht der Hauptsatz in der Vergangenheit, kommt nach nachdem das Plusquamperfekt: Nachdem ich gegessen hatte, ging ich spazieren.',
       },

@@ -83,16 +83,17 @@ practice.ts and path.ts (pure), progress per exercise in `db.grammar` (included 
   words in each. A correct order marked wrong is the worst bug here. src/lib/grammar/content.test.ts
   checks the data.
 - Sentences are invented for this app. Rule text is `RuleText` in the content, not an i18n key, and
-  follows the interface language (`x[i18n.lang]`); its `ru` isn't shown, as the interface has no
-  Russian. Sentence translations and word meanings follow `settings.lang`, like word cards.
+  follows the interface language (`x[i18n.lang]`). Sentence translations and word meanings follow `settings.lang`, like word cards.
 
 ## Interface language
 
-The interface is in English and German (`settings.uiLang`: auto, en, de; auto follows the phone).
+The interface is in English, German and Russian (`settings.uiLang`: auto, en, de, ru; auto follows
+the phone).
 That's separate from `settings.lang`, the language words are translated into (ru, en).
 
 - Text the user can see never goes in code: it's a key in src/lib/i18n/messages/<area>.ts, with
-  English and German side by side. `npm run check` fails on a missing or unknown key, and
+  English, German and Russian side by side. Russian plurals also need `.few` and `.many`
+  (`RuTranslation`). `npm run check` fails on a missing or unknown key, and
   src/lib/i18n.test.ts on different placeholders. German words and example sentences being taught
   (`der/die/das`, `Präteritum`, topic names) aren't interface text.
 - `t('key', { name })` in .svelte and .ts; `tn('common.words', n)` for counts; `tParts` when a
@@ -113,6 +114,11 @@ That's separate from `settings.lang`, the language words are translated into (ru
   Bedeutung, Beispiel(satz), Artikel, Nomen, Verb, Adjektiv, Aussprache, Stimme, wiederholen,
   fällig, gelernt, schwere Wörter, Fehler, Sitzung, Backup, wiederherstellen, Quelle, Wörterbuch,
   Lesen, Text, offline. German strings run longer: check narrow rows and buttons at phone width.
+- Russian uses informal "ты", no gendered past tense about the user, and these terms: набор, папка,
+  библиотека, уровень, карточка, слово, перевод, значение, пример, артикль (der/die/das) vs.
+  статья (a text), существительное, глагол, прилагательное, произношение, голос, повторять,
+  к повторению, выучено, трудные слова, ошибки, занятие, резервная копия, восстановить, источник,
+  словарь, Чтение, текст, офлайн.
 
 ## Local environment quirks
 

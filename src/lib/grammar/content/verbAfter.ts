@@ -20,7 +20,7 @@ export const verbAfter: GrammarTopic = {
   },
   points: [
     {
-      ru: 'В отличие от und или aber, эти слова считаются полноценным местом в предложении. Глагол должен быть вторым, поэтому он идёт сразу за ними: Trotzdem gehe ich zur Arbeit.',
+      ru: 'В отличие от und или aber, эти слова занимают целое место в предложении. Глагол должен быть вторым, поэтому он идёт сразу за ними: Trotzdem gehe ich zur Arbeit.',
       en: 'Unlike und or aber, these words count as a full place in the sentence. The verb must be second, so it comes right after them: Trotzdem gehe ich zur Arbeit.',
       de: 'Anders als und oder aber zählen diese Wörter als voller Platz im Satz. Das Verb muss auf Platz 2 stehen, also kommt es direkt danach: Trotzdem gehe ich zur Arbeit.',
     },
@@ -50,7 +50,7 @@ export const verbAfter: GrammarTopic = {
       word: 'trotzdem',
       meaning: { ru: 'всё равно, несмотря на это', en: 'anyway, nevertheless' },
       note: {
-        ru: 'Русское «несмотря на это» указывает на предыдущую мысль, и trotzdem тоже. Оно не открывает придаточное: вместо «trotzdem ich müde bin» нужно obwohl ich müde bin.',
+        ru: 'trotzdem указывает на то, что только что сказали, и не открывает придаточное. Вместо «trotzdem ich müde bin» скажи obwohl ich müde bin.',
         en: 'trotzdem points back to what was just said; it doesn\'t open a side clause. Instead of "trotzdem ich müde bin", say obwohl ich müde bin.',
         de: 'trotzdem bezieht sich auf das, was vorher gesagt wurde, und leitet keinen Nebensatz ein. Statt „trotzdem ich müde bin“ sagst du: obwohl ich müde bin.',
       },
@@ -223,7 +223,7 @@ export const verbAfter: GrammarTopic = {
       start: {
         use: 'yes',
         rule: {
-          ru: 'Добавляет что-то к сказанному. Занимает первое место: глагол идёт сразу за ним. Запятой после него нет, хотя после «кроме того» она нужна.',
+          ru: 'Добавляет что-то к сказанному. Занимает первое место: глагол идёт сразу за ним. Запятой после него нет, в отличие от русского «кроме того,».',
           en: 'It adds to what was said. It takes first place: the verb comes right after it. No comma after it, unlike English "besides,".',
           de: 'Es ergänzt das, was vorher gesagt wurde. Es steht auf Platz 1: Direkt danach kommt das Verb. Danach steht kein Komma.',
         },

@@ -25,4 +25,16 @@ const de: Record<MsgKey, string> = {
   ...grammar.de,
 };
 
-export const catalogs: Record<UiLang, Record<MsgKey, string>> = { en, de };
+/** Has the English keys plus `.few`/`.many` plural forms (see RuTranslation). */
+const ru: Record<MsgKey, string> = {
+  ...common.ru,
+  ...shell.ru,
+  ...settings.ru,
+  ...library.ru,
+  ...study.ru,
+  ...words.ru,
+  ...reading.ru,
+  ...grammar.ru,
+};
+
+export const catalogs: Record<UiLang, Record<MsgKey, string>> = { en, de, ru };

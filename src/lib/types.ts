@@ -1,7 +1,7 @@
 import type { Card as FsrsCard } from 'ts-fsrs';
 
 export type Lang = 'ru' | 'en';
-export type UiLang = 'en' | 'de';
+export type UiLang = 'en' | 'de' | 'ru';
 export type UiLangSetting = 'auto' | UiLang;
 export type Pos = 'noun' | 'verb' | 'adj' | 'other';
 export type Gender = 'm' | 'f' | 'n';

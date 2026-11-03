@@ -20,8 +20,38 @@ describe('catalogs', () => {
     }
   });
 
-  it('both languages use the same placeholders', () => {
-    for (const key of keys) expect(placeholders(catalogs.de[key]), key).toEqual(placeholders(catalogs.en[key]));
+  it('Russian has the English keys, plus .few and .many for every plural', () => {
+    const plurals = keys.filter((k) => k.endsWith('.other')).flatMap((k) => [k.replace(/other$/, 'few'), k.replace(/other$/, 'many')]);
+    expect(Object.keys(catalogs.ru).sort()).toEqual([...keys, ...plurals].sort());
+    for (const key of Object.keys(catalogs.ru) as (keyof typeof catalogs.ru)[]) expect(catalogs.ru[key].trim(), key).not.toBe('');
+  });
+
+  // tn() always fills {n}, so a plural form may leave it out ("A word…") or, since Russian uses
+  // `.one` for 21 too, put it in.
+  const withoutN = (s: string) => placeholders(s).filter((p) => p !== 'n');
+  const isPlural = (key: string) => /\.(one|few|many|other)$/.test(key);
+
+  it('every language uses the same placeholders', () => {
+    for (const key of keys) {
+      const same = isPlural(key) ? withoutN : placeholders;
+      expect(same(catalogs.de[key]), key).toEqual(same(catalogs.en[key]));
+      expect(same(catalogs.ru[key]), key).toEqual(same(catalogs.en[key]));
+    }
+    const ru = catalogs.ru as Record<string, string>;
+    for (const key of keys.filter((k) => k.endsWith('.other'))) {
+      for (const form of ['few', 'many']) {
+        const k = key.replace(/other$/, form);
+        expect(withoutN(ru[k]), k).toEqual(withoutN(catalogs.en[key]));
+      }
+    }
+  });
+
+  it('Russian puts the number in every plural form, as .one is also used for 21, 31…', () => {
+    const ru = catalogs.ru as Record<string, string>;
+    for (const key of Object.keys(ru).filter((k) => /\.(one|few|many)$/.test(k))) {
+      const other = catalogs.en[key.replace(/(one|few|many)$/, 'other') as keyof typeof catalogs.en];
+      if (other.includes('{n}')) expect(ru[key], key).toContain('{n}');
+    }
   });
 
   it('plural messages come in pairs', () => {
@@ -35,12 +65,14 @@ describe('resolveUiLang', () => {
   it('uses a chosen language whatever the phone says', () => {
     expect(resolveUiLang('de', 'en-US')).toBe('de');
     expect(resolveUiLang('en', 'de-DE')).toBe('en');
+    expect(resolveUiLang('ru', 'de-DE')).toBe('ru');
   });
 
-  it('auto follows a German phone and is English otherwise', () => {
+  it('auto follows a German or Russian phone and is English otherwise', () => {
     expect(resolveUiLang('auto', 'de-AT')).toBe('de');
     expect(resolveUiLang('auto', 'DE')).toBe('de');
-    expect(resolveUiLang('auto', 'ru-RU')).toBe('en');
+    expect(resolveUiLang('auto', 'ru-RU')).toBe('ru');
+    expect(resolveUiLang('auto', 'uk-UA')).toBe('en');
     expect(resolveUiLang('auto', undefined)).toBe('en');
   });
 
@@ -79,6 +111,16 @@ describe('tn', () => {
     expect(tn('common.words', 1)).toBe('1 Wort');
     expect(tn('common.words', 12345)).toBe('12.345 Wörter');
   });
+
+  it('uses all Russian plural forms', () => {
+    setUiLang('ru');
+    expect(tn('common.words', 1)).toBe('1 слово');
+    expect(tn('common.words', 3)).toBe('3 слова');
+    expect(tn('common.words', 5)).toBe('5 слов');
+    expect(tn('common.words', 11)).toBe('11 слов');
+    expect(tn('common.words', 21)).toBe('21 слово');
+    expect(tn('common.words', 0)).toBe('0 слов');
+  });
 });
 
 describe('tParts', () => {
@@ -112,6 +154,8 @@ describe('system names', () => {
     expect(systemName('A1 · Beginner')).toBe('A1 · Anfänger');
     expect(systemName('B2 words')).toBe('B2-Wörter');
     expect(systemName('Moved from levels')).toBe('Aus Niveaus verschoben');
+    setUiLang('ru');
+    expect(systemName('Reading')).toBe('Чтение');
   });
 
   it('leave names the user gave alone', () => {

@@ -1,4 +1,4 @@
-import type { Translation } from './translation';
+import type { RuTranslation, Translation } from './translation';
 
 /** Study sessions and their modes. */
 export const en = {
@@ -277,4 +277,149 @@ export const de: Translation<typeof en> = {
 
   'study.write.toGerman': 'Übersetze ins Deutsche',
   'study.write.translate': 'Übersetze',
+};
+
+export const ru: RuTranslation<typeof en> = {
+  'study.mode.flashcards.name': 'Карточки',
+  'study.mode.flashcards.desc': 'Переворачивай карточки и оценивай, насколько хорошо их знаешь',
+  'study.mode.write.name': 'Письмо',
+  'study.mode.write.desc': 'Напечатай ответ',
+  'study.mode.choice.name': 'Выбор ответа',
+  'study.mode.choice.desc': 'Выбери правильный ответ из четырёх',
+  'study.mode.match.name': 'Пары',
+  'study.mode.match.desc': 'Соедини слова с их переводами',
+  'study.mode.listen.name': 'На слух',
+  'study.mode.listen.desc': 'Послушай немецкое слово и напечатай его',
+  'study.mode.articles.name': 'Артикли',
+  'study.mode.articles.desc': 'der, die или das?',
+  'study.mode.verbs.name': 'Формы глаголов',
+  'study.mode.verbs.desc': 'Präteritum, Partizip II, haben/sein',
+  'study.mode.pronouns.name': 'Возвратные местоимения',
+  'study.mode.pronouns.desc': 'mich или mir? Вставь местоимение',
+
+  'study.smart.today': 'Сегодня',
+  'study.smart.due': 'К повторению',
+  'study.smart.new': 'Новые слова',
+  'study.smart.starred': 'Избранное',
+  'study.smart.mistakes': 'Ошибки',
+  'study.smart.hard': 'Трудные слова',
+  'study.smart.all': 'Все слова',
+  'study.sourceFallback': 'Занятие',
+
+  'study.reason.noNouns': 'Нет существительных с der/die/das',
+  'study.reason.noVerbs': 'Нет глаголов с Präteritum или Partizip II',
+  'study.reason.noReflexive': 'Нет возвратных глаголов с примером',
+  'study.reason.needsTwo': 'Нужно хотя бы 2 слова',
+  'study.reason.noTranslation': 'Нет слов с переводом',
+  'study.reason.nothing': 'Нечего учить',
+
+  'study.session.repeatTitle': '{mode} · ошибки',
+  'study.session.repeatMistakes': 'Повторить ошибки',
+
+  'study.empty.nothingDue': 'Нечего повторять',
+  'study.empty.doneToday': 'На сегодня всё. Повторить все слова?',
+  'study.empty.studyAll': 'Учить все',
+  'study.empty.noSuitable': 'Нет подходящих слов',
+  'study.empty.noWords': 'Слов пока нет',
+  'study.empty.unfit.flashcards': 'Ни одно из этих слов не подходит для карточек.',
+  'study.empty.unfit.write': 'Ни одно из этих слов не подходит для письма.',
+  'study.empty.unfit.choice': 'Ни одно из этих слов не подходит для выбора ответа.',
+  'study.empty.unfit.match': 'Ни одно из этих слов не подходит для пар (нужно хотя бы 2).',
+  'study.empty.unfit.listen': 'Ни одно из этих слов не подходит для занятия на слух.',
+  'study.empty.unfit.articles': 'Ни одно из этих слов не подходит для артиклей.',
+  'study.empty.unfit.verbs': 'Ни одно из этих слов не подходит для форм глаголов.',
+  'study.empty.unfit.pronouns': 'Ни одно из этих слов не подходит для возвратных местоимений.',
+
+  'study.learn.addFirst': 'Сначала добавь несколько слов, а потом возвращайся учить их.',
+  'study.learn.caughtUp': 'Всё повторено',
+  'study.learn.nothingDue': 'Сейчас нечего повторять. Загляни позже — или продолжай:',
+  'study.learn.limitReached': 'Дневной лимит в {n} новых слов исчерпан. Возвращайся завтра — или продолжай:',
+  'study.learn.anyway': 'Всё равно учить новые слова',
+  'study.learn.moreWays': 'Другие режимы',
+  'study.learn.keepGoing': 'Продолжить',
+
+  'study.setup.noWords': 'Здесь пока нет слов.',
+  'study.setup.smart': 'Умное занятие',
+  'study.setup.smartHint': 'Сначала слова к повторению, потом новые — режимы подбираются сами',
+  'study.setup.words': 'Слова',
+  'study.setup.dueNew': 'К повторению и новые · {n}',
+  'study.setup.all': 'Все · {n}',
+  'study.setup.direction': 'Направление',
+  'study.setup.mixed': 'Вперемешку',
+  'study.setup.modes': 'Режимы',
+  'study.setup.lastUsed': 'Недавний',
+  'study.setup.modeWords.one': '{n} слово',
+  'study.setup.modeWords.few': '{n} слова',
+  'study.setup.modeWords.many': '{n} слов',
+  'study.setup.modeWords.other': '{n} слова',
+
+  'study.check': 'Проверить',
+  'study.correct': 'Верно!',
+  'study.notQuite': 'Не совсем',
+  'study.plural': 'Мн. ч.: {plural}',
+
+  'study.examples.showTranslation': 'Показать перевод',
+  'study.examples.more': 'Ещё примеры ({n})',
+
+  'study.feedback.forgotSich': 'Не забудь «sich»: {answer}',
+  'study.feedback.typo': 'Засчитано — проверь написание: {answer}',
+  'study.feedback.missingArticle': 'Нет артикля',
+  'study.feedback.wrongArticle': 'Не тот артикль',
+  'study.feedback.theAnswerIs': 'Правильный ответ:',
+  'study.feedback.dictionaryForm': 'Словарная форма: {form}',
+  'study.feedback.youWrote': 'Твой ответ: {given}',
+
+  'study.flash.again': 'Снова',
+  'study.flash.hard': 'Трудно',
+  'study.flash.good': 'Хорошо',
+  'study.flash.easy': 'Легко',
+  'study.flash.showAnswer': 'Показать ответ',
+  'study.flash.showFront': 'Показать лицевую сторону',
+  'study.flash.hint': 'Нажми, чтобы перевернуть · смахни, чтобы оценить',
+
+  'study.swipe.knewIt': 'Знаю',
+  'study.swipe.card': 'Карточка',
+
+  'study.choice.german': 'Выбери немецкое слово',
+  'study.choice.translation': 'Выбери перевод',
+
+  'study.listen.prompt': 'Напечатай, что слышишь',
+  'study.listen.again': 'Ещё раз',
+  'study.listen.slow': 'Медленно',
+
+  'study.match.round': 'Раунд {n} из {total}',
+
+  'study.pronoun.prompt': 'Вставь местоимение',
+  'study.pronoun.blank': 'пропуск',
+  'study.pronoun.itIs': 'Правильно: «{pronoun}»',
+  'study.pronoun.noExample': 'У этого слова нет примера с возвратным местоимением.',
+
+  'study.results.perfect': 'Идеально!',
+  'study.results.great': 'Отлично!',
+  'study.results.nice': 'Хорошая работа',
+  'study.results.keepPractising': 'Продолжай тренироваться',
+  'study.results.firstTry': 'верно с первой попытки',
+  'study.results.hardTitle.one': '{n} слово теперь в трудных',
+  'study.results.hardTitle.few': '{n} слова теперь в трудных',
+  'study.results.hardTitle.many': '{n} слов теперь в трудных',
+  'study.results.hardTitle.other': '{n} слова теперь в трудных',
+  'study.results.hardHint.one': '{terms} — придумай подсказку, чтобы запомнить',
+  'study.results.hardHint.few': '{terms} — придумай к ним подсказки, чтобы запомнить',
+  'study.results.hardHint.many': '{terms} — придумай к ним подсказки, чтобы запомнить',
+  'study.results.hardHint.other': '{terms} — придумай к ним подсказки, чтобы запомнить',
+  'study.results.toReview': 'Повторить ({n})',
+  'study.results.noMistakes': 'Без ошибок — молодец!',
+
+  'study.intro.tag': 'Новое слово',
+  'study.intro.gotIt': 'Понятно',
+
+  'study.typed.german': 'Auf Deutsch…',
+  'study.typed.russian': 'По-русски…',
+  'study.typed.english': 'По-английски…',
+  'study.typed.dontKnow': 'Не знаю',
+
+  'study.verbs.perfektWith': 'Perfekt с',
+
+  'study.write.toGerman': 'Переведи на немецкий',
+  'study.write.translate': 'Переведи',
 };

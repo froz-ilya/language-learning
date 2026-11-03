@@ -12,7 +12,7 @@ export type Tr = Record<Lang, string>;
 
 /**
  * Explanatory text, shown in the interface language (`x[i18n.lang]`). Teaching content, so it is
- * data and not an i18n key. `ru` isn't shown: the interface has no Russian yet.
+ * data and not an i18n key.
  */
 export type RuleText = Record<Lang | 'de', string>;
 

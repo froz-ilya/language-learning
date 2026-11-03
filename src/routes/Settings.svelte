@@ -190,7 +190,7 @@
 
   // ---------- About ----------
 
-  // The generated text is English; German has its own copy in the catalog.
+  // The generated text is English; German and Russian have their own copy in the catalog.
   let generatedSources = $state('');
   levelIndex().then((i) => {
     if (i?.sources) generatedSources = i.sources;
@@ -216,11 +216,12 @@
     { id: 'light', label: t('settings.appearance.light') },
     { id: 'dark', label: t('settings.appearance.dark') },
   ]);
-  // English and Deutsch are written in their own language whatever the interface language is.
+  // Each language is written in its own language whatever the interface language is.
   const UI_LANGS = $derived<{ id: UiLangSetting; label: string }[]>([
     { id: 'auto', label: t('settings.auto') },
     { id: 'en', label: 'English' },
     { id: 'de', label: 'Deutsch' },
+    { id: 'ru', label: 'Русский' },
   ]);
   const NEW_PER_SESSION = [5, 10, 15, 20];
   const NEW_PER_DAY = [10, 20, 30, 50, 0];

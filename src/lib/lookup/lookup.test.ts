@@ -98,6 +98,8 @@ interface MockOptions {
   redirects?: Record<string, string>;
   /** Batched page requests send content for at most this many pages (the API's size limit). */
   maxContents?: number;
+  /** Google's other endpoint (clients5): reply for the sentences; default: unreachable. */
+  googleExt?: (qs: string[], tl: string) => unknown;
   /** MyMemory reply for (q, langpair); default: echoes q back (= "doesn't know"). */
   mymemory?: ((q: string, langpair: string) => string) | 'fail';
   /** en.wiktionary REST definition responses by title (others: 404). */
@@ -109,7 +111,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 function mockFetch(opts: MockOptions = {}) {
   const pages = opts.pages ?? ALL_PAGES;
-  const calls = { wiki: [] as URLSearchParams[], google: [] as string[], mymemory: [] as string[], en: [] as string[] };
+  const calls = { wiki: [] as URLSearchParams[], google: [] as string[], googleExt: [] as string[][], mymemory: [] as string[], en: [] as string[] };
   const norm = (t: string) => t.normalize('NFC').replace(/_/g, ' ');
   const target = (t: string) => opts.redirects?.[norm(t)] ?? norm(t);
   const fetch = vi.fn(async (input: string, init?: RequestInit) => {
@@ -121,6 +123,12 @@ function mockFetch(opts: MockOptions = {}) {
       if (opts.google === 'fail') throw new TypeError('Failed to fetch');
       if (opts.google === 429) return json({}, 429);
       return json((opts.google ?? echoGoogle)(q, url.searchParams.get('tl')!));
+    }
+    if (url.host === 'clients5.google.com') {
+      const qs = new URLSearchParams(String(init?.body ?? '')).getAll('q');
+      calls.googleExt.push(qs);
+      if (!opts.googleExt) throw new TypeError('Failed to fetch');
+      return json(opts.googleExt(qs, url.searchParams.get('tl')!));
     }
     if (url.host === 'api.mymemory.translated.net') {
       const q = url.searchParams.get('q')!;
@@ -444,10 +452,53 @@ describe('lookupWord', () => {
     expect(mem.cache.size).toBe(0);
   });
 
-  it('leaves example translations empty when the line count does not match', async () => {
+  it('leaves example translations empty when the line count does not match, and does not cache it', async () => {
     mockFetch({ google: (q) => [[['only one line', q]], null, 'de'] });
     const r = (await lookupWord('Haus', 'ru'))!;
     expect(r.examples.every((e) => !e.tr)).toBe(true);
+    expect(mem.cache.size).toBe(0);
+  });
+
+  it('asks Google’s other endpoint, a translation per sentence, when the lines do not match', async () => {
+    const { calls } = mockFetch({
+      google: (q, tl) => (q.includes('\n') ? [[['only one line', q]], null, 'de'] : echoGoogle(q, tl)),
+      googleExt: (qs) => qs.map((q) => `EXT(${q})`),
+    });
+    const r = (await lookupWord('Haus', 'ru'))!;
+    expect(r.examples.length).toBeGreaterThan(1);
+    expect(r.examples.every((e) => e.tr === `EXT(${e.de})`)).toBe(true);
+    expect(calls.googleExt).toHaveLength(1);
+    expect(mem.cache.size).toBe(1);
+  });
+
+  it('sends MyMemory the sentences in queries of at most 500 bytes', async () => {
+    // Sentences of up to 140 characters are kept; „ and “ take three bytes, so two are over 500.
+    const long = (n: number) => `Der ''Tisch'' ${n} ist ${'„ö“ '.repeat(28)}.`;
+    const page = ALL_PAGES.Tisch.replace(
+      "Der ''Tisch'' ist für die vielen Personen heute zu klein.",
+      [1, 2, 3, 4, 5].map(long).join('\n:[1] '),
+    );
+    const { calls } = mockFetch({
+      pages: { ...ALL_PAGES, Tisch: page },
+      google: 'fail',
+      mymemory: (q) => q.split('\n').map((l) => `MM(${l})`).join('\n'),
+    });
+    const r = (await lookupWord('Tisch', 'ru'))!;
+    expect(r.examples.length).toBeGreaterThan(1);
+    expect(r.examples.every((e) => e.tr === `MM(${e.de})`)).toBe(true);
+    const sentences = calls.mymemory.filter((q) => q.includes(' '));
+    expect(sentences.length).toBeGreaterThan(1);
+    expect(sentences.every((q) => new TextEncoder().encode(q).length <= 500)).toBe(true);
+  });
+
+  it('looks a word up again when its cached row has an untranslated example', async () => {
+    const { calls } = mockFetch();
+    const first = (await lookupWord('Tisch', 'ru'))!;
+    const [key, row] = [...mem.cache.entries()][0] as [string, { result: LookupResult }];
+    mem.cache.set(key, { ...row, result: { ...row.result, examples: row.result.examples.map((e) => ({ de: e.de })) } });
+    const n = calls.google.length;
+    expect(await lookupWord('Tisch', 'ru')).toEqual(first);
+    expect(calls.google.length).toBeGreaterThan(n);
   });
 });
 
@@ -749,6 +800,15 @@ const RESULT: LookupResult = {
 };
 
 describe('mergeIntoCard', () => {
+  it('gives the card’s untranslated sentences the lookup’s translation of the same sentence', () => {
+    const c = card({ examples: [{ de: 'Das Haus ist groß.' }, { de: 'Mein Satz.', tr: '' }, { de: 'Das  Haus ist groß.', tr: 'моё' }] });
+    expect(mergeIntoCard(c, RESULT).examples).toEqual([
+      { de: 'Das Haus ist groß.', tr: 'Дом большой.' },
+      { de: 'Mein Satz.', tr: '' },
+      { de: 'Das  Haus ist groß.', tr: 'моё' },
+    ]);
+  });
+
   it('fills empty fields and clears needsFill', () => {
     const c = card();
     const m = mergeIntoCard(c, RESULT);

@@ -21,6 +21,7 @@ export type ProviderId =
   | 'de.wiktionary'
   | 'en.wiktionary'
   | 'google'
+  | 'google.ext'
   | 'mymemory'
   | 'miniklexikon'
   | 'klexikon'
@@ -35,6 +36,7 @@ export const PROVIDER_LABELS: Record<ProviderId, string> = {
   'de.wiktionary': 'Wiktionary (DE)',
   'en.wiktionary': 'Wiktionary (EN)',
   google: 'Google Translate',
+  'google.ext': 'Google Translate (2)',
   mymemory: 'MyMemory',
   miniklexikon: 'MiniKlexikon',
   klexikon: 'Klexikon',

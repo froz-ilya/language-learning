@@ -24,7 +24,8 @@ import { PageLoader } from './pageLoader';
 import { enWiktionaryGlosses, enWiktionaryPrefix } from '../sources/providers/enwiktionary';
 import { t } from '../i18n.svelte';
 import { googleText, type TextQuery } from '../sources/providers/google';
-import { myMemoryText } from '../sources/providers/mymemory';
+import { MYMEMORY_MAX_BYTES, myMemoryText } from '../sources/providers/mymemory';
+import { googleSentences, type SentencesQuery } from '../sources/providers/googlesentences';
 
 export interface Suggestion {
   /** Word as spelled in the dictionary (correct capitalisation), e.g. "Hausschlüssel". */
@@ -146,6 +147,55 @@ const googlePlain: Provider<TextQuery, string> = {
   run: async (q, signal) => (await googleTranslate(q.text, q.from, q.to, signal)).text,
 };
 const TEXT_PROVIDERS: Provider<TextQuery, string>[] = [googlePlain, myMemoryText];
+
+/** A sentence as one line: a line break inside one would shift every translation after it. */
+const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim();
+const splitLines = (text: string) => text.split('\n').map((l) => l.trim());
+
+/** Google ("gtx") with the sentences as lines; no answer when they don't come back one for one. */
+const googleLines: Provider<SentencesQuery, string[]> = {
+  id: 'google',
+  async run({ sentences, from, to }, signal) {
+    const lines = splitLines((await googleTranslate(sentences.join('\n'), from, to, signal)).text);
+    return lines.length === sentences.length ? lines : null;
+  },
+};
+
+/** Lines in groups whose joined text stays within `max` bytes (a longer line is a group of its own). */
+function byteGroups(lines: string[], max: number): string[][] {
+  const enc = new TextEncoder();
+  const groups: string[][] = [];
+  let size = Infinity;
+  for (const l of lines) {
+    const n = enc.encode(l).length + 1;
+    if (size + n > max + 1) {
+      groups.push([]);
+      size = 0;
+    }
+    groups.at(-1)!.push(l);
+    size += n;
+  }
+  return groups;
+}
+
+/** MyMemory, a query per 500 bytes of lines; no answer when a query's lines don't come back one for one. */
+const myMemoryLines: Provider<SentencesQuery, string[]> = {
+  id: 'mymemory',
+  timeoutMs: 10_000,
+  async run({ sentences, from, to }, signal) {
+    const out: string[] = [];
+    for (const group of byteGroups(sentences, MYMEMORY_MAX_BYTES)) {
+      const text = await myMemoryText.run({ text: group.join('\n'), from, to }, signal);
+      const lines = text === null ? [] : splitLines(text);
+      if (lines.length !== group.length) return null;
+      out.push(...lines);
+    }
+    return out;
+  },
+};
+
+/** Example sentences, a translation each: Google → Google's other endpoint → MyMemory. */
+const SENTENCE_PROVIDERS: Provider<SentencesQuery, string[]>[] = [googleLines, googleSentences, myMemoryLines];
 
 interface WordTranslation {
   text: string;
@@ -283,14 +333,15 @@ function pairLines(lists: string[][], lines: string[] | null): Example[][] {
   );
 }
 
-const splitLines = (text: string) => text.split('\n').map((l) => l.trim());
-
-/** Translate example sentences (all lists) in one request: Google → MyMemory. */
+/**
+ * Translate example sentences (all lists) at once (see SENTENCE_PROVIDERS). Without translations
+ * the lookup isn't complete, so it isn't cached and the next lookup asks again.
+ */
 async function translateLists(lists: string[][], ctx: Ctx): Promise<{ examples: Example[][]; ok: boolean }> {
   const flat = lists.flat();
   if (!flat.length) return { examples: lists.map(() => []), ok: true };
-  const s = await step(ctx, 'translate-text', TEXT_PROVIDERS, { text: flat.join('\n'), from: 'de', to: ctx.lang });
-  return { examples: pairLines(lists, s.value === null ? null : splitLines(s.value)), ok: s.ok };
+  const s = await step(ctx, 'translate-sentences', SENTENCE_PROVIDERS, { sentences: flat.map(oneLine), from: 'de', to: ctx.lang });
+  return { examples: pairLines(lists, s.value), ok: s.ok && s.value !== null };
 }
 
 /** "the sea" → "sea": Google's translation of "die See" with the article it added. */
@@ -830,11 +881,28 @@ interface Prepared {
 
 const NONE = { result: null, via: null, complete: true, detailsMissing: false } as const;
 
+/**
+ * Every example sentence of a result: its own, its meanings', articles' and reflexive reading's.
+ * Not its set phrases: only those with a note on their page get a translation.
+ */
+function allExamples(r: LookupResult): Example[] {
+  const withMeanings = (x: ExampleFields) => [...x.examples, ...(x.meaningExamples ?? []).flat()];
+  return [
+    ...withMeanings(r),
+    ...(r.articles ?? []).flatMap(withMeanings),
+    ...(r.reflexive ? withMeanings(r.reflexive) : []),
+  ];
+}
+
+const untranslated = (e: Example) => !!e.de.trim() && !e.tr?.trim();
+
 async function prepare(input: string, lang: Lang): Promise<Prepared> {
   const parsed = parseGermanInput(input.normalize('NFC'));
   const key = `${CACHE_VERSION}:${lang}:${parsed.term}`;
   if (!parsed.term) return { parsed, key, cached: { ...NONE, fromCache: true } };
   const cached = await readCache(key);
+  // Rows from before a missing translation kept a lookup out of the cache: looked up again.
+  if (cached.result && allExamples(cached.result).some(untranslated)) return { parsed, key, cached: null };
   // "See" and "die See" share the row: it holds the first article; a typed one is picked here.
   const result = cached.result ? preferArticle(cached.result, parsed.genders) : null;
   return { parsed, key, cached: cached.hit ? { ...NONE, result, via: cached.via, fromCache: true } : null };
@@ -958,6 +1026,9 @@ export async function translateText(text: string, from: 'de' | Lang, to: 'de' | 
  */
 export function mergeIntoCard(card: Card, lookup: LookupResult): Card {
   const result = card.pos === 'noun' || card.pos === 'other' ? preferArticle(lookup, card.genders) : lookup;
+  // The card's own sentences keep theirs; one the lookup also has gets its translation when it has none.
+  const known = new Map([...allExamples(result), ...(result.phrases ?? [])].filter((e) => e.tr?.trim()).map((e) => [oneLine(e.de), e.tr!]));
+  const filled = (e: Example): Example => (untranslated(e) && known.has(oneLine(e.de)) ? { ...e, tr: known.get(oneLine(e.de)) } : { ...e });
   return {
     ...card,
     translation: card.translation.trim() ? card.translation : result.translation,
@@ -968,7 +1039,7 @@ export function mergeIntoCard(card: Card, lookup: LookupResult): Card {
     partizip2: card.partizip2.trim() ? card.partizip2 : result.partizip2,
     auxiliary: card.auxiliary || result.auxiliary,
     examples: card.examples.some((e) => e.de.trim())
-      ? card.examples.map((e) => ({ ...e }))
+      ? card.examples.map(filled)
       : result.examples.map((e) => ({ ...e })),
     ...(!card.preps?.trim() && result.preps ? { preps: result.preps } : {}),
     needsFill: 0,
@@ -992,8 +1063,7 @@ function throwIfAborted(signal?: AbortSignal): void {
 /**
  * Example translations of many lookups: one Google request per ~4000 characters, the lines
  * mapped back to each word. When Google fails, is cooling or answers with another number of
- * lines, those words are translated one by one as a single lookup would (Google → MyMemory;
- * MyMemory takes at most 500 bytes per query, so it is never sent a batch).
+ * lines, those words are translated one by one as a single lookup would (see SENTENCE_PROVIDERS).
  */
 async function translatePlans(plans: Pick<Plan, 'lists'>[], ctx: Ctx): Promise<{ examples: Example[][]; ok: boolean }[]> {
   const out = plans.map((p) => ({ examples: p.lists.map((): Example[] => []), ok: true }));
@@ -1012,7 +1082,7 @@ async function translatePlans(plans: Pick<Plan, 'lists'>[], ctx: Ctx): Promise<{
   });
 
   for (const chunk of chunks) {
-    const flat = chunk.flatMap((i) => plans[i].lists.flat());
+    const flat = chunk.flatMap((i) => plans[i].lists.flat().map(oneLine));
     let lines: string[] | null = null;
     // A lone word goes the single-lookup way at once; a cooling Google isn't forced.
     if (chunk.length > 1 && !isCooling('google') && !ctx.avoid?.has('google')) {
@@ -1038,9 +1108,8 @@ async function translatePlans(plans: Pick<Plan, 'lists'>[], ctx: Ctx): Promise<{
  * For background work: a source in cooldown is left alone, even when every source is.
  */
 export async function translateSentences(sentences: string[], lang: Lang, signal?: AbortSignal): Promise<string[]> {
-  // Lines are how the translations are matched back to the sentences.
-  const plans = sentences.map((s) => ({ lists: [[s.replace(/\s+/g, ' ').trim()]] }));
-  const avoid = new Set(TEXT_PROVIDERS.map((p) => p.id).filter(isCooling));
+  const plans = sentences.map((s) => ({ lists: [[oneLine(s)]] }));
+  const avoid = new Set(SENTENCE_PROVIDERS.map((p) => p.id).filter(isCooling));
   const done = await translatePlans(plans, { lang, signal, avoid });
   return done.map((d) => d.examples[0][0]?.tr ?? '');
 }

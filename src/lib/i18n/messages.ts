@@ -6,10 +6,11 @@ import * as reading from './messages/reading';
 import * as settings from './messages/settings';
 import * as shell from './messages/shell';
 import * as study from './messages/study';
+import * as translator from './messages/translator';
 import * as words from './messages/words';
 
 /** One flat catalog per language, made of one file per area of the app. */
-const en = { ...common.en, ...shell.en, ...settings.en, ...library.en, ...study.en, ...words.en, ...reading.en, ...grammar.en };
+const en = { ...common.en, ...shell.en, ...settings.en, ...library.en, ...study.en, ...words.en, ...reading.en, ...grammar.en, ...translator.en };
 
 export type Messages = typeof en;
 export type MsgKey = keyof Messages;
@@ -23,6 +24,7 @@ const de: Record<MsgKey, string> = {
   ...words.de,
   ...reading.de,
   ...grammar.de,
+  ...translator.de,
 };
 
 /** Has the English keys plus `.few`/`.many` plural forms (see RuTranslation). */
@@ -35,6 +37,7 @@ const ru: Record<MsgKey, string> = {
   ...words.ru,
   ...reading.ru,
   ...grammar.ru,
+  ...translator.ru,
 };
 
 export const catalogs: Record<UiLang, Record<MsgKey, string>> = { en, de, ru };

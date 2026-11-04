@@ -29,6 +29,24 @@ describe('parseGoogleResponse', () => {
   it('rejects garbage', () => {
     expect(() => parseGoogleResponse({ error: 1 })).toThrow(GoogleError);
   });
+
+  it('reads definitions (dt=md) and examples (dt=ex) without their markup', () => {
+    const data: unknown[] = [[['ударяться', 'prallen']], null, 'de'];
+    while (data.length < 12) data.push(null);
+    data.push(
+      [['verb', [['heftig auftreffen', 'a1', 'gegen die Wand <b>prallen</b>'], ['', 'a2'], ['grell scheinen', 'a3']], 'prallen', 2]],
+      [[['er &#39;prallt&#39; <b>ab</b>', null, null, null, null, 'a1'], ['er &#39;prallt&#39; <b>ab</b>']]],
+    );
+    expect(parseGoogleResponse(data)).toEqual({
+      text: 'ударяться',
+      dict: [],
+      definitions: [
+        { pos: 'verb', gloss: 'heftig auftreffen', example: 'gegen die Wand prallen' },
+        { pos: 'verb', gloss: 'grell scheinen' },
+      ],
+      examples: ["er 'prallt' ab"],
+    });
+  });
 });
 
 describe('googleTranslate', () => {

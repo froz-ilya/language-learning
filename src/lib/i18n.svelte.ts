@@ -113,6 +113,7 @@ function namesIn(lang: UiLang): Record<string, string> {
     movedFolder: m['system.movedFolder'],
     myText: m['system.myText'],
     ownText: m['system.ownText'],
+    translator: m['system.translator'],
   };
   for (const code of LEVEL_CODES) {
     names[`folder:${code}`] = `${code} · ${m[`level.${code}.title`]}`;
@@ -121,7 +122,7 @@ function namesIn(lang: UiLang): Record<string, string> {
   return names;
 }
 
-export type SystemName = 'myWords' | 'reading' | 'movedFolder' | 'myText' | 'ownText' | `folder:${LevelCode}` | `moved:${LevelCode}`;
+export type SystemName = 'myWords' | 'reading' | 'movedFolder' | 'myText' | 'ownText' | 'translator' | `folder:${LevelCode}` | `moved:${LevelCode}`;
 
 export function canonicalName(id: SystemName): string {
   return namesIn('en')[id];

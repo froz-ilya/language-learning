@@ -28,6 +28,7 @@
   import Read from './routes/Read.svelte';
   import Reader from './routes/Reader.svelte';
   import PasteText from './routes/PasteText.svelte';
+  import Translate from './routes/Translate.svelte';
   import HardWords from './routes/HardWords.svelte';
   import Share from './routes/Share.svelte';
   import Search from './routes/Search.svelte';
@@ -69,6 +70,7 @@
    *   /read                     Read: articles by level, saved, paste your own
    *   /article/:source/:id      Reader (tap words → add to the article's set)
    *   /paste                    Paste your own text into the reader
+   *   /translate                Translator: text German ↔ English/Russian, tap German words to add them (from Read and Today)
    *   /hard                     Hard words: missed 5+ times, practice + memory hooks
    *   /share?term=:word         Android share target: picks a set, then → /card/new?set=…&term=…
    *   /search                   Quick word search (German, English, Russian → German), add to a set optionally
@@ -90,6 +92,7 @@
     read: Read,
     article: Reader,
     paste: PasteText,
+    translate: Translate,
     hard: HardWords,
     share: Share,
     search: Search,

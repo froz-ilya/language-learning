@@ -49,6 +49,7 @@
     trackOpen,
   } from '../lib/reading/store';
   import type { Article } from '../lib/reading/types';
+  import { articleTarget } from '../lib/reading/wordTarget';
   import type { LevelCode } from '../lib/levels/types';
   import type { Card } from '../lib/types';
   import { confirmAction, showToast } from '../lib/ui/dialogs.svelte';
@@ -631,7 +632,7 @@
         entry={sel.group ? sel.group.entry : (selReadings?.[0] ?? lemmas?.get(sel.word) ?? null)}
         readings={selReadings}
         context={sel.context}
-        {article}
+        target={articleTarget(article)}
         {setId}
         cards={sel.group ? cardsOfEntry(sel.group.entry) : cardsAt(sel.p, sel.t, sel.word)}
         cardsOfTerm={cardsOfWord}

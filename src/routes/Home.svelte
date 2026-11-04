@@ -117,6 +117,12 @@
     return parts.join(' · ');
   }
 
+  /** The translator, with the keyboard already up (see lib/ui/keyboard). */
+  function openTranslator() {
+    primeKeyboard();
+    go('/translate');
+  }
+
   /** Search, with the keyboard already up (see lib/ui/keyboard). */
   function openSearch() {
     primeKeyboard();
@@ -273,6 +279,19 @@
           <span class="chev"><Icon name="chevron" size={18} /></span>
         </button>
       {/if}
+
+      <button
+        class="continue translator"
+        onclick={openTranslator}
+        in:enter|global={{ y: 12, duration: dur(260), delay: stagger(3) }}
+      >
+        <span class="translator-icon"><Icon name="translate" size={26} /></span>
+        <span class="continue-text">
+          <span class="continue-title">{t('translator.title')}</span>
+          <span class="continue-sub">{t('translator.entryHint')}</span>
+        </span>
+        <span class="chev"><Icon name="chevron" size={18} /></span>
+      </button>
 
       <section class="shortcuts" in:enter|global={{ y: 12, duration: dur(260), delay: stagger(3) }}>
         {#each SHORTCUTS as s}
@@ -563,6 +582,16 @@
     border-radius: 18px;
     color: var(--warn);
     background: color-mix(in srgb, var(--warn) 15%, transparent);
+  }
+  .translator-icon {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: 18px;
+    color: var(--accent);
+    background: var(--accent-soft);
   }
   .hard .eyebrow {
     color: var(--warn);

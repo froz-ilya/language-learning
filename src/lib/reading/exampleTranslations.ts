@@ -1,11 +1,13 @@
 import { db } from '../db/schema';
 import { fillTiming, translateSentences } from '../lookup/lookup';
 import type { Card, Example, Lang } from '../types';
+import { findTranslatorSet } from './store';
 
 /**
  * The sentence a word was read in goes onto its card untranslated: adding a word never waits for
  * the network. This fills in the translations in the background, for every word set linked to an
- * article, so a sentence added offline or while the services were down gets one on a later run.
+ * article and the translator's set, so a sentence added offline or while the services were down
+ * gets one on a later run.
  */
 
 /** Sentences sent in one go (about one request), with fillTiming's pause between them. */
@@ -13,12 +15,17 @@ const BATCH = 30;
 
 const untranslated = (e: Example) => !!e.de.trim() && !e.tr?.trim();
 
-/** By the article link, not the Reading folder: a set the user moved stays the article's. */
+/**
+ * By the article link, not the Reading folder: a set the user moved stays the article's. Words
+ * tapped in the translator are in its own set, found by name (see findTranslatorSet).
+ */
 async function cardsToTranslate(): Promise<Card[]> {
   const setIds = new Set<number>();
   await db.articles.each((a) => {
     if (a.setId) setIds.add(a.setId);
   });
+  const translatorSet = await findTranslatorSet();
+  if (translatorSet) setIds.add(translatorSet);
   if (!setIds.size) return [];
   return db.cards
     .where('setId')

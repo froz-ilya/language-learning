@@ -61,6 +61,7 @@ export const en = {
   'system.levelWords': '{code} words',
   'system.myText': 'My text',
   'system.ownText': 'Your own text',
+  'system.translator': 'Translator',
 } as const;
 
 export const de: Translation<typeof en> = {
@@ -123,6 +124,7 @@ export const de: Translation<typeof en> = {
   'system.levelWords': '{code}-Wörter',
   'system.myText': 'Mein Text',
   'system.ownText': 'Dein eigener Text',
+  'system.translator': 'Übersetzer',
 };
 
 export const ru: RuTranslation<typeof en> = {
@@ -195,4 +197,5 @@ export const ru: RuTranslation<typeof en> = {
   'system.levelWords': 'Слова {code}',
   'system.myText': 'Мой текст',
   'system.ownText': 'Свой текст',
+  'system.translator': 'Переводчик',
 };

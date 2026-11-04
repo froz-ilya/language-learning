@@ -138,10 +138,15 @@ export function articleSetName(title: string): string {
   return t.length <= MAX_SET_NAME ? t : `${t.slice(0, MAX_SET_NAME - 1).trimEnd()}…`;
 }
 
+/** The user folder "Reading", 0 when there is none yet. */
+async function findReadingFolder(): Promise<number> {
+  const existing = await db.folders.where('name').equals(READING_FOLDER).filter((f) => !f.level).first();
+  return existing?.id ?? 0;
+}
+
 /** The user folder "Reading" (created on first use). */
 async function readingFolder(): Promise<number> {
-  const existing = await db.folders.where('name').equals(READING_FOLDER).filter((f) => !f.level).first();
-  return existing?.id ?? addFolder(READING_FOLDER);
+  return (await findReadingFolder()) || addFolder(READING_FOLDER);
 }
 
 /**
@@ -214,10 +219,45 @@ export async function addWordToArticle(
   fields: Partial<Card> & { term: string },
   context?: string,
 ): Promise<{ cardId: number; setId: number; created: boolean }> {
-  const setId = await ensureArticleSet(article);
+  return addTappedWord(await ensureArticleSet(article), fields, context);
+}
+
+/** Add a tapped word to a set (see addWordToArticle): the same word already in it is returned instead. */
+export async function addTappedWord(
+  setId: number,
+  fields: Partial<Card> & { term: string },
+  context?: string,
+): Promise<{ cardId: number; setId: number; created: boolean }> {
   const cards = await db.cards.where('setId').equals(setId).toArray();
   const existing = cards.find((c) => isSameWord(c, fields.term, fields.genders ?? [], fields.pos));
   if (existing) return { cardId: existing.id!, setId, created: false };
   const cardId = await saveCard(buildCard(setId, fields, context));
   return { cardId, setId, created: true };
+}
+
+// ---------- The translator's word set ----------
+
+/** Stored name of the set that holds words tapped in the translator (shown through systemName). */
+export const TRANSLATOR_SET = canonicalName('translator');
+
+/** The translator's set: found by its stored name in the "Reading" folder; 0 when there is none yet. */
+export async function findTranslatorSet(): Promise<number> {
+  const folderId = await findReadingFolder();
+  if (!folderId) return 0;
+  const set = await db.sets
+    .where('folderId')
+    .equals(folderId)
+    .filter((s) => s.name === TRANSLATOR_SET && !s.level)
+    .first();
+  return set?.id ?? 0;
+}
+
+let creatingTranslatorSet: Promise<number> | null = null;
+
+/** The translator's set, created in the "Reading" folder on first use (once, even for quick taps). */
+export function ensureTranslatorSet(): Promise<number> {
+  creatingTranslatorSet ??= (async () => (await findTranslatorSet()) || addSet(TRANSLATOR_SET, await readingFolder()))().finally(
+    () => (creatingTranslatorSet = null),
+  );
+  return creatingTranslatorSet;
 }

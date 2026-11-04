@@ -16,10 +16,9 @@
   import { ARTICLE, displayTerm, speakableTerm } from '../../lib/german/articles';
   import { setKnown, STATUS_LABELS } from '../../lib/progress';
   import type { ArticleVariant, Card, Gender, LookupResult } from '../../lib/types';
-  import type { Article } from '../../lib/reading/types';
   import { mergeCards, type CardRef } from '../../lib/reading/vocab';
-  import { addWordToArticle, articleSetName, articleTitle, buildCard, ensureArticleSet } from '../../lib/reading/store';
-  import { translateArticleExamples } from '../../lib/reading/exampleTranslations';
+  import { buildCard } from '../../lib/reading/store';
+  import type { WordTarget } from '../../lib/reading/wordTarget';
   import {
     articleCardFields,
     articleRowsOf,
@@ -40,8 +39,9 @@
   import { showToast } from '../../lib/ui/dialogs.svelte';
 
   /**
-   * Contents of the sheet that opens when a word in the reader is tapped: base form, article,
-   * forms, translation, pronunciation, and add / known / not learned actions. A word with several
+   * Contents of the sheet that opens when a word in the reader (or the translator) is tapped: base
+   * form, article, forms, translation, pronunciation, and add / known / not learned actions; words
+   * go to `target`'s set. A word with several
    * readings (sein, treffen / sich treffen) gets a switcher; everything follows the reading shown.
    */
   let {
@@ -50,7 +50,7 @@
     entry = null,
     readings,
     context = '',
-    article,
+    target,
     setId = 0,
     cards = [],
     cardsOfTerm,
@@ -58,7 +58,7 @@
   }: {
     /** The word to look up: as written in the text, or the joined verb of a split or reflexive verb (anrufen, sich treffen). */
     word: string;
-    /** The text as it appears in the article when it isn't `word` ("rufe … an"). */
+    /** The text as it is written when it isn't `word` ("rufe … an"). */
     written?: string;
     /** Lemma from the reader's precomputed map (may be null). */
     entry?: LexEntry | null;
@@ -70,8 +70,9 @@
     readings?: LexEntry[];
     /** The sentence it appears in (stored as the card's example). */
     context?: string;
-    article: Article;
-    /** The article's word set (0 = not created yet). */
+    /** Where words are added (the article's set, the translator's set; see lib/reading/wordTarget). */
+    target: WordTarget;
+    /** The target's word set (0 = not created yet). */
     setId?: number;
     /** The user's cards for this word's lemma (best status first). */
     cards?: CardRef[];
@@ -95,7 +96,7 @@
   let busy = $state(false);
 
   const lang = $derived(settings.lang);
-  const setName = $derived(articleSetName(articleTitle(article)));
+  const setName = $derived(target.setName);
 
   // Offline dictionary first; the online lookup only when it has nothing (or no translation).
   // Switching away aborts the reading's lookup; a finished one comes from the lookup's cache.
@@ -190,8 +191,8 @@
     busy = true;
     try {
       const f = fields();
-      const r = await addWordToArticle(article, f, context);
-      if (r.created) void translateArticleExamples(settings.lang);
+      const r = await target.add(f, context);
+      if (r.created) target.afterAdd(settings.lang);
       const term = options.length > 1 ? (display ? displayTerm(display) : f.term) : '';
       const message = term
         ? t(r.created ? 'reading.word.addedTerm' : 'reading.word.alreadyTerm', { term, set: setName })
@@ -216,11 +217,11 @@
     const g = a.genders[0];
     const label = `${ARTICLE[g]} ${display.term}`;
     try {
-      const setId = await ensureArticleSet(article);
+      const setId = await target.ensureSet();
       const fields = articleCardFields(display.term, a);
       const existing = findDuplicate(await db.cards.where('setId').equals(setId).toArray(), fields);
       const cardId = existing?.id ?? (await saveCard(buildCard(setId, fields, context)));
-      if (!existing) void translateArticleExamples(settings.lang);
+      if (!existing) target.afterAdd(settings.lang);
       showToast(t(existing ? 'reading.word.articleAlready' : 'reading.word.articleAdded', { label, set: setName }), {
         actionLabel: t('reading.openSet'),
         onAction: () => go(`/set/${setId}`),

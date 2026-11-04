@@ -21,9 +21,30 @@ export interface DictEntry {
   terms: string[];
 }
 
+/** A monolingual definition (`dt=md`): the word explained in its own language, with an example. */
+export interface Definition {
+  pos: string;
+  gloss: string;
+  example?: string;
+}
+
 export interface GoogleResult {
   text: string;
   dict: DictEntry[];
+  /** Only when asked for with `extras` and Google has them (single words). */
+  definitions?: Definition[];
+  /** Usage examples of the source word (`dt=ex`), plain text; only with `extras`. */
+  examples?: string[];
+}
+
+export interface GoogleOptions {
+  /**
+   * 'gtx' (the default) or 'dict-chrome-ex' (Google's browser extension): the same endpoint and
+   * answer, but each client has its own rate limit, so the second still answers when gtx is at 429.
+   */
+  client?: 'gtx' | 'dict-chrome-ex';
+  /** Also ask for definitions and examples (`dt=md`, `dt=ex`); only filled for single words. */
+  extras?: boolean;
 }
 
 /** Google failure; `status` is the HTTP status when there was a response (see SourceError). */
@@ -44,12 +65,17 @@ export async function googleTranslate(
   from: GoogleLang,
   to: GoogleLang,
   signal?: AbortSignal,
+  opts: GoogleOptions = {},
 ): Promise<GoogleResult> {
   if (!text.trim()) return { text: '', dict: [] };
 
-  const params = new URLSearchParams({ client: 'gtx', sl: from, tl: to, hl: 'en' });
+  const params = new URLSearchParams({ client: opts.client ?? 'gtx', sl: from, tl: to, hl: 'en' });
   params.append('dt', 't');
   params.append('dt', 'bd');
+  if (opts.extras) {
+    params.append('dt', 'md');
+    params.append('dt', 'ex');
+  }
   const q = new URLSearchParams({ q: text }).toString();
 
   let res: Response;
@@ -102,7 +128,50 @@ export function parseGoogleResponse(data: unknown): GoogleResult {
       if (terms.length) dict.push({ pos: typeof d[0] === 'string' ? d[0] : '', terms });
     }
   }
-  return { text, dict };
+  const result: GoogleResult = { text, dict };
+  const definitions = parseDefinitions(data[12]);
+  if (definitions.length) result.definitions = definitions;
+  const examples = parseExamples(data[13]);
+  if (examples.length) result.examples = examples;
+  return result;
+}
+
+/** Google's examples come with <b> around the word and the odd HTML entity. */
+function plain(s: string): string {
+  return s
+    .replace(/<[^>]*>/g, '')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** `dt=md`: [[pos, [[gloss, id, example?], …], lemma, …], …]. */
+function parseDefinitions(block: unknown): Definition[] {
+  if (!Array.isArray(block)) return [];
+  const out: Definition[] = [];
+  for (const group of block as unknown[]) {
+    if (!Array.isArray(group) || !Array.isArray(group[1])) continue;
+    const pos = typeof group[0] === 'string' ? group[0] : '';
+    for (const d of group[1] as unknown[]) {
+      if (!Array.isArray(d) || typeof d[0] !== 'string' || !plain(d[0])) continue;
+      const example = typeof d[2] === 'string' ? plain(d[2]) : '';
+      out.push({ pos, gloss: plain(d[0]), ...(example ? { example } : {}) });
+    }
+  }
+  return out;
+}
+
+/** `dt=ex`: [[[sentence with <b>, …], …]]. */
+function parseExamples(block: unknown): string[] {
+  if (!Array.isArray(block) || !Array.isArray(block[0])) return [];
+  const out: string[] = [];
+  for (const e of block[0] as unknown[]) {
+    const s = Array.isArray(e) && typeof e[0] === 'string' ? plain(e[0]) : '';
+    if (s && !out.includes(s)) out.push(s);
+  }
+  return out;
 }
 
 /** Map Google's POS label to ours. */

@@ -31,7 +31,7 @@ export function primeKeyboard(): void {
 }
 
 /** Focus the page's real field, taking over the keyboard opened by primeKeyboard(). */
-export function takeKeyboard(input: HTMLInputElement | undefined): void {
+export function takeKeyboard(input: HTMLInputElement | HTMLTextAreaElement | undefined): void {
   input?.focus({ preventScroll: true });
   dropBridge();
 }

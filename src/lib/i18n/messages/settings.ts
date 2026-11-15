@@ -18,7 +18,9 @@ export const en = {
   'settings.learning.newPerSession': 'New words per session',
   'settings.learning.newPerDay': 'New words per day',
   'settings.learning.noLimit': 'No limit',
-  'settings.learning.hint': 'How many never-seen words a session mixes in with your reviews, and how many you start in a day. Fewer = calmer, more = faster, but every new word brings reviews in the next days.',
+  'settings.learning.paused': 'Paused',
+  'settings.learning.pause': 'Pause',
+  'settings.learning.hint': 'How many never-seen words a session mixes in with your reviews, and how many you start in a day. Fewer = calmer, more = faster, but every new word brings reviews in the next days. Behind on reviews? Pause new words until you catch up.',
 
   'settings.translations.title': 'Translations',
   'settings.translations.hint': 'Language for new translations and dictionary look-ups.',
@@ -152,7 +154,9 @@ export const de: Translation<typeof en> = {
   'settings.learning.newPerSession': 'Neue Wörter pro Sitzung',
   'settings.learning.newPerDay': 'Neue Wörter pro Tag',
   'settings.learning.noLimit': 'Kein Limit',
-  'settings.learning.hint': 'So viele noch nie gesehene Wörter mischt eine Sitzung unter deine Wiederholungen, und so viele beginnst du pro Tag. Weniger = ruhiger, mehr = schneller, aber jedes neue Wort bringt Wiederholungen in den nächsten Tagen.',
+  'settings.learning.paused': 'Pausiert',
+  'settings.learning.pause': 'Pause',
+  'settings.learning.hint': 'So viele noch nie gesehene Wörter mischt eine Sitzung unter deine Wiederholungen, und so viele beginnst du pro Tag. Weniger = ruhiger, mehr = schneller, aber jedes neue Wort bringt Wiederholungen in den nächsten Tagen. Viele Wörter fällig? Pausiere neue Wörter, bis du sie wiederholt hast.',
 
   'settings.translations.title': 'Übersetzungen',
   'settings.translations.hint': 'Sprache für neue Übersetzungen und die Suche im Wörterbuch.',
@@ -286,7 +290,9 @@ export const ru: RuTranslation<typeof en> = {
   'settings.learning.newPerSession': 'Новых слов за занятие',
   'settings.learning.newPerDay': 'Новых слов в день',
   'settings.learning.noLimit': 'Без ограничений',
-  'settings.learning.hint': 'Сколько ещё не виденных слов занятие добавляет к повторению и сколько новых слов начинается за день. Меньше — спокойнее, больше — быстрее, но каждое новое слово приносит повторения в следующие дни.',
+  'settings.learning.paused': 'На паузе',
+  'settings.learning.pause': 'Пауза',
+  'settings.learning.hint': 'Сколько ещё не виденных слов занятие добавляет к повторению и сколько новых слов начинается за день. Меньше — спокойнее, больше — быстрее, но каждое новое слово приносит повторения в следующие дни. Накопилось много слов к повторению? Поставь новые слова на паузу, пока не нагонишь.',
 
   'settings.translations.title': 'Переводы',
   'settings.translations.hint': 'Язык новых переводов и поиска в словаре.',

@@ -75,6 +75,10 @@ describe('newForSession', () => {
   it('a daily limit of 0 means no limit', () => {
     expect(newForSession(10, 0, 500)).toBe(10);
   });
+  it('a session size of 0 pauses new words, whatever the daily limit', () => {
+    expect(newForSession(0, 20, 0)).toBe(0);
+    expect(newForSession(0, 0, 0)).toBe(0);
+  });
 });
 
 describe('planSmartQueue', () => {

@@ -210,7 +210,7 @@
           <span class="done-icon"><Icon name="check" size={30} /></span>
           <div class="hero-count">{t('home.allDone')}</div>
           {#if limitReached}
-            <div class="hero-time">{t('home.limitReached', { n: settings.newPerDay })}</div>
+            <div class="hero-time">{settings.newPerSession ? t('home.limitReached', { n: settings.newPerDay }) : t('home.paused')}</div>
             <button class="btn btn-lg btn-block start" onclick={() => go('/learn/smart/today', { more: '1' })}>{t('study.learn.anyway')}</button>
           {:else}
             <div class="hero-time">{t('home.nothingDue')}</div>

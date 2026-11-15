@@ -223,7 +223,8 @@
     { id: 'de', label: 'Deutsch' },
     { id: 'ru', label: 'Русский' },
   ]);
-  const NEW_PER_SESSION = [5, 10, 15, 20];
+  /** 0 pauses new words (only reviews), e.g. to catch up after a break. */
+  const NEW_PER_SESSION = [0, 5, 10, 15, 20];
   const NEW_PER_DAY = [10, 20, 30, 50, 0];
 
   const LANGS = $derived<{ id: Lang; label: string }[]>([
@@ -270,11 +271,11 @@
       <div class="list-item column">
         <div class="row full">
           <span class="grow">{t('settings.learning.newPerSession')}</span>
-          <span class="muted">{settings.newPerSession}</span>
+          <span class="muted">{settings.newPerSession || t('settings.learning.paused')}</span>
         </div>
         <div class="segmented full" role="radiogroup" aria-label={t('settings.learning.newPerSession')}>
           {#each NEW_PER_SESSION as n}
-            <button role="radio" aria-checked={settings.newPerSession === n} class:active={settings.newPerSession === n} onclick={() => set('newPerSession', n)}>{n}</button>
+            <button role="radio" aria-checked={settings.newPerSession === n} class:active={settings.newPerSession === n} onclick={() => set('newPerSession', n)}>{n || t('settings.learning.pause')}</button>
           {/each}
         </div>
       </div>

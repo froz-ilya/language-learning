@@ -219,7 +219,7 @@
       {:else}
         <div class="emoji" aria-hidden="true">🎉</div>
         <div class="big-msg">{t('study.learn.caughtUp')}</div>
-        <div class="muted">{limitReached ? t('study.learn.limitReached', { n: settings.newPerDay }) : t('study.learn.nothingDue')}</div>
+        <div class="muted">{limitReached ? (settings.newPerSession ? t('study.learn.limitReached', { n: settings.newPerDay }) : t('study.learn.paused')) : t('study.learn.nothingDue')}</div>
         {#if anyway}
           <button class="btn btn-primary btn-lg btn-block" onclick={learnAnyway}>{t('study.learn.anyway')}</button>
         {/if}

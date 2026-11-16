@@ -129,6 +129,10 @@ export const en = {
 
   'study.intro.tag': 'New word',
   'study.intro.gotIt': 'Got it',
+  'study.intro.notNow': 'Not now',
+  'study.intro.pausedToast': '{term} is on pause',
+  'study.learn.resumePaused.one': 'Bring back {n} paused word',
+  'study.learn.resumePaused.other': 'Bring back {n} paused words',
 
   'study.typed.german': 'Auf Deutsch…',
   'study.typed.russian': 'In Russian…',
@@ -269,6 +273,10 @@ export const de: Translation<typeof en> = {
 
   'study.intro.tag': 'Neues Wort',
   'study.intro.gotIt': 'Verstanden',
+  'study.intro.notNow': 'Nicht jetzt',
+  'study.intro.pausedToast': '{term} ist pausiert',
+  'study.learn.resumePaused.one': '{n} pausiertes Wort zurückholen',
+  'study.learn.resumePaused.other': '{n} pausierte Wörter zurückholen',
 
   'study.typed.german': 'Auf Deutsch …',
   'study.typed.russian': 'Auf Russisch …',
@@ -415,6 +423,12 @@ export const ru: RuTranslation<typeof en> = {
 
   'study.intro.tag': 'Новое слово',
   'study.intro.gotIt': 'Понятно',
+  'study.intro.notNow': 'Не сейчас',
+  'study.intro.pausedToast': '«{term}» на паузе',
+  'study.learn.resumePaused.one': 'Вернуть {n} слово с паузы',
+  'study.learn.resumePaused.few': 'Вернуть {n} слова с паузы',
+  'study.learn.resumePaused.many': 'Вернуть {n} слов с паузы',
+  'study.learn.resumePaused.other': 'Вернуть {n} слова с паузы',
 
   'study.typed.german': 'Auf Deutsch…',
   'study.typed.russian': 'По-русски…',

@@ -82,6 +82,21 @@ describe('newForSession', () => {
 });
 
 describe('planSmartQueue', () => {
+  it('leaves paused words out, new and due alike; a resumed word is back with its progress', () => {
+    const cards = [card(1, { paused: NOW - DAY }), card(2, { paused: NOW }), card(3), card(4, { paused: 0 })];
+    const reviews = new Map([
+      [1, review(1, NOW - 5 * DAY)],
+      [3, review(3, NOW - DAY)],
+    ]);
+    const plan = planSmartQueue(cards, reviews, { newPerSession: 10, now: NOW });
+    expect(plan.due.map((c) => c.id)).toEqual([3]);
+    expect(plan.fresh.map((c) => c.id)).toEqual([4]); // paused: 0 = not paused
+    expect(plan.moreNew).toBe(0);
+    const resumed = planSmartQueue([card(1), card(2)], reviews, { newPerSession: 10, now: NOW });
+    expect(resumed.due.map((c) => c.id)).toEqual([1]);
+    expect(resumed.fresh.map((c) => c.id)).toEqual([2]);
+  });
+
   it('puts due cards first (most overdue first), then new cards in source order', () => {
     const cards = [card(1), card(2), card(3), card(4, { createdAt: 0 }), card(5)];
     const reviews = new Map([
@@ -185,6 +200,30 @@ describe('chooseMode', () => {
 });
 
 describe('SmartSession', () => {
+  it('"Not now" takes the word out of the session without grading it', () => {
+    const cards = [card(1), card(2), card(3)];
+    const s = new SmartSession(cards, new Map(), { newPerSession: 10, now: NOW, rng: seq(0.5), introGap: 1 });
+    s.seen(); // intro 1; its question follows after one item
+    expect(s.current?.card.id).toBe(2);
+    s.skip();
+    expect(s.total).toBe(2);
+    const ids: number[] = [];
+    while (!s.finished) {
+      const it = s.current!;
+      ids.push(it.card.id!);
+      if (it.mode === 'intro') s.seen();
+      else s.answer(true);
+    }
+    expect(ids).not.toContain(2);
+    expect(s.graded).toBe(2);
+    expect(s.progress).toBe(1);
+    // Skipping the only word leaves an empty session.
+    const one = new SmartSession([card(9)], new Map(), { newPerSession: 10, now: NOW });
+    one.skip();
+    expect(one.empty).toBe(true);
+    expect(one.finished).toBe(true);
+  });
+
   it('intro is not graded and the card comes back later as multiple choice', () => {
     const cards = [card(1), card(2), card(3), card(4), card(5)];
     const s = new SmartSession(cards, new Map(), { newPerSession: 10, now: NOW, rng: seq(0.5), introGap: 2 });

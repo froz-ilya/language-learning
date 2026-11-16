@@ -5,7 +5,7 @@ import { canonicalName, systemName, t } from '../../lib/i18n.svelte';
 import { addFolder, addSet, cardsInFolder, cardsInSet, deleteSet, levelFolder, type Snapshot } from '../../lib/db/repo';
 import { chooseAction, promptText, ui, undoToast } from '../../lib/ui/dialogs.svelte';
 import { primeKeyboard, releaseKeyboard } from '../../lib/ui/keyboard';
-import { emptyProgress, progressFor, setKnown, type Progress } from '../../lib/progress';
+import { emptyProgress, progressFor, progressOf, reviewsFor, setKnown, type Progress } from '../../lib/progress';
 import { fetchLevelIndex } from '../../lib/levels/install';
 import { lookupLocal } from '../../lib/dict/local';
 import { isReflexiveTerm } from '../../lib/german/reflexive';
@@ -187,7 +187,7 @@ export interface FocusInfo {
   /** "level" | "set" | "folder" */
   kind: string;
   progress: Progress;
-  /** Words in the focus that were never studied (and aren't marked known). */
+  /** Words in the focus that were never studied (and aren't marked known or paused). */
   fresh: number;
 }
 
@@ -213,6 +213,8 @@ export async function focusInfo(focus: string): Promise<FocusInfo | null> {
     title = systemName(folder.name);
     cards = await cardsInFolder(folder.id!);
   } else return null;
-  const progress = await progressFor(cards);
-  return { title, kind, progress, fresh: progress.new };
+  const reviews = await reviewsFor(cards);
+  const progress = progressOf(cards, reviews);
+  const fresh = cards.filter((c) => !c.known && !c.paused && !reviews.get(c.id!)?.fsrs.reps).length;
+  return { title, kind, progress, fresh };
 }

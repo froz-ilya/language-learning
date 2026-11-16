@@ -41,8 +41,23 @@ export const SMART_LABELS: Record<SmartId, string> = {
 /** Cards answered wrong within this window count as "Mistakes". */
 const MISTAKE_WINDOW_MS = 14 * 24 * 3600 * 1000;
 
+/** Cards on pause: left out of what's due and new. */
+async function pausedIds(): Promise<Set<number>> {
+  return new Set((await db.cards.filter((c) => !!c.paused).primaryKeys()) as number[]);
+}
+
 async function dueCardIds(): Promise<number[]> {
-  return (await db.reviews.where('due').belowOrEqual(endOfDay()).filter((r) => isDueToday(r)).primaryKeys()) as number[];
+  const [ids, paused] = await Promise.all([
+    db.reviews.where('due').belowOrEqual(endOfDay()).filter((r) => isDueToday(r)).primaryKeys() as Promise<number[]>,
+    pausedIds(),
+  ]);
+  return ids.filter((id) => !paused.has(id));
+}
+
+/** Paused words, paused longest ago first. */
+export async function pausedCards(): Promise<Card[]> {
+  const cards = await db.cards.filter((c) => !!c.paused).toArray();
+  return cards.sort((a, b) => a.paused! - b.paused!);
 }
 
 /** Words studied for the first time today, in any mode: what the daily limit counts. */
@@ -99,7 +114,7 @@ export async function smartCards(id: SmartId, focus = ''): Promise<Card[]> {
       return (await db.cards.bulkGet(await dueCardIds())).filter((c): c is Card => !!c);
     case 'new': {
       const seen = await reviewedIds();
-      return db.cards.filter((c) => !seen.has(c.id!) && !c.known && !c.presetId).toArray();
+      return db.cards.filter((c) => !seen.has(c.id!) && !c.known && !c.paused && !c.presetId).toArray();
     }
     case 'starred':
       return db.cards.where('starred').equals(1).toArray();
@@ -112,7 +127,7 @@ export async function smartCards(id: SmartId, focus = ''): Promise<Card[]> {
   }
 }
 
-/** Counts for Today/Home. "new" counts own (non-preset), not-known words never studied. */
+/** Counts for Today/Home. "new" counts own (non-preset), not-known, not-paused words never studied. */
 export async function smartCounts(): Promise<Record<SmartId, number>> {
   const [due, seen, starred, mistakes, all, hard] = await Promise.all([
     dueCardIds(),
@@ -122,7 +137,7 @@ export async function smartCounts(): Promise<Record<SmartId, number>> {
     db.cards.count(),
     hardCards(),
   ]);
-  const fresh = await db.cards.filter((c) => !seen.has(c.id!) && !c.known && !c.presetId).count();
+  const fresh = await db.cards.filter((c) => !seen.has(c.id!) && !c.known && !c.paused && !c.presetId).count();
   return {
     today: due.length + fresh,
     due: due.length,

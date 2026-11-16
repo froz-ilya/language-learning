@@ -5,7 +5,7 @@ import { endOfDay, isArticleCard, isDueToday, isVerbCard, modeApplies, type Ques
  * The smart ("Learn") session: pure queue logic, no DB/DOM, unit tested in smart.test.ts.
  *
  * Queue: due/overdue reviewed cards first (most overdue first, capped), then up to
- * `newPerSession` never-studied cards in source order. Known cards are skipped, and so are cards
+ * `newPerSession` never-studied cards in source order. Known and paused cards are skipped, and so are cards
  * already answered today (see isDueToday), so a day's work can be finished.
  *
  * Each item gets a mode picked from the card's state:
@@ -78,7 +78,7 @@ export function planSmartQueue(
   const due: { card: Card; at: number }[] = [];
   const fresh: Card[] = [];
   for (const c of cards) {
-    if (c.known || !c.term.trim()) continue;
+    if (c.known || c.paused || !c.term.trim()) continue;
     if (c.id != null) {
       if (seen.has(c.id)) continue;
       seen.add(c.id);
@@ -264,6 +264,20 @@ export class SmartSession {
       this.queue.splice(at, 0, { ...item, seq: this.seq++ });
     }
     return { first };
+  }
+
+  /**
+   * "Not now" on the current card: it leaves the session (all its items, the total too), and
+   * nothing is graded. The caller pauses the word.
+   */
+  skip(): void {
+    const item = this.current;
+    if (!item) throw new Error('Session finished');
+    const k = this.key(item.card);
+    this.queue = [...this.queue.slice(0, this.index), ...this.queue.slice(this.index).filter((it) => this.key(it.card) !== k)];
+    const at = this.cards.findIndex((c) => this.key(c) === k);
+    if (at >= 0 && !this.firstResults.has(k)) this.cards.splice(at, 1);
+    this.introduced.delete(k);
   }
 
   firstResult(card: Card): boolean | undefined {

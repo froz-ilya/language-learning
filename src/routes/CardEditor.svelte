@@ -15,7 +15,7 @@
   import { settings } from '../lib/settings.svelte';
   import { db } from '../lib/db/schema';
   import { deleteCard, emptyCard, saveCard } from '../lib/db/repo';
-  import { isHard, setKnown, statusOf, STATUS_LABELS, type WordStatus } from '../lib/progress';
+  import { isHard, setKnown, setPaused, statusOf, STATUS_LABELS, type WordStatus } from '../lib/progress';
   import { parseGermanInput } from '../lib/german/parseTerm';
   import { joinMeanings, splitMeanings } from '../lib/german/meanings';
   import { ARTICLE, displayPlural, displayTerm, displayVerbForms, speakableTerm } from '../lib/german/articles';
@@ -33,7 +33,7 @@
   /*
    * New word  → "Quick add": type → dictionary preview → ✓ Add (keyboard stays up for the next
    *             word). "Edit details" slides the full form open.
-   * Edit word → the full form, a status row (Mark known / Not learned) and Delete with Undo.
+   * Edit word → the full form, a status row (Pause / Mark known / Not learned) and Delete with Undo.
    */
   const isNew = route.parts[1] === 'new';
   const cardId = isNew ? 0 : Number(route.parts[1]);
@@ -690,6 +690,16 @@
     showToast(known ? t('words.editor.markedKnown') : t('words.editor.backToLearning'));
   }
 
+  /** Pause / bring back: the word stays as it is, only sessions leave it out while paused. */
+  async function togglePause() {
+    if (!card.id) return;
+    const pause = !card.paused;
+    const at = Date.now();
+    await setPaused([card.id], pause, at);
+    card.paused = pause ? at : 0;
+    showToast(t(pause ? 'words.editor.pausedToast' : 'words.editor.resumedToast'));
+  }
+
   async function remove() {
     if (!card.id) return;
     const term = card.term;
@@ -985,7 +995,13 @@
       {#if !isNew}
         <div class="card status-row">
           <span class="pill st-{status}">{STATUS_LABELS[status]}</span>
+          {#if card.paused}<span class="pill paused"><Icon name="pause" size={14} /> {t('words.editor.paused')}</span>{/if}
           <span class="spacer"></span>
+          {#if status !== 'known'}
+            <button type="button" class="btn small-btn" onclick={togglePause}>
+              {#if card.paused}<Icon name="play" size={16} filled /> {t('words.editor.resume')}{:else}<Icon name="pause" size={18} /> {t('words.editor.pause')}{/if}
+            </button>
+          {/if}
           {#if status !== 'known'}
             <button type="button" class="btn small-btn" onclick={() => changeStatus(true)}><Icon name="check" size={18} /> {t('words.editor.markKnown')}</button>
           {/if}
@@ -1379,6 +1395,13 @@
   .pill.st-learning {
     color: var(--accent);
     background: var(--accent-soft);
+  }
+  .pill.paused {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 13%, transparent);
   }
   .pill.st-learned,
   .pill.st-known {

@@ -361,6 +361,7 @@
                           <span class="line1">
                             <span class="de"><Term card={c} /></span>
                             {#if isReflexive(c)}<span class="sich" lang="de" title={t('set.reflexive')}>sich</span>{/if}
+                            {#if c.paused}<span class="paused" title={t('set.pausedWord')} aria-label={t('set.pausedWord')}><Icon name="pause" size={14} /></span>{/if}
                             {#if data.value?.hard.has(c.id!)}<span class="hard" title={t('set.hardWord')}><Icon name="flame" size={14} filled /></span>{/if}
                             {#if c.translation}<span class="tr">{c.translation}</span>{/if}
                           </span>
@@ -594,6 +595,11 @@
   .hard {
     display: inline-flex;
     color: var(--warn);
+    vertical-align: -2px;
+  }
+  .paused {
+    display: inline-flex;
+    color: var(--muted);
     vertical-align: -2px;
   }
   .dot {

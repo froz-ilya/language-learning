@@ -30,6 +30,7 @@
   import PasteText from './routes/PasteText.svelte';
   import Translate from './routes/Translate.svelte';
   import HardWords from './routes/HardWords.svelte';
+  import PausedWords from './routes/PausedWords.svelte';
   import Share from './routes/Share.svelte';
   import Search from './routes/Search.svelte';
   import Grammar from './routes/Grammar.svelte';
@@ -72,6 +73,7 @@
    *   /paste                    Paste your own text into the reader
    *   /translate                Translator: text German ↔ English/Russian, tap German words to add them (from Read and Today)
    *   /hard                     Hard words: missed 5+ times, practice + memory hooks
+   *   /paused                   Paused words ("Not now"): bring them back
    *   /share?term=:word         Android share target: picks a set, then → /card/new?set=…&term=…
    *   /search                   Quick word search (German, English, Russian → German), add to a set optionally
    * Route components read route.parts / route.query themselves.
@@ -94,6 +96,7 @@
     paste: PasteText,
     translate: Translate,
     hard: HardWords,
+    paused: PausedWords,
     share: Share,
     search: Search,
   } as const;

@@ -9,7 +9,9 @@
   import SmartIntro from '../components/study/SmartIntro.svelte';
   import Verbs from '../components/study/Verbs.svelte';
   import Write from '../components/study/Write.svelte';
-  import { fmtNumber, t } from '../lib/i18n.svelte';
+  import Icon from '../components/Icon.svelte';
+  import { fmtNumber, t, tn } from '../lib/i18n.svelte';
+  import { showToast } from '../lib/ui/dialogs.svelte';
   import { back, go, route } from '../lib/router.svelte';
   import { saveSettings, settings } from '../lib/settings.svelte';
   import { isSpeechSupported, stopSpeaking } from '../lib/speech/tts';
@@ -20,7 +22,7 @@
   import { newForSession, planSmartQueue, SmartSession, type SmartItem } from '../lib/study/smart';
   import { cardsForSource, isChosenList, newStudiedToday, sourceTitle, type SourceKind } from '../lib/study/sources';
   import type { Card, Review } from '../lib/types';
-  import { newlyHard } from '../lib/progress';
+  import { newlyHard, setPaused } from '../lib/progress';
 
   // Route: #/learn/<kind>/<id>[?more=1] — the smart session (constant: remounted on navigation).
   const kind = (route.parts[1] ?? 'smart') as SourceKind;
@@ -60,6 +62,8 @@
   let becameHard = $state.raw<Card[]>([]);
   /** Miss counts when the session started, to spot words that just crossed the hard-word line. */
   let missesBefore = new Map<number, number>();
+  /** Paused words of this source, offered back when there's nothing left to learn. */
+  let pausedHere = $state.raw<number[]>([]);
   /** Cards + reviews for "Learn new words anyway" (null: nothing new left). */
   let anyway = $state.raw<{ cards: Card[]; reviews: Map<number, Review> } | null>(null);
   let pending: Promise<unknown>[] = [];
@@ -99,7 +103,8 @@
       pastLimit = false;
       const s = build(cards, reviews, allowed);
       if (!s.empty) return begin(s);
-      noWords = cards.filter((c) => !c.known).length === 0;
+      pausedHere = cards.filter((c) => c.paused && !c.known).map((c) => c.id!);
+      noWords = cards.filter((c) => !c.known && !c.paused).length === 0 && !pausedHere.length;
       limitReached = allowed === 0 && s.plan.moreNew > 0;
       anyway = await findNewWords(cards, reviews, s);
       phase = 'empty';
@@ -177,6 +182,29 @@
     advance();
   }
 
+  /** "Not now" on a new word: it leaves this session and goes on pause (Undo brings it back for later). */
+  function onskip() {
+    const s = session;
+    const it = item;
+    if (!s || it?.mode !== 'intro' || s.current?.seq !== it.seq || it.card.id == null) return;
+    const id = it.card.id;
+    s.skip();
+    pending.push(setPaused([id], true).catch(console.error));
+    showToast(t('study.intro.pausedToast', { term: it.card.term }), {
+      actionLabel: t('common.undo'),
+      onAction: () => void setPaused([id], false),
+    });
+    if (s.empty) return void load();
+    sync();
+    advance();
+  }
+
+  async function resumePaused() {
+    await setPaused(pausedHere, false);
+    showToast(tn('paused.resumedAll', pausedHere.length));
+    await load();
+  }
+
   function finish() {
     const s = session;
     if (!s) return;
@@ -223,7 +251,12 @@
         {#if anyway}
           <button class="btn btn-primary btn-lg btn-block" onclick={learnAnyway}>{t('study.learn.anyway')}</button>
         {/if}
-        <button class="btn btn-lg btn-block" class:btn-primary={!anyway} onclick={() => go(modesPath)}>{t('study.learn.moreWays')}</button>
+        {#if pausedHere.length}
+          <button class="btn btn-lg btn-block" class:btn-primary={!anyway} onclick={resumePaused}>
+            <Icon name="pause" size={18} /> {tn('study.learn.resumePaused', pausedHere.length)}
+          </button>
+        {/if}
+        <button class="btn btn-lg btn-block" class:btn-primary={!anyway && !pausedHere.length} onclick={() => go(modesPath)}>{t('study.learn.moreWays')}</button>
       {/if}
     </div>
   {:else if phase === 'running' && item}
@@ -231,7 +264,7 @@
       {#key stageKey}
         <div class="slide" in:slideIn out:slideOut>
           {#if item.mode === 'intro'}
-            <SmartIntro {item} {onseen} />
+            <SmartIntro {item} {onseen} {onskip} />
           {:else if item.mode === 'flashcards'}
             <Flashcards {item} {onanswer} {onnext} />
           {:else if item.mode === 'write'}

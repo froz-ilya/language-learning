@@ -7,7 +7,7 @@ vi.mock('./db/schema', () => ({
   db: { reviews: { bulkGet: async (ids: number[]) => ids.map((id) => reviews.get(id)) } },
 }));
 
-const { HARD_MISSES, isHard, newlyHard } = await import('./progress');
+const { HARD_MISSES, PAUSE_SUGGEST_DAYS, isHard, isPaused, newlyHard, resumeSuggestions } = await import('./progress');
 
 function review(cardId: number, mistakes: number, stability: number): Review {
   return {
@@ -41,6 +41,31 @@ describe('isHard', () => {
   it('stops being hard once learned or known', () => {
     expect(isHard(card(1), review(1, 9, 30))).toBe(false);
     expect(isHard(card(1, 1), review(1, 9, 2))).toBe(false);
+  });
+});
+
+describe('paused words', () => {
+  const DAY = 24 * 3600 * 1000;
+  const NOW = 100 * DAY;
+
+  it('reads cards saved before pausing existed as not paused', () => {
+    expect(isPaused({})).toBe(false);
+    expect(isPaused({ paused: 0 })).toBe(false);
+    expect(isPaused({ paused: NOW })).toBe(true);
+  });
+
+  it(`suggests bringing back words paused ${PAUSE_SUGGEST_DAYS}+ days ago`, () => {
+    const cards = [
+      { id: 1, paused: NOW - PAUSE_SUGGEST_DAYS * DAY },
+      { id: 2, paused: NOW - PAUSE_SUGGEST_DAYS * DAY + 1 },
+      { id: 3, paused: 0 },
+      { id: 4 },
+    ];
+    expect(resumeSuggestions(cards, NOW).map((c) => c.id)).toEqual([1]);
+  });
+
+  it('a paused word is not listed as hard', () => {
+    expect(isHard({ known: 0, paused: NOW }, review(1, 9, 2))).toBe(false);
   });
 });
 

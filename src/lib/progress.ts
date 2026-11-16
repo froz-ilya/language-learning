@@ -33,10 +33,10 @@ export const HARD_MISSES = 5;
 
 /**
  * Hard word: answered wrong HARD_MISSES+ times and not yet retained. It leaves the list by
- * itself once learned (or when marked known).
+ * itself once learned (or when marked known); a paused word isn't asked, so it isn't listed.
  */
-export function isHard(card: Pick<Card, 'known'>, review: Review | undefined): boolean {
-  if (!review || review.mistakes < HARD_MISSES) return false;
+export function isHard(card: Pick<Card, 'known' | 'paused'>, review: Review | undefined): boolean {
+  if (isPaused(card) || !review || review.mistakes < HARD_MISSES) return false;
   const status = statusOf(card, review);
   return status !== 'learned' && status !== 'known';
 }
@@ -107,6 +107,28 @@ export async function progressBySet(setIds: number[]): Promise<Map<number, Progr
   const bySet = new Map<number, Card[]>();
   for (const c of cards) bySet.set(c.setId, [...(bySet.get(c.setId) ?? []), c]);
   return new Map(setIds.map((id) => [id, progressOf(bySet.get(id) ?? [], reviews)]));
+}
+
+/** On pause ("Not now"): left out of sessions until resumed. Reads cards saved before pausing existed. */
+export function isPaused(card: Pick<Card, 'paused'>): boolean {
+  return !!card.paused;
+}
+
+/** A word paused this long ago is suggested for a comeback (Home). */
+export const PAUSE_SUGGEST_DAYS = 14;
+
+/** Paused words the app suggests bringing back: paused at least PAUSE_SUGGEST_DAYS ago. */
+export function resumeSuggestions<C extends Pick<Card, 'paused'>>(cards: C[], now: number = Date.now()): C[] {
+  const before = now - PAUSE_SUGGEST_DAYS * 24 * 3600 * 1000;
+  return cards.filter((c) => isPaused(c) && c.paused! <= before);
+}
+
+/**
+ * Pause words / bring them back. Progress stays: a paused word that was being learned comes back
+ * as due when resumed; a new one as new. `at` re-stamps the pause ("Later" on a suggestion).
+ */
+export async function setPaused(cardIds: number[], paused: boolean, at: number = Date.now()): Promise<void> {
+  await db.cards.where('id').anyOf(cardIds).modify({ paused: paused ? at : 0 });
 }
 
 /**

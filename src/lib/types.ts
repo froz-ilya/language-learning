@@ -67,6 +67,11 @@ export interface Card {
    * (sich freuen), "für + Akk". Optional: absent on cards saved before it existed.
    */
   preps?: string;
+  /**
+   * Epoch ms when the word was put on pause ("Not now"): skipped in sessions until resumed, its
+   * progress kept. 0 or absent = not paused (cards saved before it existed have none).
+   */
+  paused?: number;
 }
 
 export interface Review {

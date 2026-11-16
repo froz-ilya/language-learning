@@ -26,6 +26,8 @@ const V4 = V3;
 const V5 = V4;
 /** v6 changed no tables either (it cleared lookupCache again). */
 const V6 = V5;
+/** v7 added grammar progress. Cards may carry `paused` since; it's optional, so no new version. */
+const V7 = { ...V6, grammar: 'id, due' };
 
 function oldDb(version: number, stores: Record<string, string>) {
   const d = new Dexie('deutsch');
@@ -282,6 +284,28 @@ describe('upgrading the database', () => {
     await recordGrammar('weil-1', true, 1000);
     expect((await loadProgress()).get('weil-1')).toMatchObject({ box: 1, right: 1, wrong: 0, lastAt: 1000 });
     expect(await db.grammar.where('due').above(1000).count()).toBe(1);
+  });
+
+  it('words saved before pausing existed are not paused, and a paused word round-trips', async () => {
+    const d = oldDb(7, V7);
+    await d.table('folders').add({ name: 'School', level: '', createdAt: 1 });
+    await d.table('sets').add({ name: 'Möbel', folderId: 1, level: '', topic: '', createdAt: 1 });
+    const card = { ...v1Card, id: 1, known: 0, presetId: '' };
+    await d.table('cards').add(card);
+    await d.table('settings').put(v1Settings);
+    d.close();
+
+    const { db } = await import('./schema');
+    const { isPaused, setPaused } = await import('../progress');
+    const { planSmartQueue } = await import('../study/smart');
+    const stored = (await db.cards.get(1))!;
+    expect(stored).toEqual(card);
+    expect(isPaused(stored)).toBe(false);
+    expect(planSmartQueue([stored], new Map(), { newPerSession: 5 }).fresh).toHaveLength(1);
+    await setPaused([1], true, 1234);
+    expect(await db.cards.get(1)).toEqual({ ...card, paused: 1234 });
+    await setPaused([1], false);
+    expect(isPaused((await db.cards.get(1))!)).toBe(false);
   });
 
   it('upgraded words still work with today’s logic', async () => {
@@ -566,6 +590,34 @@ describe('restoring old backups', () => {
       ['Tisch', undefined],
       ['sich freuen', 'auf + Akk'],
       ['warten', undefined],
+    ]);
+  });
+
+  it('restores paused words, and reads a bad pause value as not paused', async () => {
+    const { db } = await import('./schema');
+    const { exportBackup, importBackup } = await import('./backup');
+    const card = { ...v1Card, id: 1, known: 0, presetId: '' };
+    const file = {
+      app: 'deutsch',
+      version: 3,
+      exportedAt: '2026-11-16T10:00:00Z',
+      folders: [{ id: 1, name: 'School', level: '', createdAt: 1 }],
+      sets: [{ id: 1, name: 'Möbel', folderId: 1, level: '', topic: '', createdAt: 1 }],
+      cards: [card, { ...card, id: 2, term: 'Stuhl', paused: 5000 }, { ...card, id: 3, term: 'Bank', paused: 'soon' }],
+      reviews: [],
+      settings: [],
+    };
+    await importBackup(JSON.stringify(file), 'replace');
+    expect(await db.cards.get(1)).toEqual(card);
+    expect(await db.cards.get(2)).toEqual({ ...card, id: 2, term: 'Stuhl', paused: 5000 });
+    expect(await db.cards.get(3)).toEqual({ ...card, id: 3, term: 'Bank' });
+
+    await importBackup(await (await exportBackup()).text(), 'merge');
+    const copies = (await db.cards.toArray()).filter((c) => c.id! > 3);
+    expect(copies.map((c) => [c.term, c.paused])).toEqual([
+      ['Tisch', undefined],
+      ['Stuhl', 5000],
+      ['Bank', undefined],
     ]);
   });
 

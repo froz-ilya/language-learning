@@ -14,7 +14,9 @@
   import { dur, enter } from '../lib/motion';
   import { settings } from '../lib/settings.svelte';
   import { newForSession } from '../lib/study/smart';
-  import { newStudiedToday, smartCounts, type SmartId } from '../lib/study/sources';
+  import { newStudiedToday, pausedCards, smartCounts, type SmartId } from '../lib/study/sources';
+  import { resumeSuggestions, setPaused } from '../lib/progress';
+  import { showToast } from '../lib/ui/dialogs.svelte';
   import {
     dismissInstallBanner,
     install,
@@ -31,6 +33,25 @@
     const [counts, info, studied] = await Promise.all([smartCounts(), focus ? focusInfo(focus) : null, newStudiedToday()]);
     return { counts, info, focus, studied };
   });
+
+  /** Paused words, and those paused long enough ago to suggest bringing back. */
+  const pausedData = live(async () => {
+    const all = await pausedCards();
+    return { count: all.length, suggest: resumeSuggestions(all).map((c) => c.id!) };
+  });
+  const pausedCount = $derived(pausedData.value?.count ?? 0);
+  const suggestIds = $derived(pausedData.value?.suggest ?? []);
+
+  async function bringBack() {
+    const ids = suggestIds;
+    await setPaused(ids, false);
+    showToast(tn('paused.resumedAll', ids.length));
+  }
+
+  /** "Later": the pause starts again, so the suggestion comes back in two weeks. */
+  function later() {
+    void setPaused(suggestIds, true);
+  }
 
   /** Most recent article that was started but not finished. */
   const reading = live(async () => {
@@ -275,6 +296,33 @@
             <span class="eyebrow">{t('hard.title')}</span>
             <span class="continue-title">{tn('home.hardHelp', counts.hard)}</span>
             <span class="continue-sub">{t('home.hardSub')}</span>
+          </span>
+          <span class="chev"><Icon name="chevron" size={18} /></span>
+        </button>
+      {/if}
+
+      {#if suggestIds.length}
+        <div class="card suggest" in:enter|global={{ y: 12, duration: dur(260), delay: stagger(3) }} out:slide={{ duration: dur(200) }}>
+          <div class="suggest-head">
+            <span class="pause-icon"><Icon name="pause" size={22} /></span>
+            <p>{tn('home.pausedSuggest', suggestIds.length)}</p>
+          </div>
+          <div class="suggest-actions">
+            <button class="btn btn-primary grow" onclick={bringBack}>{t('home.pausedBringBack')}</button>
+            <button class="btn grow" onclick={() => go('/paused')}>{t('paused.title')}</button>
+            <button class="btn btn-ghost" onclick={later}>{t('home.pausedLater')}</button>
+          </div>
+        </div>
+      {:else if pausedCount}
+        <button
+          class="continue paused"
+          onclick={() => go('/paused')}
+          in:enter|global={{ y: 12, duration: dur(260), delay: stagger(3) }}
+        >
+          <span class="pause-icon"><Icon name="pause" size={22} /></span>
+          <span class="continue-text">
+            <span class="continue-title">{tn('home.paused', pausedCount)}</span>
+            <span class="continue-sub">{t('home.pausedSub')}</span>
           </span>
           <span class="chev"><Icon name="chevron" size={18} /></span>
         </button>
@@ -595,6 +643,39 @@
   }
   .hard .eyebrow {
     color: var(--warn);
+  }
+  .pause-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    color: var(--muted);
+    background: var(--surface-2);
+  }
+  .suggest {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .suggest-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .suggest-head p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .suggest-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .suggest-actions .grow {
+    flex: 1 1 auto;
   }
   .pct {
     font-family: var(--font-display);

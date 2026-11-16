@@ -7,11 +7,15 @@
   import { settings } from '../../lib/settings.svelte';
   import { speak } from '../../lib/speech/tts';
   import type { StudyItem } from '../../lib/study/session';
+  import Icon from '../Icon.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import Term from '../Term.svelte';
 
-  /** A new word, shown in full once before it is asked. "Got it" is not graded. */
-  let { item, onseen }: { item: StudyItem; onseen: () => void } = $props();
+  /**
+   * A new word, shown in full once before it is asked. "Got it" is not graded; "Not now" (when
+   * `onskip` is given) puts the word on pause and moves on.
+   */
+  let { item, onseen, onskip }: { item: StudyItem; onseen: () => void; onskip?: () => void } = $props();
 
   const card = $derived(item.card);
   const plural = $derived(displayPlural(card));
@@ -27,6 +31,12 @@
     if (done) return;
     done = true;
     onseen();
+  }
+
+  function notNow() {
+    if (done || !onskip) return;
+    done = true;
+    onskip();
   }
 
   function onkeydown(e: KeyboardEvent) {
@@ -72,6 +82,9 @@
   </div>
 
   <button type="button" class="btn btn-primary btn-lg btn-block" onclick={gotIt}>{t('study.intro.gotIt')}</button>
+  {#if onskip}
+    <button type="button" class="btn btn-ghost btn-block" onclick={notNow}><Icon name="pause" size={18} /> {t('study.intro.notNow')}</button>
+  {/if}
 </div>
 
 <style>

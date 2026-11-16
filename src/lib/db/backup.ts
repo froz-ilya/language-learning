@@ -70,12 +70,13 @@ function reviveDates(r: Review): Review {
 /**
  * A card from any backup version as today's code stores it: v1 cards predate level presets and
  * the "known" flag; cards before `preps` have none (it stays absent; a value that isn't text is
- * dropped).
+ * dropped). Same for `paused`: kept only as a positive number.
  */
 function normalizeCard(c: Card): Card {
-  const { preps, ...rest } = c as Card & { preps?: unknown };
+  const { preps, paused, ...rest } = c as Card & { preps?: unknown; paused?: unknown };
   const out: Card = { ...rest, known: c.known ?? 0, presetId: c.presetId ?? '' };
   if (typeof preps === 'string' && preps.trim()) out.preps = preps.trim();
+  if (typeof paused === 'number' && Number.isFinite(paused) && paused > 0) out.paused = paused;
   return out;
 }
 

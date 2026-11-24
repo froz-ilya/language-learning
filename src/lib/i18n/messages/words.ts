@@ -176,6 +176,10 @@ export const en = {
   'words.editor.addAndClose': 'Add and close',
   'words.editor.deleteWord': 'Delete word',
   'words.editor.added': 'Added',
+  'words.editor.placeholderAny': 'Haus, дом or house…',
+  'words.editor.hintAny': 'Type a German word, or a Russian or English one to find it. The article, plural, translation and an example are filled in for you.',
+  'words.editor.fromEnglishPick': 'Not in the German dictionary. As an English word, “{word}” is:',
+  'words.editor.notGerman': 'That’s a Russian word: pick the German word from the list.',
 
   'words.error.noSource': 'No dictionary source is reachable right now. Try again later.',
   'words.error.noTranslator': 'No translation service is reachable right now.',
@@ -363,6 +367,10 @@ export const de: Translation<typeof en> = {
   'words.editor.addAndClose': 'Hinzufügen und schließen',
   'words.editor.deleteWord': 'Wort löschen',
   'words.editor.added': 'Hinzugefügt',
+  'words.editor.placeholderAny': 'Haus, дом oder house …',
+  'words.editor.hintAny': 'Gib ein deutsches Wort ein – oder ein russisches oder englisches, um es zu finden. Artikel, Plural, Übersetzung und ein Beispiel werden automatisch ergänzt.',
+  'words.editor.fromEnglishPick': 'Nicht im deutschen Wörterbuch. Als englisches Wort heißt „{word}“:',
+  'words.editor.notGerman': 'Das ist ein russisches Wort: Wähle das deutsche Wort aus der Liste.',
 
   'words.error.noSource': 'Gerade ist keine Wörterbuchquelle erreichbar. Versuch es später noch einmal.',
   'words.error.noTranslator': 'Gerade ist kein Übersetzungsdienst erreichbar.',
@@ -558,6 +566,10 @@ export const ru: RuTranslation<typeof en> = {
   'words.editor.addAndClose': 'Добавить и закрыть',
   'words.editor.deleteWord': 'Удалить слово',
   'words.editor.added': 'Добавлено',
+  'words.editor.placeholderAny': 'Haus, дом или house…',
+  'words.editor.hintAny': 'Введи немецкое слово — или русское либо английское, чтобы его найти. Артикль, множественное число, перевод и пример заполнятся сами.',
+  'words.editor.fromEnglishPick': 'В немецком словаре нет. Как английское слово «{word}» — это:',
+  'words.editor.notGerman': 'Это русское слово: выбери немецкое слово из списка.',
 
   'words.error.noSource': 'Сейчас ни один источник словаря не отвечает. Попробуй позже.',
   'words.error.noTranslator': 'Сейчас ни один сервис перевода не отвечает.',

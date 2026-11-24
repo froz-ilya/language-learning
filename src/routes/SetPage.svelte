@@ -10,6 +10,7 @@
   import SwipeRow from '../components/SwipeRow.svelte';
   import FillProgress from '../components/library/FillProgress.svelte';
   import EmptyState from '../components/library/EmptyState.svelte';
+  import QuickAdd, { type QuickAddDraft } from '../components/words/QuickAdd.svelte';
   import {
     afterSheet,
     isReflexiveCard,
@@ -31,6 +32,7 @@
   import { chooseAction, confirmAction, promptText, showToast, undoToast, type ActionItem } from '../lib/ui/dialogs.svelte';
   import { primeKeyboard } from '../lib/ui/keyboard';
   import type { Card } from '../lib/types';
+  import type { PickedFrom } from '../lib/words/cardDraft.svelte';
 
   const id = Number(route.parts[1]);
 
@@ -125,13 +127,105 @@
     void fillSet(id);
   }
 
-  // ---------- Word actions ----------
+  // ---------- Adding words (on this page) ----------
 
-  /** Open "Add word" with the keyboard already up (it has to be opened during the tap). */
+  /*
+   * "+" opens the add panel under the header: the list stays below it, the words just added on
+   * top. What's there (panel open, words added, the word being typed) is kept for this tab in
+   * sessionStorage, so opening a word and coming back finds it as it was. Not in the URL: a
+   * query change rebuilds the page.
+   */
+  const ADD_KEY = `setAdd.${id}`;
+  type SavedAdd = { adding: boolean; recent: number[]; term: string; pickedFrom: PickedFrom | null };
+
+  function readSavedAdd(): SavedAdd | null {
+    try {
+      const raw = sessionStorage.getItem(ADD_KEY);
+      if (!raw) return null;
+      const v: unknown = JSON.parse(raw);
+      if (!v || typeof v !== 'object') return null;
+      const o = v as Record<string, unknown>;
+      const recent = Array.isArray(o.recent) ? o.recent.filter((n): n is number => Number.isInteger(n) && (n as number) > 0).slice(0, 500) : [];
+      const pf = o.pickedFrom as Record<string, unknown> | null | undefined;
+      const pickedFrom =
+        pf && typeof pf === 'object' && typeof pf.text === 'string' && (pf.lang === 'ru' || pf.lang === 'en') ? { text: pf.text, lang: pf.lang as PickedFrom['lang'] } : null;
+      return { adding: o.adding === true, recent, term: typeof o.term === 'string' ? o.term.slice(0, 200) : '', pickedFrom };
+    } catch {
+      return null;
+    }
+  }
+
+  const saved = readSavedAdd();
+  let adding = $state(saved?.adding ?? false);
+  /** Words added on this page, newest first: listed on top, whatever the filter. */
+  let recent = $state.raw<number[]>(saved?.recent ?? []);
+  /** The word being typed, kept for when the page is opened again. */
+  const savedDraft: QuickAddDraft = { term: saved?.term ?? '', pickedFrom: saved?.pickedFrom ?? null };
+  let addDraft = $state.raw<QuickAddDraft>(savedDraft);
+  /** What the panel starts with (a word restored from before is not looked up again). */
+  let initialDraft = $state.raw<QuickAddDraft | null>(saved?.adding ? savedDraft : null);
+  /** The panel was opened by a tap: it takes the keyboard primed then. */
+  let focusOnOpen = $state(false);
+
+  $effect(() => {
+    const value: SavedAdd = { adding, recent, term: addDraft.term, pickedFrom: addDraft.pickedFrom };
+    try {
+      if (!value.adding && !value.recent.length) sessionStorage.removeItem(ADD_KEY);
+      else sessionStorage.setItem(ADD_KEY, JSON.stringify(value));
+    } catch {
+      // Storage off (private mode): the panel just isn't kept.
+    }
+  });
+
+  // An empty set opens with the panel (once; "Done" closes it for good).
+  let autoOpened = saved !== null;
+  $effect(() => {
+    if (autoOpened || !data.value?.set) return;
+    autoOpened = true;
+    if (!data.value.cards.length) adding = true;
+  });
+
+  /** Open the add panel with the keyboard already up (it has to be opened during the tap). */
   function addWord() {
     primeKeyboard();
-    go('/card/new', { set: id });
+    filter = 'all';
+    query = '';
+    onlySich = false;
+    initialDraft = null;
+    focusOnOpen = true;
+    adding = true;
   }
+
+  function doneAdding() {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    adding = false;
+    addDraft = { term: '', pickedFrom: null };
+    initialDraft = null;
+  }
+
+  function onAdded(c: Card) {
+    recent = [c.id!, ...recent.filter((x) => x !== c.id)];
+  }
+
+  const setCardsLite = $derived(cards.map((c) => ({ id: c.id, term: c.term, pos: c.pos, genders: c.genders ?? [] })));
+
+  /** The words added here, newest first (those still in the set). */
+  const recentCards = $derived.by(() => {
+    const byId = new Map(cards.map((c) => [c.id!, c]));
+    return recent.map((x) => byId.get(x)).filter((c): c is Card => !!c);
+  });
+  /**
+   * The list: words added here first (ordinary rows, newest first) while adding or with no
+   * filter or search, then the rest in the usual order.
+   */
+  const showRecent = $derived(recentCards.length > 0 && (adding || (filter === 'all' && !query.trim() && !sichFilter)));
+  const listed = $derived.by(() => {
+    if (!showRecent) return visible;
+    const ids = new Set(recent);
+    return [...recentCards, ...visible.filter((c) => !ids.has(c.id!))];
+  });
+
+  // ---------- Word actions ----------
 
   async function removeWord(c: Card) {
     undoToast(t('library.deleted', { name: c.term }), await deleteCard(c.id!));
@@ -227,6 +321,47 @@
   }
 </script>
 
+{#snippet wordRow(c: Card)}
+  {@const st = statusOfCard(c)}
+  <SwipeRow
+    left={{ label: t('common.delete'), icon: 'trash', tone: 'bad', run: () => removeWord(c) }}
+    right={st === 'known'
+      ? { label: t('set.swipeNotLearned'), icon: 'refresh', tone: 'warn', run: () => toggleKnown(c) }
+      : { label: t('set.swipeKnown'), icon: 'check', tone: 'good', run: () => toggleKnown(c) }}
+  >
+    <div class="word">
+      <a class="main" href="#/card/{c.id}">
+        <span class="dot st-{st}" title={STATUS_LABELS[st]}></span>
+        <span class="texts">
+          <span class="line1">
+            <span class="de"><Term card={c} /></span>
+            {#if isReflexive(c)}<span class="sich" lang="de" title={t('set.reflexive')}>sich</span>{/if}
+            {#if c.paused}<span class="paused" title={t('set.pausedWord')} aria-label={t('set.pausedWord')}><Icon name="pause" size={14} /></span>{/if}
+            {#if data.value?.hard.has(c.id!)}<span class="hard" title={t('set.hardWord')}><Icon name="flame" size={14} filled /></span>{/if}
+            {#if c.translation}<span class="tr">{c.translation}</span>{/if}
+          </span>
+          {#if secondLine(c) || c.needsFill}
+            <span class="sub">
+              {secondLine(c)}
+              {#if c.needsFill}<span class="pending">{t('set.detailsPending')}</span>{/if}
+            </span>
+          {/if}
+        </span>
+      </a>
+      <SpeakButton text={speakableTerm(c)} />
+      <button
+        class="icon-btn star"
+        class:on={c.starred}
+        aria-label={c.starred ? t('set.unstar') : t('set.star')}
+        aria-pressed={!!c.starred}
+        onclick={() => toggleStar(c)}
+      >
+        <Icon name="star" filled={!!c.starred} />
+      </button>
+    </div>
+  </SwipeRow>
+{/snippet}
+
 <div class="page">
   {#if data.value && !set}
     <Header title={t('common.set')} backTo="/library" />
@@ -237,7 +372,11 @@
     <Header {title} {subtitle} {backTo}>
       {#snippet actions()}
         {#if set}
-          <button class="icon-btn" aria-label={t('library.addWord')} onclick={addWord}><Icon name="plus" /></button>
+          {#if adding}
+            <button class="btn done-btn" aria-label={t('set.doneAdding')} onclick={doneAdding}>{t('common.done')}</button>
+          {:else}
+            <button class="icon-btn" aria-label={t('library.addWord')} onclick={addWord}><Icon name="plus" /></button>
+          {/if}
           <button class="icon-btn" aria-label={t('set.actions')} onclick={menu}><Icon name="more" /></button>
         {/if}
       {/snippet}
@@ -247,22 +386,40 @@
       <div class="card"><Skeleton lines={6} /></div>
     {:else}
       <div class="stack">
-        {#if cards.length}
-          <div class="progress card">
-            <div class="row small">
-              <span class="muted">{learnedLine(data.value.progress)}</span>
-              <span class="spacer"></span>
-              <span class="pct">{Math.round(data.value.progress.ratio * 100)}%</span>
+        {#if adding}
+          <section class="add-panel" aria-label={t('set.addPanel')} transition:slide={{ duration: dur(220) }}>
+            <QuickAdd
+              setId={id}
+              initial={initialDraft}
+              autofocus={focusOnOpen}
+              star
+              cards={setCardsLite}
+              onadded={onAdded}
+              onclose={doneAdding}
+              ondraft={(d) => (addDraft = d)}
+            />
+            {#if !cards.length}
+              <button class="btn btn-ghost btn-block" onclick={() => go('/import', { set: id })}><Icon name="import" /> {t('set.importList')}</button>
+            {/if}
+          </section>
+        {:else if cards.length}
+          <div class="stack" transition:slide={{ duration: dur(220) }}>
+            <div class="progress card">
+              <div class="row small">
+                <span class="muted">{learnedLine(data.value.progress)}</span>
+                <span class="spacer"></span>
+                <span class="pct">{Math.round(data.value.progress.ratio * 100)}%</span>
+              </div>
+              <ProgressBar progress={data.value.progress} />
             </div>
-            <ProgressBar progress={data.value.progress} />
-          </div>
 
-          <button class="btn btn-primary btn-block btn-lg" onclick={() => go(`/learn/set/${id}`)}>
-            <Icon name="play" filled size={18} /> {t('library.learn')}
-          </button>
-          <div class="row">
-            <button class="btn grow" onclick={() => go(`/modes/set/${id}`)}><Icon name="cards" size={20} /> {t('set.moreWays')}</button>
-            <button class="btn grow" onclick={addWord}><Icon name="plus" size={20} /> {t('set.addWordShort')}</button>
+            <button class="btn btn-primary btn-block btn-lg" onclick={() => go(`/learn/set/${id}`)}>
+              <Icon name="play" filled size={18} /> {t('library.learn')}
+            </button>
+            <div class="row">
+              <button class="btn grow" onclick={() => go(`/modes/set/${id}`)}><Icon name="cards" size={20} /> {t('set.moreWays')}</button>
+              <button class="btn grow" onclick={addWord}><Icon name="plus" size={20} /> {t('set.addWordShort')}</button>
+            </div>
           </div>
         {/if}
 
@@ -285,12 +442,14 @@
       </div>
 
       {#if !cards.length}
-        <div class="section">
-          <EmptyState icon="plus" title={t('library.noWordsYet')} text={t('set.emptyText')}>
-            <button class="btn btn-primary btn-lg btn-block" onclick={addWord}><Icon name="plus" /> {t('library.addAWord')}</button>
-            <button class="btn btn-block" onclick={() => go('/import', { set: id })}><Icon name="import" /> {t('set.importList')}</button>
-          </EmptyState>
-        </div>
+        {#if !adding}
+          <div class="section">
+            <EmptyState icon="plus" title={t('library.noWordsYet')} text={t('set.emptyText')}>
+              <button class="btn btn-primary btn-lg btn-block" onclick={addWord}><Icon name="plus" /> {t('library.addAWord')}</button>
+              <button class="btn btn-block" onclick={() => go('/import', { set: id })}><Icon name="import" /> {t('set.importList')}</button>
+            </EmptyState>
+          </div>
+        {/if}
       {:else}
         <section class="section">
           <div class="chips">
@@ -319,8 +478,8 @@
             {/if}
           </div>
 
-          {#if cards.length > 10}
-            <div class="search">
+          {#if cards.length > 10 && !adding}
+            <div class="search" transition:slide={{ duration: dur(220) }}>
               <span class="muted"><Icon name="search" size={18} /></span>
               <input
                 class="input"
@@ -334,60 +493,25 @@
             </div>
           {/if}
 
-          {#if !visible.length}
+          {#if !listed.length}
             <div class="empty">
               {query.trim() ? t('set.noMatch', { query: query.trim() }) : noneLine()}
             </div>
           {:else}
             <div class="words">
-              {#each visible as c, i (c.id)}
-                {@const st = statusOfCard(c)}
+              {#each listed as c, i (c.id)}
                 <div
                   class="w"
                   animate:flip={{ duration: dur(250) }}
                   in:enter|global={{ y: 8, duration: dur(200), delay: stagger(i, 25) }}
                   out:slide={{ duration: dur(200) }}
                 >
-                  <SwipeRow
-                    left={{ label: t('common.delete'), icon: 'trash', tone: 'bad', run: () => removeWord(c) }}
-                    right={st === 'known'
-                      ? { label: t('set.swipeNotLearned'), icon: 'refresh', tone: 'warn', run: () => toggleKnown(c) }
-                      : { label: t('set.swipeKnown'), icon: 'check', tone: 'good', run: () => toggleKnown(c) }}
-                  >
-                    <div class="word">
-                      <a class="main" href="#/card/{c.id}">
-                        <span class="dot st-{st}" title={STATUS_LABELS[st]}></span>
-                        <span class="texts">
-                          <span class="line1">
-                            <span class="de"><Term card={c} /></span>
-                            {#if isReflexive(c)}<span class="sich" lang="de" title={t('set.reflexive')}>sich</span>{/if}
-                            {#if c.paused}<span class="paused" title={t('set.pausedWord')} aria-label={t('set.pausedWord')}><Icon name="pause" size={14} /></span>{/if}
-                            {#if data.value?.hard.has(c.id!)}<span class="hard" title={t('set.hardWord')}><Icon name="flame" size={14} filled /></span>{/if}
-                            {#if c.translation}<span class="tr">{c.translation}</span>{/if}
-                          </span>
-                          {#if secondLine(c) || c.needsFill}
-                            <span class="sub">
-                              {secondLine(c)}
-                              {#if c.needsFill}<span class="pending">{t('set.detailsPending')}</span>{/if}
-                            </span>
-                          {/if}
-                        </span>
-                      </a>
-                      <SpeakButton text={speakableTerm(c)} />
-                      <button
-                        class="icon-btn star"
-                        class:on={c.starred}
-                        aria-label={c.starred ? t('set.unstar') : t('set.star')}
-                        aria-pressed={!!c.starred}
-                        onclick={() => toggleStar(c)}
-                      >
-                        <Icon name="star" filled={!!c.starred} />
-                      </button>
-                    </div>
-                  </SwipeRow>
+                  {@render wordRow(c)}
                 </div>
               {/each}
             </div>
+          {/if}
+          {#if listed.length}
             <p class="hint small muted center">{t('set.swipeHint')}</p>
           {/if}
         </section>
@@ -631,4 +755,17 @@
   .hint {
     margin: 10px 8px 0;
   }
+  .add-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .done-btn {
+    min-height: 38px;
+    padding: 6px 14px;
+    margin-right: 4px;
+    font-size: 16px;
+    color: var(--accent);
+  }
+
 </style>

@@ -123,6 +123,7 @@
     <div class="field">
       <label for="preps">{t('words.editor.prepositions')} <span class="hint">{t('words.editor.prepositionsHint')}</span></label>
       <input id="preps" class="input" bind:value={card.preps} placeholder="auf + Akk" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" lang="de" />
+      {#if draft.prepOn}<div class="small muted">{t('words.editor.prepInTermHint')}</div>{/if}
     </div>
   {/if}
 

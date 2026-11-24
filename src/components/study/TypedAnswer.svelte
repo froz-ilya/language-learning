@@ -101,6 +101,7 @@
       verdict={result.verdict}
       articleProblem={result.articleProblem}
       reflexiveProblem={result.reflexiveProblem}
+      prepProblem={result.prepProblem}
       card={item.card}
       {answerGerman}
       {given}

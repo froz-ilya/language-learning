@@ -1453,3 +1453,84 @@ describe('reflexive verbs', () => {
     expect(mergeIntoCard(storedTerms('Tisch')[0], { ...result, preps: undefined })).not.toHaveProperty('preps');
   });
 });
+
+// ---------- Words learned with a preposition ----------
+
+describe('a word with its preposition', () => {
+  const bestehen: LookupResult = {
+    term: 'bestehen',
+    pos: 'verb',
+    genders: [],
+    plural: '',
+    praeteritum: 'bestand',
+    partizip2: 'bestanden',
+    auxiliary: 'haben',
+    translation: 'состоять; настаивать; сдать',
+    examples: [{ de: 'Das Team besteht aus fünf Leuten.', tr: 'Команда состоит из пяти человек.' }],
+    meaningExamples: [
+      [{ de: 'Das Team besteht aus fünf Leuten.', tr: 'Команда состоит из пяти человек.' }],
+      [{ de: 'Er besteht auf seinem Recht.', tr: 'Он настаивает на своём праве.' }],
+      [],
+    ],
+    meaningPreps: [['aus + Dat'], ['auf + Akk'], []],
+    preps: 'aus + Dat; auf + Akk',
+    source: 'wiktionary',
+  };
+
+  it('is looked up as the word: one cache row ("v5:ru:warten") for both', async () => {
+    const result = { ...RESULT, term: 'warten', pos: 'verb', genders: [], plural: '', translation: 'ждать', preps: 'auf + Akk' };
+    mem.cache.set('v5:ru:warten', { key: 'v5:ru:warten', result, fetchedAt: Date.now(), via: 'local' });
+    expect(await lookupWord('warten auf', 'ru')).toMatchObject({ term: 'warten', translation: 'ждать' });
+    expect(await lookupWord('warten auf + Akk', 'ru')).toMatchObject({ term: 'warten' });
+    // A row cached before meaningPreps existed still reads.
+    expect((await lookupWord('warten auf', 'ru'))!.meaningPreps).toBeUndefined();
+  });
+
+  const verbRow = (over: Partial<LookupResult>): LookupResult => ({ ...RESULT, pos: 'verb', genders: [], plural: '', ...over });
+  const cacheRow = (term: string, result: LookupResult) =>
+    mem.cache.set(`v5:ru:${term}`, { key: `v5:ru:${term}`, result, fetchedAt: Date.now(), via: 'local' });
+
+  it("gets our list's prepositions when read, also from an old cache row; the row stays as it was", async () => {
+    const denken = verbRow({ term: 'denken', translation: 'думать' });
+    cacheRow('denken', denken);
+    expect((await lookupWord('denken', 'ru'))!.preps).toBe('an + Akk');
+    expect((mem.cache.get('v5:ru:denken') as { result: LookupResult }).result.preps).toBeUndefined();
+    // The dictionary's are kept, the list's case wins for the same preposition.
+    cacheRow('sprechen', verbRow({ term: 'sprechen', translation: 'говорить', preps: 'mit + Dat' }));
+    expect((await lookupWord('sprechen', 'ru'))!.preps).toBe('mit + Dat; über + Akk');
+    cacheRow('glauben', verbRow({ term: 'glauben', translation: 'верить', preps: 'an + Dat' }));
+    expect((await lookupWord('glauben', 'ru'))!.preps).toBe('an + Akk');
+    // A pair that joins the word isn't a detail of it.
+    cacheRow('verzichten', verbRow({ term: 'verzichten', translation: 'отказываться' }));
+    expect((await lookupWord('verzichten', 'ru'))!.preps).toBeUndefined();
+    // A new card and the background fill (empty fields only) get them too.
+    expect(mergeIntoCard(card({ term: 'denken' }), (await lookupWord('denken', 'ru'))!).preps).toBe('an + Akk');
+    expect(mergeIntoCard(card({ term: 'denken', preps: 'über + Akk' }), (await lookupWord('denken', 'ru'))!).preps).toBe('über + Akk');
+  });
+
+  it('gives the reflexive pairs to the reflexive reading, not to the plain verb', async () => {
+    cacheRow(
+      'freuen',
+      verbRow({ term: 'freuen', translation: 'радовать', reflexive: { translation: 'радоваться', examples: [] } }),
+    );
+    const r = (await lookupWord('freuen', 'ru'))!;
+    expect(r.preps).toBeUndefined();
+    expect(r.reflexive!.preps).toBe('auf + Akk; über + Akk');
+    cacheRow('sich freuen', verbRow({ term: 'sich freuen', translation: 'радоваться', preps: 'über + Akk' }));
+    expect((await lookupWord('sich freuen', 'ru'))!.preps).toBe('über + Akk; auf + Akk');
+  });
+
+  it('mergeIntoCard keeps the term and takes the meanings that go with the preposition', () => {
+    const c = card({ term: 'bestehen auf', preps: 'auf' });
+    const m = mergeIntoCard(c, bestehen);
+    expect(m.term).toBe('bestehen auf');
+    expect(m.translation).toBe('настаивать');
+    expect(m.examples).toEqual([{ de: 'Er besteht auf seinem Recht.', tr: 'Он настаивает на своём праве.' }]);
+    // The case the card lacked: the list's (bestehen auf + Dat), not the dictionary's guess.
+    expect(m.preps).toBe('auf + Dat');
+    expect(mergeIntoCard(card({ term: 'bestehen aus', preps: 'aus + Dat' }), bestehen)).toMatchObject({ translation: 'состоять', preps: 'aus + Dat' });
+    // A translation the card has is kept; a card without the preposition gets everything.
+    expect(mergeIntoCard(card({ term: 'bestehen auf', preps: 'auf + Dat', translation: 'мой' }), bestehen).translation).toBe('мой');
+    expect(mergeIntoCard(card({ term: 'bestehen' }), bestehen)).toMatchObject({ translation: bestehen.translation, preps: bestehen.preps });
+  });
+});

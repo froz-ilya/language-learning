@@ -83,6 +83,9 @@ export const en = {
   'study.examples.more': 'More examples ({n})',
 
   'study.feedback.forgotSich': "Don't forget “sich”: {answer}",
+  'study.feedback.forgotPrep': "Don't forget the preposition: {answer}",
+  'study.feedback.wrongPrep': 'Another preposition: {answer}',
+  'study.feedback.wrongCase': 'After {prep}: {case}',
   'study.feedback.typo': 'Accepted — check spelling: {answer}',
   'study.feedback.missingArticle': 'Missing article',
   'study.feedback.wrongArticle': 'Wrong article',
@@ -227,6 +230,9 @@ export const de: Translation<typeof en> = {
   'study.examples.more': 'Weitere Beispiele ({n})',
 
   'study.feedback.forgotSich': 'Vergiss „sich“ nicht: {answer}',
+  'study.feedback.forgotPrep': 'Vergiss die Präposition nicht: {answer}',
+  'study.feedback.wrongPrep': 'Andere Präposition: {answer}',
+  'study.feedback.wrongCase': 'Nach {prep}: {case}',
   'study.feedback.typo': 'Akzeptiert – prüfe die Schreibweise: {answer}',
   'study.feedback.missingArticle': 'Artikel fehlt',
   'study.feedback.wrongArticle': 'Falscher Artikel',
@@ -373,6 +379,9 @@ export const ru: RuTranslation<typeof en> = {
   'study.examples.more': 'Ещё примеры ({n})',
 
   'study.feedback.forgotSich': 'Не забудь «sich»: {answer}',
+  'study.feedback.forgotPrep': 'Не забудь предлог: {answer}',
+  'study.feedback.wrongPrep': 'Другой предлог: {answer}',
+  'study.feedback.wrongCase': 'После {prep}: {case}',
   'study.feedback.typo': 'Засчитано — проверь написание: {answer}',
   'study.feedback.missingArticle': 'Нет артикля',
   'study.feedback.wrongArticle': 'Не тот артикль',

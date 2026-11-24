@@ -21,11 +21,35 @@ import { isReflexiveTerm, withSich } from '../german/reflexive';
 import { queryScript, reverseSearch } from '../dict/reverse';
 import { reverseRows, searchWords, suggestionRows, type SearchGroups, type SearchRow } from '../search/results';
 import { translationForPick } from '../search/pickTranslation';
+import { showToast } from '../ui/dialogs.svelte';
+import {
+  baseTerm,
+  CONTRACTIONS,
+  formatPrep,
+  mergePrepEntry,
+  joiningPair,
+  pairsFor,
+  prepEntries,
+  prepOfCard,
+  resolveCase,
+  TWO_WAY,
+  withPrep,
+  type PrepCase,
+  type PrepPart,
+} from '../german/prepositions';
+import { joiningByMeaning, picksForPrep } from './prepReading';
+
+/** "Er besteht auf seinem Recht." has "auf" (also as "aufs", "darauf"). */
+const sentenceHas = (de: string, word: string) =>
+  de
+    .toLowerCase()
+    .split(/[^\p{L}]+/u)
+    .some((w) => w === word || CONTRACTIONS[w] === word || w === `da${word}` || w === `dar${word}`);
 import type { ArticleVariant, Card, Example, Gender, Lang, LookupResult, ReflexiveReading } from '../types';
 
 export type LookupState = 'idle' | 'loading' | 'done' | 'notfound' | 'error' | 'offline';
 /** A card of this set, as far as the duplicate check and its "Open" need it. */
-export type SetCard = Pick<Card, 'id' | 'term' | 'pos' | 'genders'>;
+export type SetCard = Pick<Card, 'id' | 'term' | 'pos' | 'genders'> & { preps?: string };
 /** The Russian / English word a German word was picked by (its translation follows it). */
 export interface PickedFrom {
   text: string;
@@ -41,6 +65,8 @@ export interface FieldSuggestions {
 }
 
 type Reading = ReflexiveReading & { phrases: Example[] };
+/** A preposition the user typed, with how its case was known. */
+type TypedPrep = PrepPart & { from?: string };
 type LookupExamples = { byMeaning: Example[][]; examples: Example[]; phrases: Example[] };
 const NO_EXAMPLES: LookupExamples = { byMeaning: [], examples: [], phrases: [] };
 const NO_SUGGESTIONS: FieldSuggestions = { german: [], reverse: [], reverseLang: null };
@@ -110,6 +136,25 @@ export class CardDraft {
   /** A Latin word the dictionary doesn't know may be English: German words it translates. */
   englishRows = $state.raw<SearchRow[]>([]);
   lastLookedUp = '';
+  /**
+   * Prepositions that are part of the looked-up word, for the switch ("bestehen | bestehen aus |
+   * bestehen auf"): the list's joining pairs and the ones the dictionary's meanings tie a meaning
+   * to (prepositions.ts). Other prepositions are a detail of the word (preps). Empty: no switch.
+   */
+  prepChoices = $state.raw<string[]>([]);
+  /** The current reading's prepositions from the lookup (Card.preps format). */
+  private readingPreps = '';
+  /** Prepositions per meaning chip (aligned with meaningOptions), from the lookup. */
+  private meaningPreps: string[][] = [];
+  /** The reading's translation as the lookup gave it (the switch goes back to it). */
+  private readingTr = '';
+  /** The reading's examples and per-meaning prepositions (the switch goes back to them). */
+  private readingEx: LookupExamples = NO_EXAMPLES;
+  private readingMeaningPreps: string[][] = [];
+  /** The preposition typed with the word ("denken an + Akk", "bestehen auf"), for the next lookup. */
+  typedPrep = $state.raw<TypedPrep | null>(null);
+  /** The preposition typed before a suggestion row was picked ("warten a…" → pick "warten"). */
+  private pendingPrep: TypedPrep | null = null;
   /** Article picked from a suggestion row, asked for in the next lookup. */
   private wantGender: Gender | null = null;
   private lookupCtrl: AbortController | undefined;
@@ -158,7 +203,7 @@ export class CardDraft {
     (this.card.preps ?? '')
       .split(';')
       .map((p) => p.trim())
-      .filter(Boolean)
+      .filter((p) => p && (!this.prepOn || !p.startsWith(this.prepOn)))
       .join(' · '),
   );
   firstExample = $derived(this.card.examples.find((e) => e.de.trim()));
@@ -172,6 +217,53 @@ export class CardDraft {
         ]
       : [],
   );
+  /** The preposition the card is learned with ("warten auf" → auf), when it has one. */
+  prepOn = $derived(prepOfCard(this.card)?.word ?? null);
+  /** The term without the preposition ("warten auf" → "warten"). */
+  prepBase = $derived(baseTerm(this.card));
+  /** The preposition switch: "bestehen | bestehen auf" (new words, after a lookup). */
+  prepOptions = $derived(
+    this.prepChoices.length
+      ? [{ id: '', label: this.prepBase }, ...this.prepChoices.map((w) => ({ id: w, label: withPrep(this.prepBase, w) }))]
+      : [],
+  );
+  /**
+   * The preposition typed as a detail of the word ("denken an"): before a lookup from the field's
+   * text, after it the one kept from that text.
+   */
+  noteWord = $derived.by(() => {
+    if (this.prepOn) return null;
+    if (this.lookupState === 'idle') return parseGermanInput(this.card.term).note?.word ?? null;
+    return this.typedPrep?.word ?? null;
+  });
+  /** The typed detail with its case as far as known ("an + Akk"). */
+  noteEntry = $derived.by((): PrepPart | null => {
+    const w = this.noteWord;
+    if (!w) return null;
+    const e = prepEntries(this.card.preps).find((x) => x.word === w) ?? parseGermanInput(this.card.term).note;
+    if (!e) return { word: w };
+    if (e.case) return { word: w, case: e.case };
+    const c = resolveCase(baseTerm(this.card), w).case;
+    return c ? { word: w, case: c } : { word: w };
+  });
+  /** The preposition the Akk / Dat picker is for: the word's own, else the typed one. */
+  caseWord = $derived(this.prepOn ?? this.noteWord);
+  /** A two-way preposition whose case nobody knows: the user picks Akk / Dat. */
+  needsCase = $derived.by(() => {
+    const w = this.caseWord;
+    const e = w ? prepEntries(this.card.preps).find((x) => x.word === w) : undefined;
+    return !!e && TWO_WAY.has(e.word) && !e.case;
+  });
+  /**
+   * "denken an" typed while the set has "denken" without "an": the preposition goes to that card
+   * (one word, the preposition a detail of it).
+   */
+  mergeTarget = $derived.by(() => {
+    const dup = this.duplicate;
+    const w = this.noteWord;
+    if (!this.isNew || !dup || !w) return undefined;
+    return prepEntries(dup.preps).some((e) => e.word === w) ? undefined : dup;
+  });
   /** The typed text is Russian (new words): the field searches by translation. */
   cyrillic = $derived(this.isNew && isCyrillic(this.card.term));
 
@@ -219,7 +311,7 @@ export class CardDraft {
     const loadedIds = new Set(cards.map((c) => c.id));
     // Words added while this was loading are kept.
     this.setCards = [
-      ...cards.map((c) => ({ id: c.id, term: c.term, pos: c.pos, genders: c.genders ?? [] })),
+      ...cards.map((c) => ({ id: c.id, term: c.term, pos: c.pos, genders: c.genders ?? [], preps: c.preps })),
       ...this.setCards.filter((c) => !loadedIds.has(c.id)),
     ];
   }
@@ -246,6 +338,10 @@ export class CardDraft {
     const card = this.card;
     const p = parseGermanInput(card.term);
     if (!p.term) return;
+    // Already learned with this preposition (the dictionary's meanings joined it): stays so.
+    if (p.note && prepOfCard(card)?.word === p.note.word) return;
+    // "denken an + Akk", "bestehen auf": the card's prepositions get the typed entry.
+    for (const part of p.prep ? [p.prep] : p.note ? [p.note] : prepEntries(p.preps)) this.applyTypedPrep(part);
     const changed = p.term !== card.term.trim() || p.pos;
     if (!changed) return;
     card.term = p.term;
@@ -255,6 +351,20 @@ export class CardDraft {
     if (p.praeteritum) card.praeteritum = p.praeteritum;
     if (p.partizip2) card.partizip2 = p.partizip2;
     if (p.auxiliary) card.auxiliary = p.auxiliary;
+  }
+
+  /**
+   * "denken an + Akk" typed: the card's prepositions get that entry. One the card has already
+   * keeps its case unless a case was typed (the user may have picked one).
+   */
+  private applyTypedPrep(p: TypedPrep) {
+    const card = this.card;
+    const has = prepEntries(card.preps).find((e) => e.word === p.word);
+    if (has && (p.from !== 'typed' || has.case === p.case)) return;
+    const merged = mergePrepEntry(card.preps, { word: p.word, ...(p.case ? { case: p.case } : {}) });
+    const wasAuto = (card.preps ?? '') === this.auto.preps;
+    card.preps = merged;
+    if (this.isNew && wasAuto) this.auto.preps = merged;
   }
 
   // ---------- Suggestions ----------
@@ -279,6 +389,11 @@ export class CardDraft {
     this.reflexive = null;
     this.pickedFrom = null;
     this.englishRows = [];
+    this.prepChoices = [];
+    this.readingPreps = '';
+    this.meaningPreps = [];
+    this.typedPrep = null;
+    this.readingTr = '';
     if (!this.isNew || this.showDetails) return; // the full form may hold hand-typed details
     const card = this.card;
     card.pos = 'other';
@@ -308,15 +423,18 @@ export class CardDraft {
     clearTimeout(this.suggestTimer);
     this.suggestCtrl?.abort();
     const text = this.searchText();
-    // "der Ti" → "Ti"
-    const prefix = this.cyrillic ? text : parseGermanInput(text).term;
+    // "der Ti" → "Ti"; "denken an" → "denken" (the row picked gets the preposition back)
+    const parsed = this.cyrillic ? null : parseGermanInput(text);
+    const prefix = parsed ? (parsed.base ?? parsed.term) : text;
+    this.pendingPrep = parsed?.prep ?? parsed?.note ?? null;
     if (prefix.length < 2) {
       this.suggestions = NO_SUGGESTIONS;
       this.suggestionsFor = '';
       this.inflight = null;
       return;
     }
-    this.suggestTimer = setTimeout(() => void this.search(this.isNew ? text : prefix), SUGGEST_DELAY_MS);
+    const query = this.isNew && !this.pendingPrep ? text : prefix;
+    this.suggestTimer = setTimeout(() => void this.search(query), SUGGEST_DELAY_MS);
   }
 
   /**
@@ -366,8 +484,11 @@ export class CardDraft {
       card.genders = row.gender ? [row.gender] : [...row.genders];
       this.pickedFrom = { text: row.hint || typed, lang: fromLang };
     } else {
+      const prep = this.pendingPrep;
       this.applyParsed(); // keep a typed article ("der Ti" → m)
-      card.term = row.term;
+      // "bestehen auf" typed, "bestehen" picked: "bestehen auf"; "denken an": the lookup adds "an".
+      card.term = prep && joiningPair(row.term, prep.word) ? withPrep(row.term, prep.word) : row.term;
+      this.typedPrep = prep;
       this.pickedFrom = null;
     }
     // A row of one article ("die See"): look that one up.
@@ -397,6 +518,9 @@ export class CardDraft {
 
   /** `picked`: a row was just picked, so a Russian check doesn't apply (its term is German). */
   async runLookup(picked = false) {
+    // The preposition typed ("denken an", "bestehen auf"), before applyParsed takes a detail out of the term.
+    const typed = this.cyrillic ? null : parseGermanInput(this.card.term);
+    const fromText = typed?.prep ?? typed?.note ?? null;
     this.applyParsed();
     const card = this.card;
     const word = card.term.trim();
@@ -424,13 +548,24 @@ export class CardDraft {
     this.articles = [];
     this.reflexive = null;
     this.englishRows = [];
+    this.prepChoices = [];
+    // "bestehen auf": looked up as "bestehen" (see lookup's prepare). A row was picked: the
+    // preposition typed before it is kept, with a case typed then.
+    const kept = this.typedPrep;
+    this.typedPrep = fromText && kept?.word === fromText.word && kept.from === 'typed' ? kept : (fromText ?? (picked ? kept : null));
     // The article picked from a suggestion, or the one the card has: its meaning comes first.
     const gender = this.wantGender ?? (card.pos === 'noun' && card.genders.length === 1 ? card.genders[0] : null);
     this.wantGender = null;
     const query = gender && !parseGermanInput(word).genders.length ? `${ARTICLE[gender]} ${word}` : word;
     try {
       // Offline dictionary first, then online sources (see lib/sources); works offline for common words.
-      const { result: r, via: from } = await lookupWordWithSource(query, settings.lang, ctrl.signal);
+      let { result: r, via: from } = await lookupWordWithSource(query, settings.lang, ctrl.signal);
+      let asTyped = false;
+      if (!r && prepOfCard(card) && this.isNew) {
+        // The word alone isn't known: maybe the whole phrase is.
+        ({ result: r, via: from } = await lookupWordWithSource(query, settings.lang, ctrl.signal, true));
+        asTyped = true;
+      }
       if (ctrl.signal.aborted) return;
       if (!r) {
         this.lookupState = online.value ? 'notfound' : 'offline';
@@ -439,7 +574,7 @@ export class CardDraft {
       }
       this.via = from;
       this.articles = r.articles && r.articles.length > 1 ? r.articles : [];
-      this.applyResult(r);
+      this.applyResult(r, asTyped);
       this.applyPick();
       this.filled = true;
       this.lookupState = 'done';
@@ -473,13 +608,20 @@ export class CardDraft {
       .catch(() => {});
   }
 
-  applyResult(r: LookupResult) {
+  /** `asTyped`: the result is for the whole typed text, not the word before its preposition. */
+  applyResult(r: LookupResult, asTyped = false) {
     if (!this.isNew) {
       // Existing card: only fill what's empty.
       const merged = mergeIntoCard($state.snapshot(this.card) as Card, r);
       this.card = { ...merged, id: this.card.id, setId: this.card.setId };
       if (r.preps && !this.card.preps?.trim()) this.card.preps = r.preps;
       if (r.translation && this.card.translation.trim() === r.translation.trim()) this.offerMeanings();
+      // "warten auf" typed into the term: the case the dictionary knows, when none was typed.
+      const p = prepOfCard(this.card);
+      if (p && !p.case) {
+        const c = resolveCase(baseTerm(this.card), p.word, { lookup: r.preps }).case;
+        if (c) this.card.preps = mergePrepEntry(this.card.preps, { word: p.word, case: c });
+      }
       return;
     }
     const card = this.card;
@@ -514,6 +656,164 @@ export class CardDraft {
             refl: r.reflexive,
           }
         : null;
+    this.readingPreps = r.preps ?? '';
+    this.meaningPreps = r.meaningPreps ?? [];
+    this.keepReading();
+    if (asTyped) {
+      this.typedPrep = null;
+      return;
+    }
+    // "freuen über", "verlassen auf": the preposition goes with the "sich" reading.
+    const word = this.typedPrep?.word;
+    const has = (preps?: string) => !!word && prepEntries(preps).some((e) => e.word === word);
+    const reflPair = !!word && pairsFor(card.term).some((x) => x.word === word && isReflexiveTerm(x.base));
+    if (word && this.reflexive && !has(r.preps) && (has(r.reflexive?.preps) || reflPair)) {
+      this.chooseReflexive(true);
+      return;
+    }
+    this.applyPrepDefault(word ?? null);
+  }
+
+  // ---------- Preposition (warten / warten auf) ----------
+
+  /**
+   * After a lookup or a change of reading: the prepositions that are part of the word (for the
+   * switch), and the card's — `keep` when it is one of them (typed, or kept from the other
+   * reading), else none. A typed preposition that isn't part of the word is a detail of it
+   * (preps): "denken an" is the card "denken" with "an + Akk".
+   */
+  private applyPrepDefault(keep: string | null) {
+    if (!this.isNew) return;
+    const base = baseTerm(this.card);
+    const refl = isReflexiveTerm(base);
+    const listed = pairsFor(base)
+      .filter((p) => p.joins && isReflexiveTerm(p.base) === refl)
+      .map((p) => p.word);
+    // The dictionary's meanings can join a preposition the list doesn't know; one the list has
+    // as a detail of the word (warten auf: ждать is also "warten") stays a detail.
+    const detail = new Set(pairsFor(base).filter((p) => !p.joins).map((p) => p.word));
+    const fromMeanings = joiningByMeaning(this.meaningPreps).filter((w) => !detail.has(w));
+    const joining = [...new Set([...listed, ...fromMeanings])];
+    this.prepChoices = joining.slice(0, 3);
+    const want = keep && this.prepChoices.includes(keep) ? keep : null;
+    this.setPrep(want);
+    if (!want && this.typedPrep) this.addNote(this.typedPrep);
+  }
+
+  /** The preposition switch: the card becomes "bestehen auf" (or "bestehen"). */
+  choosePrep(word: string | null) {
+    if ((word || null) === this.prepOn) return;
+    this.setPrep(word || null);
+  }
+
+  private setPrep(word: string | null) {
+    const card = this.card;
+    const base = baseTerm(card);
+    card.term = word ? withPrep(base, word) : base;
+    // The typed text is this word now: Return adds it, typing on starts a new word.
+    this.lastLookedUp = card.term.trim();
+    if (word) {
+      const t = this.typedPrep;
+      const typed = t?.word === word && t.from === 'typed' ? t.case : undefined;
+      const r = resolveCase(base, word, { typed, lookup: this.readingPreps });
+      const part: PrepPart = r.case ? { word, case: r.case } : { word };
+      if (card.preps?.trim() && card.preps !== this.auto.preps) card.preps = mergePrepEntry(card.preps, part);
+      else this.setPreps(formatPrep(part));
+    } else {
+      this.setPreps(this.readingPreps || undefined);
+    }
+    this.meaningsFor(base, word);
+  }
+
+  /** A preposition that is a detail of the word ("denken an"): added to its prepositions. */
+  private addNote(p: TypedPrep) {
+    const card = this.card;
+    const typed = p.from === 'typed' ? p.case : undefined;
+    const r = resolveCase(baseTerm(card), p.word, { typed, lookup: this.readingPreps });
+    const wasAuto = (card.preps ?? '') === this.auto.preps;
+    card.preps = mergePrepEntry(card.preps, r.case ? { word: p.word, case: r.case } : { word: p.word });
+    if (wasAuto) this.auto.preps = card.preps;
+  }
+
+  /**
+   * The meanings for the word with (or without) its preposition: a joining pair's own meaning
+   * (bestehen auf → настаивать) is the one selected — a chip that says it, else in front as a
+   * meaning of its own; otherwise the meanings the dictionary ties to it. Without: the reading's.
+   * Only while the translation is still the lookup's.
+   */
+  private meaningsFor(base: string, word: string | null) {
+    const card = this.card;
+    if (!this.readingTr || card.translation !== this.auto.translation) return;
+    this.lookupEx = this.readingEx;
+    this.meaningPreps = this.readingMeaningPreps;
+    card.translation = this.readingTr;
+    this.auto.translation = this.readingTr;
+    this.clearMeanings();
+    this.offerMeanings();
+    const own = word ? joiningPair(base, word)?.joins?.[settings.lang] : undefined;
+    if (word && own) {
+      const res = translationForPick(splitMeanings(card.translation), own, settings.lang, settings.lang);
+      if (res) {
+        this.meaningOptions = res.meanings.length > 1 ? res.meanings : [];
+        this.meaningPicked = res.meanings.length > 1 ? res.picked : [];
+        card.translation = joinMeanings(res.meanings.filter((_, i) => res.picked[i]));
+        this.auto.translation = card.translation;
+        if (res.prepended) {
+          // The meaning is ours, not the dictionary's: only examples with the preposition fit it.
+          const fits = (e: Example) => sentenceHas(e.de, word);
+          const ex = this.lookupEx;
+          this.lookupEx = {
+            ...ex,
+            byMeaning: ex.byMeaning.length ? [ex.byMeaning.flat().filter(fits), ...ex.byMeaning.map((l) => l.filter(fits))] : [],
+            examples: ex.examples.filter(fits),
+            phrases: ex.phrases.filter(fits),
+          };
+          if (this.meaningPreps.length) this.meaningPreps = [[], ...this.meaningPreps];
+        }
+      }
+    } else if (word && this.meaningOptions.length > 1) {
+      const picks = picksForPrep(this.meaningPreps, word);
+      if (picks && picks.length === this.meaningOptions.length) {
+        this.meaningPicked = picks;
+        card.translation = this.meaningValue;
+        this.auto.translation = card.translation;
+      }
+    }
+    if (this.isNew && this.examplesAuto) this.fillExamples();
+  }
+
+  /** After a lookup or a change of reading: what the preposition switch goes back to. */
+  private keepReading() {
+    const card = this.card;
+    this.readingTr = card.translation === this.auto.translation ? card.translation : '';
+    this.readingEx = this.lookupEx;
+    this.readingMeaningPreps = this.meaningPreps;
+  }
+
+  /** The case after a two-way preposition nobody knew ("denken an": Akk). */
+  pickCase(c: PrepCase) {
+    const w = this.caseWord;
+    if (!w) return;
+    const wasAuto = (this.card.preps ?? '') === this.auto.preps;
+    this.card.preps = mergePrepEntry(this.card.preps, { word: w, case: c });
+    if (wasAuto) this.auto.preps = this.card.preps;
+  }
+
+  /**
+   * "denken an" typed while the set has "denken": that card gets "an + Akk" in its prepositions
+   * (its term and progress stay). Returns the updated card, or null when there was nothing to do.
+   */
+  async mergePrepIntoDuplicate(): Promise<Card | null> {
+    const dup = this.mergeTarget;
+    const entry = this.noteEntry;
+    if (!dup || !entry || dup.id === undefined) return null;
+    const c = await db.cards.get(dup.id);
+    if (!c) return null;
+    const updated: Card = { ...c, preps: mergePrepEntry(c.preps, entry) };
+    await saveCard(updated);
+    this.setCards = this.setCards.map((x) => (x.id === c.id ? { ...x, preps: updated.preps } : x));
+    showToast(t('words.editor.prepAdded', { word: c.term, prep: formatPrep(entry) }));
+    return updated;
   }
 
   /**
@@ -532,6 +832,7 @@ export class CardDraft {
     this.auto.translation = card.translation;
     // Examples per meaning stay aligned with the chips.
     if (res.prepended && this.lookupEx.byMeaning.length) this.lookupEx = { ...this.lookupEx, byMeaning: [[], ...this.lookupEx.byMeaning] };
+    if (res.prepended && this.meaningPreps.length) this.meaningPreps = [[], ...this.meaningPreps];
     if (this.examplesAuto) this.fillExamples();
   }
 
@@ -580,6 +881,7 @@ export class CardDraft {
     if (!this.reflexive || on === this.reflexiveOn) return;
     const card = this.card;
     const { base, plain, refl } = this.reflexive;
+    const keepPrep = this.prepOn ?? this.typedPrep?.word ?? null;
     const reading: Reading = on ? { ...refl, phrases: phrasesForReading(plain.phrases, true) } : plain;
     const other = (on ? plain : refl).translation.trim();
     const translationIsAuto = !card.translation.trim() || card.translation === this.auto.translation || card.translation.trim() === other;
@@ -595,6 +897,11 @@ export class CardDraft {
     this.setPreps(reading.preps);
     this.lookupEx = { byMeaning: reading.meaningExamples ?? [], examples: reading.examples, phrases: reading.phrases };
     if (!card.examples.some((e) => e.de.trim()) || this.examplesAuto) this.fillExamples();
+    // The preposition follows: kept when this reading has it too (sich freuen über).
+    this.readingPreps = reading.preps ?? '';
+    this.meaningPreps = reading.meaningPreps ?? [];
+    this.keepReading();
+    this.applyPrepDefault(keepPrep);
   }
 
   // ---------- Meanings ----------
@@ -716,6 +1023,12 @@ export class CardDraft {
     this.reflexive = null;
     this.pickedFrom = null;
     this.englishRows = [];
+    this.prepChoices = [];
+    this.readingPreps = '';
+    this.meaningPreps = [];
+    this.typedPrep = null;
+    this.pendingPrep = null;
+    this.readingTr = '';
     this.clearMeanings();
     this.clearLookupExamples();
     this.lookupState = 'idle';

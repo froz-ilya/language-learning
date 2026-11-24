@@ -1,6 +1,7 @@
 import { db } from '../db/schema';
 import type { LexEntry } from '../dict/types';
 import { withSich } from '../german/reflexive';
+import { baseTerm } from '../german/prepositions';
 import { reviewsFor, statusOf, type WordStatus } from '../progress';
 export { lemmaMap } from './rate';
 
@@ -23,9 +24,13 @@ export async function loadVocab(): Promise<Map<string, CardRef[]>> {
     const key = c.term.trim().toLowerCase();
     if (!key) continue;
     const ref: CardRef = { id: c.id!, setId: c.setId, term: c.term, status: statusOf(c, reviews.get(c.id!)) };
-    const list = map.get(key);
-    if (list) list.push(ref);
-    else map.set(key, [ref]);
+    // "warten auf" is also found as "warten" (the text has "wartet").
+    const base = baseTerm(c).toLowerCase();
+    for (const k of base !== key ? [key, base] : [key]) {
+      const list = map.get(k);
+      if (list) list.push(ref);
+      else map.set(k, [ref]);
+    }
   }
   for (const list of map.values()) list.sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
   return map;

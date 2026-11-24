@@ -89,7 +89,8 @@ describe('prefillRows', () => {
   it('looks up reflexive verbs and verbs with a preposition by their verb', async () => {
     const [sich, mit, phrase] = await fill('sich gehen,\ngehen über,\nwird in ... gegangen,');
     expect(sich.fields).toMatchObject({ term: 'sich gehen', pos: 'verb', praeteritum: 'ging' });
-    expect(mit.fields).toMatchObject({ term: 'gehen über', pos: 'verb', partizip2: 'gegangen' });
+    // The preposition is a detail of the verb (prepositions.ts), like its forms.
+    expect(mit.fields).toMatchObject({ term: 'gehen', preps: 'über', pos: 'verb', partizip2: 'gegangen' });
     expect(phrase.fields).toMatchObject({ term: 'wird in ... gegangen', pos: 'other', praeteritum: '' });
     expect(phrase.lemma).toBeUndefined();
   });
@@ -164,5 +165,16 @@ describe('importCards', () => {
     expect(prefill.wantsOnlineFill({ ...base, examples: ex })).toBe(false);
     expect(prefill.wantsOnlineFill({ ...base, examples: ex, plural: '' })).toBe(true);
     expect(prefill.wantsOnlineFill({ ...base, examples: ex, translation: '' })).toBe(true);
+  });
+});
+
+describe('a word with its preposition', () => {
+  it('a detail goes to preps; a preposition that changes the meaning stays in the term', async () => {
+    const [warten, angst, bestehen, plain] = await fill('warten auf + Akk,ждать\ndie Angst vor,страх\nbestehen auf,настаивать\nab und zu,иногда');
+    expect(warten.fields).toMatchObject({ term: 'warten', preps: 'auf + Akk', translation: 'ждать' });
+    expect(angst.fields).toMatchObject({ term: 'Angst', preps: 'vor + Dat', pos: 'noun', genders: ['f'] });
+    expect(bestehen.fields).toMatchObject({ term: 'bestehen auf', preps: 'auf + Dat', translation: 'настаивать' });
+    expect(plain.fields.term).toBe('ab und zu');
+    expect(plain.fields).not.toHaveProperty('preps');
   });
 });

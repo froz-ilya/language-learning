@@ -1,6 +1,7 @@
 import { tokenize, type Token } from '../reading/text';
 import type { Card } from '../types';
 import { isReflexiveTerm, REFLEXIVE_PRONOUNS } from './reflexive';
+import { baseTerm, CONTRACTIONS, prepOfCard } from './prepositions';
 
 /**
  * Marking a card's word in an example sentence: "Ich ging gestern ins Kino." for gehen →
@@ -24,7 +25,7 @@ export interface MarkedPart {
 /** Looks up the dictionary form of a word token (null when unknown). */
 export type LemmaOf = (token: string) => Promise<string | null>;
 
-type CardForms = Pick<Card, 'term' | 'pos' | 'plural' | 'praeteritum' | 'partizip2'>;
+type CardForms = Pick<Card, 'term' | 'pos' | 'plural' | 'praeteritum' | 'partizip2'> & { preps?: string };
 
 const SKIP = new Set(['sich', 'der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'etwas', 'jemanden', 'jemandem', 'jdn', 'jdm']);
 
@@ -76,8 +77,29 @@ function storedForms(card: CardForms): Set<string> {
   return new Set([card.plural, card.praeteritum, card.partizip2].map((f) => lower(f.trim())).filter(Boolean));
 }
 
+/**
+ * A word learned with its preposition ("warten auf"): the word is marked as without it, and the
+ * preposition (or a contraction of it: "aufs") only in a sentence where the word was found.
+ */
+function withPrepHits(tokens: readonly Token[], card: CardForms, hits: Set<number>): Set<number> {
+  const prep = prepOfCard(card);
+  if (!prep || !hits.size) return hits;
+  tokens.forEach((t, i) => {
+    const w = lower(t.text);
+    if (t.word && (w === prep.word || CONTRACTIONS[w] === prep.word)) hits.add(i);
+  });
+  return hits;
+}
+
+/** The card as its word without the preposition it's learned with. */
+const coreOf = (card: CardForms): CardForms => (prepOfCard(card) ? { ...card, term: baseTerm(card), preps: undefined } : card);
+
 /** Sync, no dictionary: indexes of the word tokens that are forms of the card's words. */
 export function formHits(tokens: readonly Token[], card: CardForms): Set<number> {
+  return withPrepHits(tokens, card, coreHits(tokens, coreOf(card)));
+}
+
+function coreHits(tokens: readonly Token[], card: CardForms): Set<number> {
   const words = headWords(card);
   const stored = storedForms(card);
   const hits = new Set<number>();
@@ -127,11 +149,12 @@ export function reflexivePronounAt(tokens: readonly Token[], verbHits: ReadonlyS
   return (closest(candidates.filter((c) => c.agrees)) ?? closest(candidates))?.i ?? -1;
 }
 
-export async function markExample(sentence: string, card: CardForms, lemmaOf?: LemmaOf): Promise<MarkedPart[]> {
+export async function markExample(sentence: string, full: CardForms, lemmaOf?: LemmaOf): Promise<MarkedPart[]> {
   const tokens = tokenize(sentence);
+  const card = coreOf(full);
   const words = headWords(card);
   const termLower = lower(card.term.trim());
-  const hits = formHits(tokens, card);
+  const hits = coreHits(tokens, card);
 
   const lemmaHit = async (token: string, targets: string[]) => {
     if (!lemmaOf) return false;
@@ -176,6 +199,8 @@ export async function markExample(sentence: string, card: CardForms, lemmaOf?: L
     const p = reflexivePronounAt(tokens, hits, false);
     if (p >= 0) hits.add(p);
   }
+
+  withPrepHits(tokens, full, hits);
 
   // Merge into parts: marked words and the text between them.
   const parts: MarkedPart[] = [];

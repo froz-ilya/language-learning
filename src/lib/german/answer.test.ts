@@ -52,3 +52,58 @@ describe('checkGerman: reflexive verbs', () => {
     expect(checkTranslation('встречаться', 'встречаться', 'strict')).toBe('correct');
   });
 });
+
+describe('checkGerman: words learned with a preposition', () => {
+  const warten = { term: 'warten auf', pos: 'verb' as const, genders: [], preps: 'auf + Akk' };
+  const freuen = { term: 'sich freuen über', pos: 'verb' as const, genders: [], preps: 'über + Akk; auf + Akk' };
+  const angst = { term: 'Angst vor', pos: 'noun' as const, genders: ['f' as const], preps: 'vor + Dat' };
+
+  it('accepts the word with its preposition, with or without the case', () => {
+    for (const a of ['warten auf', 'Warten auf + Akk', 'warten auf (Akk.)', 'warten auf Akkusativ', 'auf jdn. warten', 'warten auf etwas']) {
+      expect(checkGerman(a, warten, 'strict', true), a).toEqual({ verdict: 'correct' });
+    }
+  });
+
+  it('a missing preposition is almost right; another one is wrong; a wrong case is almost right', () => {
+    expect(checkGerman('warten', warten, 'strict', true)).toEqual({ verdict: 'typo', prepProblem: 'missing' });
+    expect(checkGerman('warten für', warten, 'lenient', true)).toEqual({ verdict: 'wrong', prepProblem: 'wrong' });
+    expect(checkGerman('warten auf + Dat', warten, 'strict', true)).toEqual({ verdict: 'typo', prepProblem: 'case' });
+    expect(checkGerman('gehen auf', warten, 'lenient', true).verdict).toBe('wrong');
+  });
+
+  it('works with "sich" and with articles', () => {
+    expect(checkGerman('sich freuen über', freuen, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('sich über etwas freuen', freuen, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('freuen über', freuen, 'strict', true)).toEqual({ verdict: 'typo', reflexiveProblem: 'missing' });
+    expect(checkGerman('sich freuen auf', freuen, 'strict', true)).toEqual({ verdict: 'wrong', prepProblem: 'wrong' });
+    expect(checkGerman('die Angst vor', angst, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('Angst vor', angst, 'strict', true)).toEqual({ verdict: 'wrong', articleProblem: 'missing' });
+    expect(checkGerman('die Angst', angst, 'strict', true)).toEqual({ verdict: 'typo', prepProblem: 'missing' });
+  });
+
+  it('a card without the preposition in its term accepts one it goes with', () => {
+    expect(checkGerman('warten auf', { ...warten, term: 'warten' }, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('warten mit', { ...warten, term: 'warten' }, 'strict', true).verdict).toBe('wrong');
+    // An old phrase card (no matching preps) is compared as typed.
+    expect(checkGerman('ab und zu', verb('ab und zu'), 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('warten auf', { term: 'warten auf', pos: 'verb', genders: [] }, 'strict', true)).toEqual({ verdict: 'correct' });
+  });
+});
+
+describe('checkGerman: a preposition that is a detail of the word', () => {
+  const denken = { term: 'denken', pos: 'verb' as const, genders: [], preps: 'an + Akk' };
+  it('the word alone is right, and so is the word with its preposition', () => {
+    expect(checkGerman('denken', denken, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('denken an', denken, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('denken an + Akk', denken, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('an jdn denken', denken, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('denken über', denken, 'strict', true).verdict).toBe('wrong');
+  });
+
+  it('a noun with its preposition still says what is wrong with the article', () => {
+    const angst = { term: 'Angst', pos: 'noun' as const, genders: ['f' as const], preps: 'vor + Dat' };
+    expect(checkGerman('die Angst vor', angst, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('Angst vor', angst, 'strict', true)).toEqual({ verdict: 'wrong', articleProblem: 'missing' });
+    expect(checkGerman('der Angst vor', angst, 'strict', true)).toEqual({ verdict: 'wrong', articleProblem: 'wrong' });
+  });
+});

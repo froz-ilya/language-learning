@@ -64,7 +64,9 @@ export interface Card {
   createdAt: number;
   /**
    * Prepositions the word goes with, with their case, "; "-separated: "auf + Akk; über + Akk"
-   * (sich freuen), "für + Akk". Optional: absent on cards saved before it existed.
+   * (sich freuen), "für + Akk"; "zu + Inf" for a verb with zu + infinitive (pflegen zu), a bare
+   * "an" while the case isn't known. A term ending in one of them ("warten auf") is learned with
+   * it (see german/prepositions.ts). Optional: absent on cards saved before it existed.
    */
   preps?: string;
   /**
@@ -141,6 +143,8 @@ export interface ReflexiveReading {
   /** As LookupResult.meaningExamples, for `translation`. */
   meaningExamples?: Example[][];
   preps?: string;
+  /** As LookupResult.meaningPreps, for `translation`. */
+  meaningPreps?: string[][];
 }
 
 /** What a dictionary lookup can fill into a card. */
@@ -165,6 +169,11 @@ export interface LookupResult {
   phrases?: Example[];
   /** Prepositions with their case, as Card.preps ("auf + Akk; über + Akk"). */
   preps?: string;
+  /**
+   * Prepositions per meaning of `translation` (aligned like meaningExamples): bestehen →
+   * [["aus + Dat"], ["auf + Dat"]]. Absent when no meaning has one, and on rows cached before it.
+   */
+  meaningPreps?: string[][];
   /**
    * The verb's reflexive reading when it was looked up without "sich" and has one next to its
    * other meanings (treffen → sich treffen — встречаться). Reflexive-only verbs (beeilen) and

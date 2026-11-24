@@ -5,7 +5,9 @@ import { ARTICLE } from '../german/articles';
 import { db } from '../db/schema';
 import { saveCard } from '../db/repo';
 import { parseGermanInput, type ParsedTerm } from '../german/parseTerm';
-import { baseOfReflexive, withSich } from '../german/reflexive';
+import { baseOfReflexive, isReflexiveTerm, withSich } from '../german/reflexive';
+import { mergePrepEntry, prepOfCard, resolveCase, splitPrepTerm, withListPreps } from '../german/prepositions';
+import { narrowToPrep } from '../words/prepReading';
 import type { WikiArticle, WikiEntry, WikiPhrase } from './wiktionary';
 import { formatMeanings, formatPreps, matchSenses, meaningSentences, previewOf } from './meanings';
 import { googlePos, googleTranslate, isAbortError, type DictEntry, type GoogleResult } from './google';
@@ -526,6 +528,17 @@ function sensePreps(translation: string, page: Page | null, other: string, lang:
   return formatPreps((matched.length ? matched : all ? senses : []).flatMap((s) => s.preps ?? []));
 }
 
+/**
+ * Prepositions per meaning of a translation (aligned with splitMeanings, like meaningExamples),
+ * from the senses each meaning stands for; undefined when no meaning has one.
+ */
+function meaningPrepsOf(translation: string, page: Page | null, other: string, lang: Lang): string[][] | undefined {
+  const senses = page?.senses ?? [];
+  if (!senses.length || !translation) return undefined;
+  const out = matchSenses(translation, senses, lang, other).map((ss) => [...new Set(ss.flatMap((s) => s.preps ?? []))]);
+  return out.some((l) => l.length) ? out : undefined;
+}
+
 /** A verb's reflexive reading (result.reflexive) up to its examples' translations. */
 interface ReflexiveDraft {
   /** From a dictionary; '' when it is asked for with the examples (`ask`). */
@@ -534,6 +547,7 @@ interface ReflexiveDraft {
   ask: string[];
   sentences: Sentences;
   preps: string;
+  meaningPreps?: string[][];
 }
 
 function reflexiveDraft(term: string, translation: string, other: string, page: Page | null, preps: string, lang: Lang): ReflexiveDraft {
@@ -543,6 +557,7 @@ function reflexiveDraft(term: string, translation: string, other: string, page: 
     ask: translation ? [] : [withSich(term)],
     sentences: sentencesFor(translation, own, other, lang, REFL_SENTENCES, REFL_SENTENCES),
     preps: preps || sensePreps(translation, own, other, lang, true),
+    meaningPreps: meaningPrepsOf(translation, own, other, lang),
   };
 }
 
@@ -557,7 +572,8 @@ function readReflexive(d: ReflexiveDraft | null, read: ListReader): ReflexiveRea
   const tr = (asked[0]?.tr ?? '').trim().replace(/\.$/, '');
   const translation = d.translation || (tr && tr.toLowerCase() !== d.ask[0]?.toLowerCase() ? lowerFirst(tr) : '');
   if (!translation) return undefined;
-  return { translation, ...fields, ...(d.preps ? { preps: d.preps } : {}) };
+  const meaningPreps = translation === d.translation ? d.meaningPreps : undefined;
+  return { translation, ...fields, ...(d.preps ? { preps: d.preps } : {}), ...(meaningPreps ? { meaningPreps } : {}) };
 }
 
 /** An article as a card would get it (one gender). */
@@ -706,6 +722,8 @@ async function planLocal(hit: LocalHit, wikiStep: LocalWiki, parsed: ParsedTerm,
   const localPreps = (e.preps ?? '').trim();
   const preps = (readings.kind === 'also' && !refl ? '' : localPreps) || sensePreps(translation, page, other, lang, refl);
   if (preps) result.preps = preps;
+  const meaningPreps = meaningPrepsOf(translation, page, other, lang);
+  if (meaningPreps) result.meaningPreps = meaningPreps;
   const extra = readings.extra ? reflexiveDraft(e.term, reflTr(lang), reflTr(o), own, localPreps, lang) : null;
   return {
     lists: [...sentenceLists(sentences), ...reflexiveLists(extra), phraseList(phrases)],
@@ -768,7 +786,7 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
     articles: ArticleVariant[] | undefined,
     phraseExamples: Example[] | undefined,
     ok: boolean,
-    extra?: { preps: string; reflexive?: ReflexiveReading },
+    extra?: { preps: string; meaningPreps?: string[][]; reflexive?: ReflexiveReading },
   ): Resolved => {
     const result: LookupResult = {
       term,
@@ -785,6 +803,7 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
     putExamples(result, own);
     putPhrases(result, phrases, phraseExamples);
     if (extra?.preps) result.preps = extra.preps;
+    if (extra?.meaningPreps) result.meaningPreps = extra.meaningPreps;
     if (extra?.reflexive) result.reflexive = extra.reflexive;
     if (articles) result.articles = articles;
     if (lemmaOf) result.lemmaOf = lemmaOf;
@@ -805,6 +824,7 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
   const page = refl ? readingPage(entry, true) : readings.extra ? readingPage(entry, false) : entry;
   const sentences = sentencesFor(translation, page, other, lang);
   const preps = sensePreps(translation, page, other, lang, refl);
+  const meaningPreps = meaningPrepsOf(translation, page, other, lang);
   const draft = readings.extra ? reflexiveDraft(entry.title, reflTr(lang), reflTr(o), entry, '', lang) : null;
   return {
     lists: [...sentenceLists(sentences), ...reflexiveLists(draft), phraseList(phrases)],
@@ -812,7 +832,7 @@ async function planWiki(details: WikiDetails, parsed: ParsedTerm, ctx: Ctx): Pro
       const read = listReader(examples);
       const own = readSentences(sentences, read);
       const reflexive = readReflexive(draft, read);
-      return build(own, undefined, read(1)[0], ok, { preps, reflexive });
+      return build(own, undefined, read(1)[0], ok, { preps, meaningPreps, reflexive });
     },
   };
 }
@@ -896,15 +916,35 @@ function allExamples(r: LookupResult): Example[] {
 
 const untranslated = (e: Example) => !!e.de.trim() && !e.tr?.trim();
 
-async function prepare(input: string, lang: Lang): Promise<Prepared> {
-  const parsed = parseGermanInput(input.normalize('NFC'));
+/**
+ * The result with the prepositions our own list (PREP_PAIRS) knows for it and the dictionary
+ * lacks ("denken" → an + Akk), its reflexive reading with the "sich …" ones. Done when a result
+ * is read, not stored: cache rows stay as the sources gave them, and old rows get the list too.
+ */
+export function withListPrepsOf(r: LookupResult): LookupResult {
+  const preps = withListPreps(r.preps, r.term, r.pos);
+  let out = preps && preps !== (r.preps ?? '') ? { ...r, preps } : r;
+  if (r.reflexive && r.pos === 'verb' && !isReflexiveTerm(r.term)) {
+    const rp = withListPreps(r.reflexive.preps, withSich(r.term), 'verb');
+    if (rp && rp !== (r.reflexive.preps ?? '')) out = { ...out, reflexive: { ...r.reflexive, preps: rp } };
+  }
+  return out;
+}
+
+/**
+ * A word with its preposition ("warten auf") is looked up as the word ("warten": one cache row
+ * for both); `asTyped` looks up the whole text instead (a phrase the dictionary may know).
+ */
+async function prepare(input: string, lang: Lang, asTyped = false): Promise<Prepared> {
+  const typed = parseGermanInput(input.normalize('NFC'));
+  const parsed: ParsedTerm = typed.prep && typed.base && !asTyped ? { ...typed, term: typed.base } : typed;
   const key = `${CACHE_VERSION}:${lang}:${parsed.term}`;
   if (!parsed.term) return { parsed, key, cached: { ...NONE, fromCache: true } };
   const cached = await readCache(key);
   // Rows from before a missing translation kept a lookup out of the cache: looked up again.
   if (cached.result && allExamples(cached.result).some(untranslated)) return { parsed, key, cached: null };
   // "See" and "die See" share the row: it holds the first article; a typed one is picked here.
-  const result = cached.result ? preferArticle(cached.result, parsed.genders) : null;
+  const result = cached.result ? preferArticle(withListPrepsOf(cached.result), parsed.genders) : null;
   return { parsed, key, cached: cached.hit ? { ...NONE, result, via: cached.via, fromCache: true } : null };
 }
 
@@ -912,11 +952,11 @@ async function prepare(input: string, lang: Lang): Promise<Prepared> {
 async function store(w: Prepared, r: Resolved): Promise<Lookup> {
   const canonical = r.result?.articles ? withArticle(r.result, r.result.articles[0]) : r.result;
   if (r.complete) await writeCache(w.key, canonical, r.via);
-  return { ...r, result: canonical ? preferArticle(canonical, w.parsed.genders) : null, fromCache: false };
+  return { ...r, result: canonical ? preferArticle(withListPrepsOf(canonical), w.parsed.genders) : null, fromCache: false };
 }
 
-async function lookupWithCache(input: string, lang: Lang, signal?: AbortSignal): Promise<Lookup> {
-  const w = await prepare(input, lang);
+async function lookupWithCache(input: string, lang: Lang, signal?: AbortSignal, asTyped = false): Promise<Lookup> {
+  const w = await prepare(input, lang, asTyped);
   if (w.cached) return w.cached;
   return store(w, await resolve(w.parsed, { lang, signal }));
 }
@@ -932,8 +972,10 @@ export async function lookupWordWithSource(
   input: string,
   lang: Lang,
   signal?: AbortSignal,
+  /** Look up "warten auf" as typed, not as "warten" (see prepare). */
+  asTyped = false,
 ): Promise<{ result: LookupResult | null; via: ProviderId | null }> {
-  const r = await lookupWithCache(input, lang, signal);
+  const r = await lookupWithCache(input, lang, signal, asTyped);
   if (!r.result && !r.complete) throw new SourceUnavailableError();
   return { result: r.result, via: r.result ? r.via : null };
 }
@@ -1025,7 +1067,11 @@ export async function translateText(text: string, from: 'de' | Lang, to: 'de' | 
  * ("sich freuen" is looked up as the reflexive verb, so its result is that reading). Pure function.
  */
 export function mergeIntoCard(card: Card, lookup: LookupResult): Card {
-  const result = card.pos === 'noun' || card.pos === 'other' ? preferArticle(lookup, card.genders) : lookup;
+  const article = card.pos === 'noun' || card.pos === 'other' ? preferArticle(lookup, card.genders) : lookup;
+  // "bestehen auf": the meanings that go with auf (not "bestehen aus"); a case the card lacks.
+  const prep = prepOfCard(card);
+  const result = prep && !card.translation.trim() ? narrowToPrep(article, prep) : article;
+  const resolved = prep && !prep.case ? resolveCase(splitPrepTerm(card.term)!.base, prep.word, { lookup: lookup.preps }).case : undefined;
   // The card's own sentences keep theirs; one the lookup also has gets its translation when it has none.
   const known = new Map([...allExamples(result), ...(result.phrases ?? [])].filter((e) => e.tr?.trim()).map((e) => [oneLine(e.de), e.tr!]));
   const filled = (e: Example): Example => (untranslated(e) && known.has(oneLine(e.de)) ? { ...e, tr: known.get(oneLine(e.de)) } : { ...e });
@@ -1042,6 +1088,7 @@ export function mergeIntoCard(card: Card, lookup: LookupResult): Card {
       ? card.examples.map(filled)
       : result.examples.map((e) => ({ ...e })),
     ...(!card.preps?.trim() && result.preps ? { preps: result.preps } : {}),
+    ...(prep && resolved ? { preps: mergePrepEntry(card.preps, { word: prep.word, case: resolved }) } : {}),
     needsFill: 0,
   };
 }

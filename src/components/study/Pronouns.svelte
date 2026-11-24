@@ -92,7 +92,7 @@
           <div class="term"><Term {card} /></div>
           <SpeakButton text={card.term} />
         </div>
-        <Preps preps={card.preps} />
+        <Preps preps={card.preps} term={card.term} />
         {#if !correct}<NoteHint notes={card.notes} />{/if}
       </div>
       <button type="button" class="btn btn-primary btn-lg btn-block" onclick={onnext}>{t('common.continue')}</button>

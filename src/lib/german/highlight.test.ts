@@ -71,3 +71,23 @@ describe('markExample', () => {
     expect(await marked('Sie fährt weg.', verb('fahren'), broken)).toEqual([]);
   });
 });
+
+describe('markExample: words learned with a preposition', () => {
+  const warten = { ...verb('warten auf', 'wartete', 'gewartet'), preps: 'auf + Akk' };
+  const freuen = { ...verb('sich freuen auf', 'freute', 'gefreut'), preps: 'auf + Akk' };
+  const ankommen = { ...verb('ankommen auf', 'kam an', 'angekommen'), preps: 'auf + Akk' };
+
+  it('marks the word and its preposition (also a contraction)', async () => {
+    expect(await marked('Ich warte auf dich.', warten)).toEqual(['warte', 'auf']);
+    expect(await marked('Ich freue mich aufs Wochenende.', freuen)).toEqual(['freue', 'mich', 'aufs']);
+    expect(await marked('Es kommt auf das Wetter an.', ankommen)).toEqual(['kommt', 'auf', 'an']);
+  });
+
+  it('a preposition without the word is not marked', async () => {
+    expect(await marked('Das Buch liegt auf dem Tisch.', warten)).toEqual([]);
+  });
+
+  it('an old phrase card without preps marks its words as before', async () => {
+    expect(await marked('Ich warte auf dich.', verb('warten auf'))).toEqual(['warte', 'auf']);
+  });
+});

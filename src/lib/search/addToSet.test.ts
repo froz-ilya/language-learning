@@ -6,6 +6,7 @@ import type { Folder, Gender, Pos, WordSet } from '../types';
 import { addWordToArticle } from '../reading/store';
 import type { Article } from '../reading/types';
 import { addWordToSet, findDuplicate, isSameWord, orderSetChoices, ownedCards, quickAddDuplicate } from './addToSet';
+import { loadVocab } from '../reading/vocab';
 
 beforeEach(async () => {
   await db.delete();
@@ -161,5 +162,17 @@ describe('addWordToArticle', () => {
     expect(noun.created).toBe(true);
     expect((await addWordToArticle(article, { term: 'treffen', pos: 'verb' })).created).toBe(true);
     expect(await addWordToArticle(article, { term: 'Treffen', pos: 'noun', genders: ['n'] })).toMatchObject({ created: false, cardId: noun.cardId });
+  });
+});
+
+describe('a word learned with its preposition', () => {
+  it('the word finds its card with the preposition (search, reader)', async () => {
+    const set = await addSet('Mine');
+    await saveCard({ ...emptyCard(set), term: 'bestehen auf', pos: 'verb', preps: 'auf + Dat' });
+    await saveCard({ ...emptyCard(set), term: 'bestehen lassen', pos: 'verb' });
+    expect((await ownedCards('bestehen')).map((c) => c.setId)).toEqual([set]);
+    const vocab = await loadVocab();
+    expect(vocab.get('bestehen')?.map((c) => c.term)).toEqual(['bestehen auf']);
+    expect(vocab.get('bestehen auf')?.map((c) => c.term)).toEqual(['bestehen auf']);
   });
 });

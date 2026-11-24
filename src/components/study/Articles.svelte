@@ -73,7 +73,7 @@
         <SpeakButton text={speakableTerm(card)} />
       </div>
       {#if card.plural}<div class="muted">{t('study.plural', { plural: displayPlural(card) })}</div>{/if}
-      <Preps preps={card.preps} />
+      <Preps preps={card.preps} term={card.term} />
       {#if !correct}<NoteHint notes={card.notes} />{/if}
       <Examples {card} />
     </div>

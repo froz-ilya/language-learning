@@ -7,10 +7,11 @@ import type { LexEntry, LocalHit } from '../dict/types';
 import { lookupLocal } from '../dict/local';
 import { emptyCard } from '../db/repo';
 import type { ImportRow } from './parse';
+import { formatPrep } from '../german/prepositions';
 
 /** Card fields for one row, plus a hint when the term looks like an inflected form. */
 export interface Prefill {
-  fields: Pick<Card, 'term' | 'translation' | 'pos' | 'genders' | 'plural' | 'praeteritum' | 'partizip2' | 'auxiliary'>;
+  fields: Pick<Card, 'term' | 'translation' | 'pos' | 'genders' | 'plural' | 'praeteritum' | 'partizip2' | 'auxiliary' | 'preps'>;
   /** Dictionary lemma when the typed term is an inflected form of it ("wundert" → "wundern"). */
   lemma?: string;
   /** Something came from the dictionary. */
@@ -76,7 +77,10 @@ export function prefillFromEntry(row: ImportRow, entry: LexEntry | null, lang: L
   const p = row.parsed;
   const e = entry;
   const pos = p.pos ?? e?.pos ?? 'other';
+  // "warten auf + Akk": the word is learned with its preposition (see german/prepositions).
+  const preps = p.prep ? formatPrep(p.prep) : p.preps;
   return {
+    ...(preps ? { preps } : {}),
     term: p.term,
     translation: row.translation.trim() || e?.tr[lang] || '',
     pos,
@@ -89,7 +93,7 @@ export function prefillFromEntry(row: ImportRow, entry: LexEntry | null, lang: L
 }
 
 export async function prefillRow(row: ImportRow, lang: Lang, lookup: LookupFn = lookupLocal): Promise<Prefill> {
-  const target = lookupWord(row.parsed.term);
+  const target = lookupWord(row.parsed.base ?? row.parsed.term);
   let hits: LocalHit[] = [];
   if (target) {
     try {

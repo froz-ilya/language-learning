@@ -7,7 +7,8 @@ import { lookupWord } from '../lookup/lookup';
 import { ARTICLE, displayPlural, displayTerm, displayVerbForms } from '../german/articles';
 import { splitMeanings } from '../german/meanings';
 import { asReflexive, baseOfReflexive, isReflexiveTerm, withSich } from '../german/reflexive';
-import { fieldsFromEntry, fieldsFromLookup } from '../reading/store';
+import { entryPreps, fieldsFromEntry, fieldsFromLookup } from '../reading/store';
+import { withListPreps } from '../german/prepositions';
 import { t } from '../i18n.svelte';
 import type { ArticleVariant, Auxiliary, Card, Gender, Lang, LookupResult, Pos } from '../types';
 
@@ -190,8 +191,14 @@ export function mergeInfo(local: LexEntry | null, remoteResult: LookupResult | n
   const remote = remoteFor(local, remoteResult);
   const base = local ? fieldsFromEntry(local, lang) : null;
   const extra = remote ? fieldsFromLookup(remote) : null;
-  const preps = base?.preps || extra?.preps;
-  const withPreps = (f: WordFields): WordFields => (preps ? { ...f, preps } : f);
+  // The dictionary's own, else the lookup's (which has our list's: lookupWord), with our list's.
+  const raw = (local ? entryPreps(local) : '') || extra?.preps;
+  const withPreps = (f: WordFields): WordFields => {
+    const preps = withListPreps(raw, f.term, f.pos ?? 'other');
+    const out = { ...f };
+    delete out.preps;
+    return preps ? { ...out, preps } : out;
+  };
   if (!base && !extra) return null;
   if (!base) return withPreps({ ...extra!, term: extra!.term! });
   if (!extra) return withPreps({ ...base, term: base.term! });
@@ -229,7 +236,7 @@ export function reflexiveReadingOf(local: LexEntry | null, remote: LookupResult 
   };
   // The plain reading's prepositions don't carry over; the dictionary's are the "sich …" ones.
   delete out.preps;
-  const preps = r?.preps || local?.preps;
+  const preps = withListPreps(r?.preps || local?.preps, out.term, 'verb');
   if (preps) out.preps = preps;
   return out;
 }

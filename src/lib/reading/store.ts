@@ -4,6 +4,7 @@ import { addFolder, addSet, emptyCard, saveCard } from '../db/repo';
 import type { Card, Lang, LookupResult } from '../types';
 import type { LexEntry } from '../dict/types';
 import { isReflexiveTerm } from '../german/reflexive';
+import { withListPreps } from '../german/prepositions';
 import { isSameWord } from '../german/sameWord';
 import type { LevelCode } from '../levels/types';
 import type { Article, SavedArticle } from './types';
@@ -162,12 +163,20 @@ export async function ensureArticleSet(article: Article): Promise<number> {
 }
 
 /**
- * Card fields from the offline dictionary. Its prepositions go along, except to the plain verb
- * of a verb that is also reflexive: there they are the "sich …" reading's (see lookup.ts).
+ * The offline dictionary's prepositions of this reading: none on the plain verb of a verb that is
+ * also reflexive, there they are the "sich …" reading's (see lookup.ts). Without our list's.
+ */
+export function entryPreps(entry: LexEntry): string {
+  const preps = (entry.preps ?? '').trim();
+  return preps && (entry.reflexive !== 'also' || isReflexiveTerm(entry.term)) ? preps : '';
+}
+
+/**
+ * Card fields from the offline dictionary. Its prepositions (entryPreps) go along, with those of
+ * our list it lacks (withListPreps: "denken" → an + Akk).
  */
 export function fieldsFromEntry(entry: LexEntry, lang: Lang): Partial<Card> {
-  const preps = (entry.preps ?? '').trim();
-  const ownPreps = !!preps && (entry.reflexive !== 'also' || isReflexiveTerm(entry.term));
+  const preps = withListPreps(entryPreps(entry), entry.term, entry.pos);
   return {
     term: entry.term,
     pos: entry.pos,
@@ -177,7 +186,7 @@ export function fieldsFromEntry(entry: LexEntry, lang: Lang): Partial<Card> {
     partizip2: entry.partizip2,
     auxiliary: entry.auxiliary,
     translation: entry.tr[lang] ?? '',
-    ...(ownPreps ? { preps } : {}),
+    ...(preps ? { preps } : {}),
   };
 }
 

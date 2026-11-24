@@ -2,6 +2,7 @@ import type { Auxiliary, Gender, Lang, Pos } from '../types';
 import { checkResponse, SourceError } from '../sources/chain';
 import { formatPreps, mergeMeanings, pickMeanings, sameMeaning, type SenseTranslations } from './meanings';
 import { t } from '../i18n.svelte';
+import { FIXED_CASE, PREP_CASE, type Case } from '../german/prepositions';
 
 const API = 'https://de.wiktionary.org/w/api.php';
 
@@ -407,23 +408,6 @@ const LEADING_LABELS = /^(?:\{\{(?:[^{}]|\{\{[^{}]*\}\})*\}\}\s*|''[^'\n]*''\s*:
 /** A label marking a reflexive use: "{{K|refl.}}", "''reflexiv:''", "''sich treffen:''", "''es trifft sich:''". */
 const REFLEXIVE_LABEL = /(?<!\p{L})(?:refl\.|reflexiv|sich(?!\p{L}))/iu;
 
-type Case = 'Akk' | 'Dat' | 'Gen';
-
-/**
- * Case of a preposition's object when the wording doesn't say ("auf etwas" → Akk). Two-way
- * prepositions get the case they nearly always have after a verb (warten auf + Akk, sich
- * fürchten vor + Dat); null where both are common (an, in): those need "jemanden"/"jemandem"
- * or an explicit case.
- */
-const PREP_CASE: Record<string, Case | null> = {
-  mit: 'Dat', von: 'Dat', zu: 'Dat', aus: 'Dat', bei: 'Dat', nach: 'Dat', seit: 'Dat', gegenüber: 'Dat',
-  für: 'Akk', um: 'Akk', gegen: 'Akk', durch: 'Akk', ohne: 'Akk',
-  wegen: 'Gen',
-  auf: 'Akk', über: 'Akk', vor: 'Dat', unter: 'Dat',
-  an: null, in: null, neben: null, hinter: null, zwischen: null,
-};
-/** Prepositions whose case never depends on the wording. */
-const FIXED_CASE = new Set(['mit', 'von', 'zu', 'aus', 'bei', 'nach', 'seit', 'gegenüber', 'für', 'um', 'gegen', 'durch', 'ohne', 'wegen']);
 const PREP = `(${Object.keys(PREP_CASE).join('|')})`;
 /** "sich auf etwas freuen", "sich (über etwas) freuen", "mit jemandem": a preposition and the placeholder for its object. */
 const PREP_OBJECT = new RegExp(`(?<![\\p{L}])${PREP}\\s+(etwas|etw\\.|jemanden|jemandem|jemand|jmdn\\.?|jmdm\\.?|jdn\\.?|jdm\\.?)(?![\\p{L}])`, 'giu');

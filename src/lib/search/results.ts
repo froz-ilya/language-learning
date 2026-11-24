@@ -119,7 +119,8 @@ export function buildGroups(input: {
   // ("house" → housewife, houseboat) are English words, not German: leave them out.
   if (input.english.length) german = german.filter((r) => r.entry);
   if (typed.length) {
-    const want = parseGermanInput(input.query).term.toLowerCase();
+    const parsed = parseGermanInput(input.query);
+    const want = (parsed.base ?? parsed.term).toLowerCase();
     const startsLike = (r: SearchRow) => r.term.toLowerCase().startsWith(want);
     const matches = (r: SearchRow) => startsLike(r) && (r.gender ? typed.includes(r.gender) : r.genders.some((g) => typed.includes(g)));
     german = [...german.filter(matches), ...german.filter((r) => !matches(r))].map((r) =>

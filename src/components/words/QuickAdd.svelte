@@ -26,6 +26,7 @@
   import { settings } from '../../lib/settings.svelte';
   import { fmtNumber, i18n, t, tParts } from '../../lib/i18n.svelte';
   import { displayTerm, speakableTerm } from '../../lib/german/articles';
+  import { formatPrep } from '../../lib/german/prepositions';
   import { PROVIDER_LABELS } from '../../lib/sources/chain';
   import { CardDraft, type SetCard } from '../../lib/words/cardDraft.svelte';
   import type { ArticleVariant, Card } from '../../lib/types';
@@ -91,10 +92,13 @@
 
   onDestroy(() => d.destroy());
 
-  /** Save, list it under "Added", and get ready for the next word — keeping the keyboard up. */
+  /**
+   * Save, list it under "Added", and get ready for the next word — keeping the keyboard up.
+   * "denken an" while the set has "denken": the preposition goes to that card.
+   */
   async function quickAdd() {
     d.focusField(); // inside the tap, so iOS keeps the keyboard open
-    const saved = await d.save();
+    const saved = d.mergeTarget ? await d.mergePrepIntoDuplicate() : await d.save();
     if (!saved) return;
     added = [
       {
@@ -176,6 +180,24 @@
           onpointerdown={d.keepFocus}
         />
       {/if}
+      {#if d.prepOptions.length > 1 && lookupState === 'done'}
+        <ReadingSwitch
+          options={d.prepOptions}
+          selected={d.prepOn ?? ''}
+          onpick={(id) => d.choosePrep(id || null)}
+          onpointerdown={d.keepFocus}
+        />
+      {/if}
+      {#if d.needsCase && d.caseWord}
+        <div class="case-pick">
+          <span class="small muted" lang={i18n.lang}>{t('words.editor.pickCase', { prep: d.caseWord })}</span>
+          <div class="segmented" role="group" aria-label={t('words.editor.pickCase', { prep: d.caseWord })}>
+            {#each ['Akk', 'Dat'] as const as c}
+              <button type="button" lang="de" onpointerdown={d.keepFocus} onclick={() => d.pickCase(c)}>{c}</button>
+            {/each}
+          </div>
+        </div>
+      {/if}
       {#if d.articles.length > 1 && lookupState === 'done'}
         <div class="article-pick">
           <ArticleChoices
@@ -193,7 +215,9 @@
       {:else}
         {#if d.forms}<div class="p-forms">{d.forms}</div>{/if}
         {#if d.prepsLine}<div class="p-preps small" lang="de">{d.prepsLine}</div>{/if}
-        {#if card.translation}
+        {#if d.showMeanings && !d.showDetails}
+          <!-- The meaning tiles below are the translation: no line repeating them. -->
+        {:else if card.translation}
           <div class="p-tr">{card.translation}</div>
         {:else}
           <div class="p-tr muted">{t('words.editor.noTranslationYet')}</div>
@@ -276,7 +300,15 @@
         </div>
         <button type="button" class="btn small-btn" onclick={() => onopen(dup.id!)}>{t('words.editor.open')}</button>
       </div>
-      {#if lookupState === 'idle' && !d.showDetails}
+      {#if d.mergeTarget && d.noteEntry && !d.showDetails}
+        {@const entry = d.noteEntry}
+        <!-- "denken an" while the set has "denken": the preposition goes to that word. -->
+        <button type="button" class="btn btn-primary btn-lg btn-block add" onpointerdown={d.keepFocus} onclick={() => quickAdd()}>
+          <Icon name="check" size={22} />
+          {t('words.editor.addPrepTo', { prep: formatPrep(entry), word: dup.term })}
+        </button>
+      {/if}
+      {#if lookupState === 'idle' && !d.showDetails && !d.mergeTarget}
         <!-- Only the typed text matched: the dictionary may know another article (die See). -->
         <button type="button" class="btn btn-ghost btn-block" onpointerdown={d.keepFocus} onclick={() => d.runLookup()}>
           <Icon name="search" size={18} /> {t('words.lookUp')}
@@ -298,7 +330,7 @@
             ><Icon name="refresh" size={20} /> {t('common.retry')}</button
           >
         {/if}
-        <button type="button" class="btn btn-primary btn-lg btn-block add" onpointerdown={d.keepFocus} onclick={quickAdd}>
+        <button type="button" class="btn btn-primary btn-lg btn-block add" onpointerdown={d.keepFocus} onclick={() => quickAdd()}>
           <Icon name="check" size={22} />
           {lookupState === 'done'
             ? d.articles.length > 1 && d.pickedArticle
@@ -369,6 +401,16 @@
   }
   .p-forms {
     color: var(--muted);
+  }
+  .case-pick {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+  .case-pick .segmented button {
+    min-height: 34px;
+    padding: 4px 16px;
   }
   .p-preps {
     color: var(--muted);

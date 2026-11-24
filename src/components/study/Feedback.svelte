@@ -6,6 +6,7 @@
   import ResultIcon from './ResultIcon.svelte';
   import { displayTerm, speakableTerm } from '../../lib/german/articles';
   import { withSich } from '../../lib/german/reflexive';
+  import { prepOfCard } from '../../lib/german/prepositions';
   import Term from '../Term.svelte';
   import SpeakButton from '../SpeakButton.svelte';
   import Examples from './Examples.svelte';
@@ -17,6 +18,7 @@
     verdict,
     articleProblem,
     reflexiveProblem,
+    prepProblem,
     card,
     answerGerman,
     given = '',
@@ -25,6 +27,7 @@
     verdict: Verdict;
     articleProblem?: 'missing' | 'wrong';
     reflexiveProblem?: 'missing' | 'form';
+    prepProblem?: 'missing' | 'wrong' | 'case';
     card: Card;
     answerGerman: boolean;
     given?: string;
@@ -33,13 +36,20 @@
   } = $props();
 
   const expected = $derived(answerGerman ? displayTerm(card) : card.translation);
+  const prep = $derived(prepOfCard(card));
 </script>
 
 <div class="feedback {verdict}" role="status" {@attach feedbackFx(verdict === 'wrong' ? 'bad' : 'good')}>
   <div class="head row">
     <ResultIcon ok={verdict !== 'wrong'} />
     <span>
-      {#if reflexiveProblem === 'missing' && verdict !== 'wrong'}
+      {#if prepProblem === 'missing' && verdict !== 'wrong'}
+        {#each tParts('study.feedback.forgotPrep') as p}{#if p.slot}<span class="answer" lang="de">{expected}</span>{:else}{p.text}{/if}{/each}
+      {:else if prepProblem === 'case' && verdict !== 'wrong' && prep?.case}
+        {#each tParts('study.feedback.wrongCase', { case: prep.case }) as p}{#if p.slot === 'prep'}<span class="answer" lang="de">{prep.word}</span>{:else if p.slot}<span class="answer" lang="de">{prep.case}</span>{:else}{p.text}{/if}{/each}
+      {:else if prepProblem === 'wrong'}
+        {#each tParts('study.feedback.wrongPrep') as p}{#if p.slot}<span class="answer" lang="de">{expected}</span>{:else}{p.text}{/if}{/each}
+      {:else if reflexiveProblem === 'missing' && verdict !== 'wrong'}
         {#each tParts('study.feedback.forgotSich') as p}{#if p.slot}<span class="answer">{withSich(card.term)}</span>{:else}{p.text}{/if}{/each}
       {:else if verdict === 'correct'}
         {t('study.correct')}
@@ -64,7 +74,7 @@
   {#if reflexiveProblem === 'form' && verdict !== 'wrong'}
     <div class="small muted">{#each tParts('study.feedback.dictionaryForm') as p}{#if p.slot}<span lang="de">{withSich(card.term)}</span>{:else}{p.text}{/if}{/each}</div>
   {/if}
-  <Preps preps={card.preps} />
+  <Preps preps={card.preps} term={card.term} />
   {#if showTranslation || (!answerGerman && verdict !== 'correct')}
     <div class="muted small">
       {#if answerGerman}{card.translation}{:else}<Term {card} />{/if}

@@ -5,6 +5,7 @@ import { saveCard } from '../db/repo';
 import { buildCard } from '../reading/store';
 import { parseGermanInput } from '../german/parseTerm';
 import { isSameWord } from '../german/sameWord';
+import { baseTerm } from '../german/prepositions';
 import { reviewsFor, statusOf, type WordStatus } from '../progress';
 import { systemName } from '../i18n.svelte';
 import type { Card, Folder, Gender, WordSet } from '../types';
@@ -90,7 +91,11 @@ const STATUS_ORDER: WordStatus[] = ['known', 'learned', 'learning', 'new'];
 export async function ownedCards(term: string): Promise<OwnedCard[]> {
   const t = term.trim();
   if (!t) return [];
-  const cards = await db.cards.where('term').equalsIgnoreCase(t).toArray();
+  // "warten" also finds "warten auf" (learned with its preposition).
+  const withPrep = (await db.cards.where('term').startsWithIgnoreCase(`${t} `).toArray()).filter(
+    (c) => baseTerm(c).toLowerCase() === t.toLowerCase(),
+  );
+  const cards = [...(await db.cards.where('term').equalsIgnoreCase(t).toArray()), ...withPrep];
   if (!cards.length) return [];
   const [reviews, sets] = await Promise.all([reviewsFor(cards), db.sets.bulkGet([...new Set(cards.map((c) => c.setId))])]);
   const names = new Map(sets.filter((s): s is WordSet => !!s).map((s) => [s.id!, s.topic || systemName(s.name)]));

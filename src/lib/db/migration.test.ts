@@ -308,6 +308,67 @@ describe('upgrading the database', () => {
     expect(isPaused((await db.cards.get(1))!)).toBe(false);
   });
 
+  it('opens a v7 database whose words end in a preposition: old phrases stay phrases', async () => {
+    const d = oldDb(7, V7);
+    await d.table('folders').add({ name: 'School', level: '', createdAt: 1 });
+    await d.table('sets').add({ name: 'Verben', folderId: 1, level: '', topic: '', createdAt: 1 });
+    const verb = { ...v1Card, pos: 'verb', genders: [], plural: '', examples: [], notes: '', starred: 0, known: 0, presetId: '' };
+    // As v7 saved them: the preposition only in preps; a typed phrase ending in one; "ab und zu".
+    const warten = { ...verb, id: 1, term: 'warten', translation: 'ждать', preps: 'auf + Akk' };
+    const typed = { ...verb, id: 2, term: 'warten auf', translation: 'ждать' };
+    const abUndZu = { ...verb, id: 3, pos: 'other', term: 'ab und zu', translation: 'иногда' };
+    for (const c of [warten, typed, abUndZu]) await d.table('cards').add(c);
+    // A lookup cached by v7 (no meaningPreps).
+    const result = { term: 'warten', pos: 'verb', genders: [], plural: '', praeteritum: 'wartete', partizip2: 'gewartet', auxiliary: 'haben', translation: 'ждать', examples: [], preps: 'auf + Akk', source: 'wiktionary' };
+    await d.table('lookupCache').put({ key: 'v5:ru:warten', result, fetchedAt: Date.now(), via: 'local' });
+    d.close();
+
+    const { db } = await import('./schema');
+    const { prepOfCard } = await import('../german/prepositions');
+    const { checkGerman } = await import('../german/answer');
+    const { lookupWord } = await import('../lookup/lookup');
+    expect(await db.cards.get(1)).toEqual(warten);
+    expect(await db.cards.get(2)).toEqual(typed);
+    expect(await db.cards.get(3)).toEqual(abUndZu);
+    // None of them is learned with a preposition: no preps entry for the term's last word.
+    for (const c of [warten, typed, abUndZu]) expect(prepOfCard(c)).toBeNull();
+    expect(checkGerman('warten auf', typed as never, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('ab und zu', abUndZu as never, 'strict', true)).toEqual({ verdict: 'correct' });
+    expect(checkGerman('warten', warten as never, 'strict', true)).toEqual({ verdict: 'correct' });
+    // "warten auf" is looked up as "warten": the row v7 cached.
+    expect(await lookupWord('warten auf', 'ru')).toMatchObject({ term: 'warten', preps: 'auf + Akk' });
+  });
+
+  it('round-trips words with a preposition, "zu + Inf" and an unknown case through a backup', async () => {
+    const { db } = await import('./schema');
+    const { exportBackup, importBackup } = await import('./backup');
+    const card = { ...v1Card, id: 1, known: 0, presetId: '' };
+    const file = {
+      app: 'deutsch',
+      version: 2,
+      exportedAt: '2026-11-24T10:00:00Z',
+      folders: [{ id: 1, name: 'School', level: '', createdAt: 1 }],
+      sets: [{ id: 1, name: 'Verben', folderId: 1, level: '', topic: '', createdAt: 1 }],
+      cards: [
+        { ...card, term: 'warten auf', preps: 'auf + Akk' },
+        { ...card, id: 2, term: 'pflegen zu', preps: 'zu + Inf' },
+        { ...card, id: 3, term: 'denken an', preps: 'an' },
+        { ...card, id: 4, term: 'ab und zu' },
+      ],
+      reviews: [],
+      settings: [],
+    };
+    await importBackup(JSON.stringify(file), 'replace');
+    const text = await (await exportBackup()).text();
+    await importBackup(text, 'replace');
+    expect((await db.cards.toArray()).map((c) => [c.term, c.preps])).toEqual([
+      ['warten auf', 'auf + Akk'],
+      ['pflegen zu', 'zu + Inf'],
+      ['denken an', 'an'],
+      ['ab und zu', undefined],
+    ]);
+  });
+
   it('upgraded words still work with today’s logic', async () => {
     await seedV1();
     const { db } = await import('./schema');

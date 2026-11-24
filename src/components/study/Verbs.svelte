@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { baseTerm } from '../../lib/german/prepositions';
   import { checkForm } from '../../lib/german/answer';
   import { displayVerbForms } from '../../lib/german/articles';
   import { t } from '../../lib/i18n.svelte';
@@ -46,7 +47,7 @@
     }
   });
 
-  const fullForms = $derived(`${card.term}, ${displayVerbForms(card).replace(' – ', ', ')}`);
+  const fullForms = $derived(`${baseTerm(card)}, ${displayVerbForms(card).replace(' – ', ', ')}`);
 
   function check() {
     const r = {
@@ -178,10 +179,10 @@
         <ResultIcon ok={checked.all} />{checked.all ? t('study.correct') : t('study.notQuite')}
       </div>
       <div class="row">
-        <div class="forms" lang="de">{card.term} – {displayVerbForms(card)}</div>
+        <div class="forms" lang="de">{baseTerm(card)} – {displayVerbForms(card)}</div>
         <SpeakButton text={fullForms} />
       </div>
-      <Preps preps={card.preps} />
+      <Preps preps={card.preps} term={card.term} />
       <Examples {card} />
     </div>
     <button type="submit" class="btn btn-primary btn-lg btn-block">{t('common.continue')}</button>

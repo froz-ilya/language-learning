@@ -85,7 +85,7 @@
   {#if picked !== null}
     {#if hasExamples || card.preps?.trim()}
       <div class="card ex-card">
-        {#if card.preps?.trim()}<div class="ex-preps"><span lang="de"><Term {card} /></span> <Preps preps={card.preps} /></div>{/if}
+        {#if card.preps?.trim()}<div class="ex-preps"><span lang="de"><Term {card} /></span> <Preps preps={card.preps} term={card.term} /></div>{/if}
         <Examples {card} />
       </div>
     {/if}

@@ -207,7 +207,7 @@
     recent = [c.id!, ...recent.filter((x) => x !== c.id)];
   }
 
-  const setCardsLite = $derived(cards.map((c) => ({ id: c.id, term: c.term, pos: c.pos, genders: c.genders ?? [] })));
+  const setCardsLite = $derived(cards.map((c) => ({ id: c.id, term: c.term, pos: c.pos, genders: c.genders ?? [], preps: c.preps })));
 
   /** The words added here, newest first (those still in the set). */
   const recentCards = $derived.by(() => {

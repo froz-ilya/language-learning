@@ -1,12 +1,18 @@
 <script lang="ts">
-  /** The prepositions a word goes with, with their case: "auf + Akk; über + Akk". Nothing when empty. */
-  let { preps }: { preps?: string } = $props();
+  import { parsePrepEntry, prepOfCard } from '../../lib/german/prepositions';
 
+  /**
+   * The prepositions a word goes with, with their case: "auf + Akk; über + Akk". Nothing when
+   * empty. With `term`, the one the word is learned with ("warten auf") is left out: Term shows it.
+   */
+  let { preps, term }: { preps?: string; term?: string } = $props();
+
+  const own = $derived(term ? prepOfCard({ term, preps })?.word : undefined);
   const list = $derived(
     (preps ?? '')
       .split(';')
       .map((p) => p.trim())
-      .filter(Boolean),
+      .filter((p) => p && (!own || parsePrepEntry(p)?.word !== own)),
   );
 </script>
 

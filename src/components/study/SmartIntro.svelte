@@ -62,7 +62,7 @@
       <div class="forms">
         {#if plural}<div>{#each tParts('study.plural') as p}{#if p.slot}<span lang="de">{plural}</span>{:else}{p.text}{/if}{/each}</div>{/if}
         {#if verbForms}<div lang="de">{verbForms}</div>{/if}
-        <Preps preps={card.preps} />
+        <Preps preps={card.preps} term={card.term} />
       </div>
     {/if}
     {#if examples.length}

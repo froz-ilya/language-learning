@@ -413,3 +413,24 @@ describe('word readings', () => {
     expect(cardIsReading(undefined, 'noun')).toBe(true);
   });
 });
+
+describe("our list's prepositions", () => {
+  const denken = lex('denken', { pos: 'verb', tr: { ru: 'думать', en: 'think' } });
+  const freuen = lex('freuen', { pos: 'verb', tr: { ru: 'радовать', en: 'please' }, reflexive: 'also', trRefl: { ru: 'радоваться', en: 'be glad' } });
+
+  it('fill a dictionary entry without any', () => {
+    expect(mergeInfo(denken, null, 'ru')).toMatchObject({ term: 'denken', preps: 'an + Akk' });
+    expect(entryFields(denken, 'ru').preps).toBe('an + Akk');
+    // The lookup's are merged with the list's when the dictionary has none.
+    expect(mergeInfo(denken, result('denken', { pos: 'verb', preps: 'über + Akk' }), 'ru')!.preps).toBe('über + Akk; an + Akk');
+    // The dictionary's own come first.
+    expect(mergeInfo({ ...denken, preps: 'an + Dat' }, result('denken', { pos: 'verb', preps: 'über + Akk' }), 'ru')!.preps).toBe('an + Akk');
+  });
+
+  it('go to the "sich …" reading of a verb, not to the plain one', () => {
+    expect(mergeInfo(freuen, null, 'ru')!.preps).toBeUndefined();
+    expect(reflexiveReadingOf(freuen, null, 'ru')).toMatchObject({ term: 'sich freuen', preps: 'auf + Akk; über + Akk' });
+    expect(mergeInfo(asReflexive(freuen), null, 'ru')).toMatchObject({ term: 'sich freuen', preps: 'auf + Akk; über + Akk' });
+    expect(reflexiveReadingOf({ ...freuen, preps: 'über + Akk' }, null, 'ru')!.preps).toBe('über + Akk; auf + Akk');
+  });
+});

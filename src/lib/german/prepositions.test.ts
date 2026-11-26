@@ -155,3 +155,29 @@ describe("the list's prepositions on a word", () => {
     expect(withListPreps('aus + Dat; auf + Dat', 'bestehen', 'verb')).toBe('aus + Dat; auf + Dat');
   });
 });
+
+describe('prepCaseOf', () => {
+  it('gives the case a preposition takes', async () => {
+    const { prepCaseOf } = await import('./prepositions');
+    expect(prepCaseOf({ term: 'während', pos: 'other' })).toBe('Gen');
+    expect(prepCaseOf({ term: 'mit', pos: 'other' })).toBe('Dat');
+    expect(prepCaseOf({ term: 'auf', pos: 'other' })).toBe('Akk / Dat');
+    expect(prepCaseOf({ term: 'Haus', pos: 'noun' })).toBeUndefined();
+    expect(prepCaseOf({ term: 'schnell', pos: 'adj' })).toBeUndefined();
+    expect(prepCaseOf({ term: 'angesichts', pos: 'other' })).toBe('Gen');
+    expect(prepCaseOf({ term: 'Gegenüber', pos: 'other' })).toBe('Dat');
+    expect(prepCaseOf({ term: 'dank', pos: 'other' })).toBe('Gen / Dat');
+    expect(prepCaseOf({ term: 'zum', pos: 'other' })).toBe('Dat');
+    expect(prepCaseOf({ term: 'zur', pos: 'other' })).toBe('Dat');
+    expect(prepCaseOf({ term: 'ins', pos: 'other' })).toBe('Akk');
+    // "laut" the adjective (loud) isn't the preposition
+    expect(prepCaseOf({ term: 'laut', pos: 'adj' })).toBeUndefined();
+    expect(prepCaseOf({ term: 'laut', pos: 'other' })).toBe('Gen / Dat');
+    expect(prepCaseOf({ term: 'und', pos: 'other' })).toBeUndefined();
+  });
+
+  it('knows every preposition the word-with-preposition tables use', async () => {
+    const { prepCaseOf, PREPOSITIONS, CONTRACTIONS } = await import('./prepositions');
+    for (const w of [...PREPOSITIONS, ...Object.keys(CONTRACTIONS)]) expect(prepCaseOf({ term: w, pos: 'other' }), w).toBeTruthy();
+  });
+});

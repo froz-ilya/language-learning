@@ -19,6 +19,7 @@ import { findDuplicate, quickAddDuplicate } from '../search/addToSet';
 import { arrangeExamples, examplePool, phrasesForReading, phrasesToAdd } from '../lookup/examplePool';
 import { isReflexiveTerm, withSich } from '../german/reflexive';
 import { queryScript, reverseSearch } from '../dict/reverse';
+import { normalizeKey } from '../dict/local';
 import { reverseRows, searchWords, suggestionRows, type SearchGroups, type SearchRow } from '../search/results';
 import { translationForPick } from '../search/pickTranslation';
 import { showToast } from '../ui/dialogs.svelte';
@@ -69,6 +70,9 @@ type Reading = ReflexiveReading & { phrases: Example[] };
 type TypedPrep = PrepPart & { from?: string };
 type LookupExamples = { byMeaning: Example[][]; examples: Example[]; phrases: Example[] };
 const NO_EXAMPLES: LookupExamples = { byMeaning: [], examples: [], phrases: [] };
+/** Words in all meanings: [["последствие", "результат"], ["серия"]] → 3. */
+const wordCount = (meanings: string[][]) => meanings.reduce((n, m) => n + m.length, 0);
+
 const NO_SUGGESTIONS: FieldSuggestions = { german: [], reverse: [], reverseLang: null };
 
 export const MAX_GERMAN_ROWS = 5;
@@ -173,10 +177,13 @@ export class CardDraft {
 
   /** Meanings of the looked-up translation ("последствие, результат; серия, эпизод; ряд"). */
   meaningOptions = $state<string[][]>([]);
-  meaningPicked = $state<boolean[]>([]);
-  meaningValue = $derived(joinMeanings(this.meaningOptions.filter((_, i) => this.meaningPicked[i])));
+  /** Which words of each meaning are picked: every word ("последствие", "результат") is a tile. */
+  wordPicked = $state<boolean[][]>([]);
+  /** A meaning is picked while any of its words is (examples and prepositions follow meanings). */
+  meaningPicked = $derived(this.meaningOptions.map((_, i) => !!this.wordPicked[i]?.some(Boolean)));
+  meaningValue = $derived(joinMeanings(this.meaningOptions.map((m, i) => m.filter((_, j) => this.wordPicked[i]?.[j]))));
   /** Chips only while the field holds their selection: a hand edit hides them and is never overwritten. */
-  showMeanings = $derived(this.meaningOptions.length > 1 && this.card.translation === this.meaningValue);
+  showMeanings = $derived(wordCount(this.meaningOptions) > 1 && this.card.translation === this.meaningValue);
 
   /**
    * The last lookup's examples: per meaning (aligned with the meaning chips; empty when the source
@@ -433,6 +440,11 @@ export class CardDraft {
       this.inflight = null;
       return;
     }
+    // Rows of the text before that no longer fit stay out of reach ("geniesse" → genießen, then
+    // "geniesser"): the new rows come after the delay.
+    const key = normalizeKey(prefix);
+    const fits = this.suggestions.german.filter((r) => normalizeKey(r.term.replace(/^sich\s+/i, '')).startsWith(key));
+    if (fits.length !== this.suggestions.german.length) this.suggestions = { ...this.suggestions, german: fits };
     const query = this.isNew && !this.pendingPrep ? text : prefix;
     this.suggestTimer = setTimeout(() => void this.search(query), SUGGEST_DELAY_MS);
   }
@@ -754,8 +766,8 @@ export class CardDraft {
     if (word && own) {
       const res = translationForPick(splitMeanings(card.translation), own, settings.lang, settings.lang);
       if (res) {
-        this.meaningOptions = res.meanings.length > 1 ? res.meanings : [];
-        this.meaningPicked = res.meanings.length > 1 ? res.picked : [];
+        this.meaningOptions = wordCount(res.meanings) > 1 ? res.meanings : [];
+        this.pickMeanings(wordCount(res.meanings) > 1 ? res.picked : []);
         card.translation = joinMeanings(res.meanings.filter((_, i) => res.picked[i]));
         this.auto.translation = card.translation;
         if (res.prepended) {
@@ -774,7 +786,7 @@ export class CardDraft {
     } else if (word && this.meaningOptions.length > 1) {
       const picks = picksForPrep(this.meaningPreps, word);
       if (picks && picks.length === this.meaningOptions.length) {
-        this.meaningPicked = picks;
+        this.pickMeanings(picks);
         card.translation = this.meaningValue;
         this.auto.translation = card.translation;
       }
@@ -827,7 +839,7 @@ export class CardDraft {
     const res = translationForPick(splitMeanings(card.translation), pf.text, pf.lang, settings.lang);
     if (!res) return;
     this.meaningOptions = res.meanings;
-    this.meaningPicked = res.picked;
+    this.pickMeanings(res.picked);
     card.translation = joinMeanings(res.meanings.filter((_, i) => res.picked[i]));
     this.auto.translation = card.translation;
     // Examples per meaning stay aligned with the chips.
@@ -909,9 +921,9 @@ export class CardDraft {
   /** The lookup just put its translation into the field: offer its meanings as chips, all selected. */
   private offerMeanings() {
     const meanings = splitMeanings(this.card.translation);
-    if (meanings.length < 2) return this.clearMeanings();
+    if (wordCount(meanings) < 2) return this.clearMeanings();
     this.meaningOptions = meanings;
-    this.meaningPicked = meanings.map(() => true);
+    this.wordPicked = meanings.map((m) => m.map(() => true));
     const value = joinMeanings(meanings);
     if (this.card.translation === this.auto.translation) this.auto.translation = value;
     this.card.translation = value;
@@ -919,13 +931,24 @@ export class CardDraft {
 
   private clearMeanings() {
     this.meaningOptions = [];
-    this.meaningPicked = [];
+    this.wordPicked = [];
   }
 
-  toggleMeaning(i: number) {
-    if (this.meaningPicked[i] && this.meaningPicked.filter(Boolean).length === 1) return; // keep at least one
+  /** Whole meanings picked or not (all their words), aligned with meaningOptions. */
+  private pickMeanings(picked: boolean[]) {
+    this.wordPicked = this.meaningOptions.map((m, i) => m.map(() => !!picked[i]));
+  }
+
+  /** Is word j of meaning i the only one picked? It can't be turned off. */
+  lastPicked(i: number, j: number): boolean {
+    return !!this.wordPicked[i]?.[j] && this.wordPicked.flat().filter(Boolean).length === 1;
+  }
+
+  /** Toggles word j of meaning i ("результат" in "последствие, результат"). */
+  toggleMeaning(i: number, j: number) {
+    if (!this.wordPicked[i] || this.lastPicked(i, j)) return; // keep at least one
     const wasAuto = this.card.translation === this.auto.translation;
-    this.meaningPicked[i] = !this.meaningPicked[i];
+    this.wordPicked[i][j] = !this.wordPicked[i][j];
     this.card.translation = this.meaningValue;
     // Still the dictionary's text: a re-lookup or the next word may replace it.
     if (wasAuto) this.auto.translation = this.card.translation;

@@ -764,6 +764,12 @@ function lemmaOf(body: string): string | undefined {
   return m?.[1].trim();
 }
 
+/** "{{Schweizer und Liechtensteiner Schreibweise|Genießer|…}}" → "Genießer". */
+function swissSpellingOf(section: string): string | undefined {
+  const m = section.match(/\{\{Schweizer und Liechtensteiner Schreibweise\|([^|}]+)/);
+  return m?.[1].trim() || undefined;
+}
+
 function firstValue(params: Record<string, string>, keys: string[]): string {
   for (const k of keys) {
     const v = params[k];
@@ -776,26 +782,29 @@ function firstValue(params: Record<string, string>, keys: string[]): string {
 export function parseEntry(title: string, wikitext: string): WikiEntry | null {
   const section = germanSection(wikitext);
   if (!section) return null;
+  const pointer = (lemma: string): WikiEntry => ({
+    title,
+    pos: 'other',
+    genders: [],
+    plural: '',
+    praeteritum: '',
+    partizip2: '',
+    auxiliary: '',
+    translations: { en: [], ru: [] },
+    examples: [],
+    lemma,
+  });
+  // The Swiss spelling ("Geniesser", "Strasse") points to the standard one (Genießer, Straße),
+  // whether or not the page has entries of its own.
+  const swiss = swissSpellingOf(section);
+  if (swiss && swiss !== title) return pointer(swiss);
   const blocks = posBlocks(section);
   if (blocks.length === 0) return null;
 
   // Inflected-form pages ("ging", "Häuser", "gegangen") only point to the lemma.
   const lemmaBlock = blocks.find((b) => INFLECTED.test(b.header) && lemmaOf(b.body));
   const lexical = blocks.filter((b) => !INFLECTED.test(b.header));
-  if (lexical.length === 0 && lemmaBlock) {
-    return {
-      title,
-      pos: 'other',
-      genders: [],
-      plural: '',
-      praeteritum: '',
-      partizip2: '',
-      auxiliary: '',
-      translations: { en: [], ru: [] },
-      examples: [],
-      lemma: lemmaOf(lemmaBlock.body),
-    };
-  }
+  if (lexical.length === 0 && lemmaBlock) return pointer(lemmaOf(lemmaBlock.body)!);
 
   const main = lexical[0];
   const pos = posOf(wortarten(main.header));

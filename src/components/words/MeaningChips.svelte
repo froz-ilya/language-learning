@@ -6,42 +6,47 @@
   import type { CardDraft } from '../../lib/words/cardDraft.svelte';
 
   /**
-   * The looked-up translation's meanings as separate tiles, each a toggle in the look of a
-   * segmented switcher's segment: picked = the switcher's selected segment. On the add card they
-   * stand in for the translation line. The last picked tile can't be turned off: it doesn't toggle
-   * and gives a small nudge instead.
+   * The looked-up translation's words as separate tiles, each a toggle in the look of a segmented
+   * switcher's segment: picked = the switcher's selected segment. Words of one meaning
+   * ("последствие, результат") sit closer together than meanings. On the add card they stand in
+   * for the translation line. The last picked tile can't be turned off: it doesn't toggle and
+   * gives a small nudge instead.
    */
   let { draft }: { draft: CardDraft } = $props();
 
-  let nudged = $state(-1);
+  let nudged = $state('');
 
-  function tap(i: number) {
-    if (locked(i)) {
-      nudged = -1;
-      requestAnimationFrame(() => (nudged = i)); // re-trigger the animation on every tap
+  function tap(i: number, j: number) {
+    if (draft.lastPicked(i, j)) {
+      nudged = '';
+      requestAnimationFrame(() => (nudged = `${i}:${j}`)); // re-trigger the animation on every tap
       return;
     }
-    draft.toggleMeaning(i);
+    draft.toggleMeaning(i, j);
   }
-
-  const locked = (i: number) => draft.meaningPicked[i] && draft.meaningPicked.filter(Boolean).length === 1;
 </script>
 
 <div class="meanings" role="group" aria-label={t('words.editor.meanings')} transition:slide={{ duration: dur(180) }}>
   {#each draft.meaningOptions as m, i}
-    <button
-      type="button"
-      class="meaning"
-      class:active={draft.meaningPicked[i]}
-      class:locked={locked(i)}
-      class:nudge={nudged === i}
-      aria-pressed={draft.meaningPicked[i]}
-      aria-disabled={locked(i) || undefined}
-      lang={settings.lang}
-      onpointerdown={draft.keepFocus}
-      onanimationend={() => (nudged = -1)}
-      onclick={() => tap(i)}>{m.join(', ')}</button
-    >
+    <div class="group">
+      {#each m as w, j}
+        {@const picked = !!draft.wordPicked[i]?.[j]}
+        {@const locked = draft.lastPicked(i, j)}
+        <button
+          type="button"
+          class="meaning"
+          class:active={picked}
+          class:locked
+          class:nudge={nudged === `${i}:${j}`}
+          aria-pressed={picked}
+          aria-disabled={locked || undefined}
+          lang={settings.lang}
+          onpointerdown={draft.keepFocus}
+          onanimationend={() => (nudged = '')}
+          onclick={() => tap(i, j)}>{w}</button
+        >
+      {/each}
+    </div>
   {/each}
 </div>
 
@@ -49,8 +54,15 @@
   .meanings {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 6px 12px;
     margin: 2px 0 4px;
+  }
+  /* One meaning's words: closer together than meanings. */
+  .group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 100%;
   }
   /* An unpicked tile is a switcher's well with an unselected segment in it; picked, the segment. */
   .meaning {

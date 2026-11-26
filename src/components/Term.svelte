@@ -1,15 +1,16 @@
 <script lang="ts">
   import type { Card } from '../lib/types';
   import { ARTICLE } from '../lib/german/articles';
-  import { prepOfCard } from '../lib/german/prepositions';
+  import { prepCaseOf, prepOfCard } from '../lib/german/prepositions';
 
   /**
    * German term with its article colored by gender: "der Tisch", "der/das Teil". A word learned
-   * with its preposition shows the case after it: "warten auf + Akk".
+   * with its preposition shows the case after it: "warten auf + Akk"; so does a preposition
+   * itself: "während + Gen".
    */
   let { card }: { card: Pick<Card, 'term' | 'pos' | 'genders'> & { preps?: string } } = $props();
 
-  const prepCase = $derived(prepOfCard(card)?.case);
+  const prepCase = $derived(prepOfCard(card)?.case ?? prepCaseOf(card));
 </script>
 
 {#if card.pos === 'noun' && card.genders.length}

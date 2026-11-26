@@ -288,6 +288,20 @@ function clean(word: string): string {
   return w;
 }
 
+/** "geniesser" → ["genießer"]; with several "ss", each one or all of them (at most 4 variants). */
+export function sharpSVariants(word: string): string[] {
+  const at: number[] = [];
+  for (let i = word.indexOf('ss'); i >= 0; i = word.indexOf('ss', i + 2)) at.push(i);
+  if (!at.length || at.length > 2) return [];
+  const out: string[] = [];
+  for (let mask = (1 << at.length) - 1; mask > 0; mask--) {
+    let v = word;
+    for (let k = at.length - 1; k >= 0; k--) if (mask & (1 << k)) v = v.slice(0, at[k]) + 'ß' + v.slice(at[k] + 2);
+    out.push(v);
+  }
+  return out;
+}
+
 /**
  * Look a word up offline. Accepts lemmas and inflected forms ("ging" → gehen, "Häuser" → Haus),
  * any capitalisation, with or without an article ("der Tisch"). Several hits when ambiguous,
@@ -342,6 +356,13 @@ async function lookup(word: string, withExtra: boolean): Promise<LocalHit[]> {
     } else if (plain.length) {
       const lemmas = plain.map((h) => h.hit.entry);
       for (const h of hits) if (plain.includes(h) || outweighs(h.hit.entry, lower, lemmas)) h.tier = 0;
+    }
+  }
+  if (!hits.length && !w.includes('ß')) {
+    // The Swiss spelling ("Strasse", "geniessen"): the dictionary has it with ß (Straße, genießen).
+    for (const v of sharpSVariants(w)) {
+      const found = await lookup(v, withExtra);
+      if (found.length) return found.map((h) => ({ ...h, form: h.form ?? w }));
     }
   }
   if (withExtra && !hits.some((h) => h.hit.entry.pos === 'verb') && (!hits.length || (await extraMayKnow(w, lower)))) {

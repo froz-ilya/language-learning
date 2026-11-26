@@ -865,3 +865,12 @@ describe('generated dictionary (public/dict)', () => {
     }
   });
 });
+
+describe('sharpSVariants', () => {
+  it('spells ss as ß', async () => {
+    const { sharpSVariants } = await import('./local');
+    expect(sharpSVariants('geniesser')).toEqual(['genießer']);
+    expect(sharpSVariants('Haus')).toEqual([]);
+    expect(sharpSVariants('Schlossstrasse').length).toBeGreaterThan(0);
+  });
+});

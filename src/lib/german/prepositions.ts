@@ -46,6 +46,42 @@ export const CONTRACTIONS: Record<string, string> = {
   vors: 'vor', hinterm: 'hinter', hinters: 'hinter',
 };
 
+/**
+ * The case each German preposition takes when it is the word being learned ("während" → Gen),
+ * shown after the word like a verb's preposition ("während + Gen", see Term.svelte). Prepositions
+ * are a closed class, so this lists all of them in use. Where standard German allows two cases
+ * both are given (dank: Gen / Dat); colloquial Dat after wegen, trotz, statt is left out.
+ */
+const GOVERNS: Record<string, string> = {};
+const govern = (c: string, words: string) => {
+  for (const w of words.split(' ')) GOVERNS[w] = c;
+};
+govern('Akk', 'bis durch für gegen ohne um wider per pro');
+govern('Dat', 'ab aus außer bei gegenüber mit nach seit von zu entgegen gemäß samt nebst mitsamt zuliebe zufolge entsprechend nahe');
+govern(
+  'Gen',
+  'während wegen trotz statt anstatt anstelle innerhalb außerhalb oberhalb unterhalb aufgrund anhand mithilfe infolge ' +
+    'bezüglich angesichts anlässlich abseits ausschließlich einschließlich inklusive exklusive diesseits jenseits ' +
+    'beiderseits hinsichtlich inmitten kraft mangels mittels seitens aufseiten vonseiten ungeachtet unweit zugunsten ' +
+    'zuungunsten zulasten zwecks namens',
+);
+govern('Gen / Dat', 'dank laut längs');
+govern('Dat / Gen', 'binnen');
+govern('Akk / Gen', 'entlang');
+govern('Akk / Dat', 'an auf hinter in neben über unter vor zwischen');
+// Preposition + article: dem / der → Dat ("zum", "zur"), das → Akk ("ins").
+for (const w of Object.keys(CONTRACTIONS)) GOVERNS[w] = w.endsWith('s') ? 'Akk' : 'Dat';
+
+/**
+ * "während" → "Gen", "auf" → "Akk / Dat", "zum" → "Dat"; undefined for any other word. Only for
+ * words that are prepositions here (pos "other"): "laut" the adjective (loud) gets nothing.
+ */
+export function prepCaseOf(card: Pick<Card, 'term' | 'pos'>): string | undefined {
+  if (card.pos !== 'other') return undefined;
+  const w = card.term.trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(GOVERNS, w) ? GOVERNS[w] : undefined;
+}
+
 /** A preposition and (when known) its case. */
 export interface PrepPart {
   word: string;

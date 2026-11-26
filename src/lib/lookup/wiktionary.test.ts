@@ -442,3 +442,10 @@ describe('fetchWikitexts', () => {
     expect(titleChunks(Array.from({ length: 50 }, (_, i) => 'Ä'.repeat(40) + i)).length).toBeGreaterThan(1);
   });
 });
+
+describe('Swiss spellings', () => {
+  it('point to the standard spelling', () => {
+    const page = '== Geniesser ({{Sprache|Deutsch}}) ==\n{{Schweizer und Liechtensteiner Schreibweise|Genießer|Worttrennung=Ge·nies·ser}}';
+    expect(parseEntry('Geniesser', page)?.lemma).toBe('Genießer');
+  });
+});
